@@ -1,0 +1,36 @@
+services:
+  tg:
+    build: .
+    image: tg:latest
+    container_name: tg
+    init: true
+    user: "1000:1000"
+    # Localhost only. Front it with a private tunnel or VPN; do not publish on 0.0.0.0.
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_PATH: /data/tg.sqlite
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_JSON_MODE: ${AI_JSON_MODE:-schema}
+      TZ: ${TZ:-America/Chicago}
+    volumes:
+      # Host directory that holds the SQLite database. Back it up; it survives image rebuilds.
+      - ${TG_DATA_PATH:-./data}:/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
