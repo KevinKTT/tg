@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { AthleteRow } from "@/lib/db";
 import { AthleteProvider, AthleteSwitch } from "./athlete";
 import { AthleteGate } from "./athlete-gate";
@@ -15,6 +15,11 @@ const LINKS = [
   { href: "/prs", label: "PRs" },
   { href: "/equipment", label: "Equipment" },
   { href: "/members", label: "Members" },
+];
+
+const SETTINGS = [
+  { href: "/equipment", label: "Gear", icon: "Equipment" },
+  { href: "/members", label: "Members", icon: "Members" },
 ];
 
 function on(pathname: string, href: string) {
@@ -36,11 +41,23 @@ export function Shell({ children, owned, members }: { children: React.ReactNode;
 
 function Frame({ children, owned }: { children: React.ReactNode; owned: number }) {
   const pathname = usePathname();
+  const [menuPath, setMenuPath] = useState<string | null>(null);
+  const settingsOpen = menuPath === pathname;
+  const settingsOn = SETTINGS.some((link) => pathname.startsWith(link.href));
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuPath(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [settingsOpen]);
 
   return (
     <>
@@ -71,13 +88,38 @@ function Frame({ children, owned }: { children: React.ReactNode; owned: number }
         {children}
       </div>
       <nav className="bottom-nav" aria-label="Primary">
-        {LINKS.map((link) => (
+        {LINKS.slice(0, 4).map((link) => (
           <Link key={link.href} href={link.href} data-on={on(pathname, link.href)}>
             <NavIcon name={link.label} />
-            {link.label === "Equipment" ? "Gear" : link.label}
+            {link.label}
           </Link>
         ))}
+        <div className="nav-more">
+          {settingsOpen ? (
+            <div className="settings-menu" role="menu">
+              {SETTINGS.map((link) => (
+                <Link key={link.href} href={link.href} role="menuitem" data-on={on(pathname, link.href)}>
+                  <NavIcon name={link.icon} />
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            data-on={settingsOn || settingsOpen}
+            aria-expanded={settingsOpen}
+            aria-haspopup="menu"
+            onClick={() => setMenuPath((current) => (current === pathname ? null : pathname))}
+          >
+            <NavIcon name="Settings" />
+            Settings
+          </button>
+        </div>
       </nav>
+      {settingsOpen ? (
+        <button className="settings-backdrop" type="button" aria-label="Close settings" onClick={() => setMenuPath(null)} />
+      ) : null}
     </>
   );
 }
@@ -119,6 +161,14 @@ function NavIcon({ name }: { name: string }) {
       <svg {...common}>
         <circle cx="9" cy="8" r="3" />
         <path d="M4 20c0-2.8 2.2-5 5-5s5 2.2 5 5M16 11a3 3 0 100-6M15 15c2.8 0 5 2.2 5 5" />
+      </svg>
+    );
+  }
+  if (name === "Settings") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6" />
       </svg>
     );
   }

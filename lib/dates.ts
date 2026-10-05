@@ -76,7 +76,7 @@ export function shiftMonth(year: number, month: number, delta: number) {
 
 export function monthMatrix(year: number, month: number) {
   const first = new Date(year, month - 1, 1);
-  const pad = (first.getDay() + 6) % 7;
+  const pad = first.getDay();
   const days = new Date(year, month, 0).getDate();
   const cells: { iso: string; inMonth: boolean }[] = [];
   for (let i = 0; i < pad; i++) {

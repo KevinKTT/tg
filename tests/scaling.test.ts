@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addDays, isISODate, startOfWeek, todayISO } from "../lib/dates";
+import { addDays, isISODate, monthMatrix, startOfWeek, todayISO } from "../lib/dates";
 import { EQUIPMENT } from "../lib/catalog";
 import { guardWorkout } from "../lib/guard";
 import { findPercents } from "../lib/resolve";
@@ -113,5 +113,10 @@ test("dates stay on the calendar", () => {
   assert.equal(isISODate("2026-13-01"), false);
   assert.equal(addDays("2026-10-01", 1), "2026-10-02");
   assert.equal(startOfWeek("2026-10-01"), "2026-09-28");
+  const october = monthMatrix(2026, 10);
+  assert.equal(october[0].iso, "2026-09-27");
+  assert.equal(october[0].inMonth, false);
+  assert.equal(october[4].iso, "2026-10-01");
+  assert.equal(october[4].inMonth, true);
   assert.match(todayISO("UTC"), /^\d{4}-\d{2}-\d{2}$/);
 });

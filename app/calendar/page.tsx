@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { WeekProgram } from "@/components/week-program";
 import { formatShort, monthLabel, monthMatrix, shiftMonth, todayISO } from "@/lib/dates";
-import { listDays } from "@/lib/db";
+import { listDays, type DayMark } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function CalendarPage({
         </div>
       </div>
       <div className="cal" style={{ marginBottom: "0.35rem" }}>
-        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <span key={day} className="faint" style={{ aspectRatio: "auto", background: "transparent" }}>
             {day}
           </span>
@@ -58,7 +58,7 @@ export default async function CalendarPage({
               aria-label={formatShort(cell.iso)}
             >
               {Number(cell.iso.slice(8))}
-              {mark ? <i className="dot" data-rest={mark.status === "rest"} data-logged={mark.scoreCount > 0} /> : <i />}
+              <span className="dots">{dayDots(mark)}</span>
             </Link>
           );
         })}
@@ -66,4 +66,12 @@ export default async function CalendarPage({
       <WeekProgram anchor={today} />
     </>
   );
+}
+
+function dayDots(mark: DayMark | undefined) {
+  if (!mark) return null;
+  if (mark.status === "rest") return <i className="dot" data-rest="true" />;
+  if (mark.athleteCount < 1) return <i className="dot" />;
+  const count = Math.min(mark.athleteCount, 2);
+  return Array.from({ length: count }, (_, index) => <i key={index} className="dot" data-logged="true" />);
 }
