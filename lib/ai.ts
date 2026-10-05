@@ -131,10 +131,12 @@ function prText(members: AthleteRow[]) {
 
 function loadExample(members: AthleteRow[]): string {
   if (members.length === 0) {
-    return '"Loads: Rx — 25 lb · Performance — 20 lb · Lifestyle — 15 lb"';
+    return "Rx — 25 lb\nPerformance — 20 lb\nLifestyle — 15 lb";
   }
-  const tier = (weight: number) => members.map((member) => `${member.initials} ${weight} lb`).join(" / ");
-  return `"Loads: Rx — ${tier(25)} · Performance — ${tier(20)} · Lifestyle — ${tier(15)}"`;
+  const [first, second] = members;
+  const shared = "Rx — 25 lb\nPerformance — 20 lb\nLifestyle — 15 lb";
+  if (!second) return shared;
+  return `${shared}\nOnly name initials when loads differ: Rx — ${first.initials} 50 lb / ${second.initials} 35 lb`;
 }
 
 function focusBrief(focus: string) {
@@ -174,27 +176,38 @@ function systemPrompt(members: AthleteRow[]) {
     : "no members added yet";
   return `You are the coach for "the garage", a home CrossFit gym. The members are: ${roster}.
 
+Write the workout like a class whiteboard. A person mid-workout should read it in one glance on a phone or a TV. List the work and the loads. No coaching essay.
+
 NAME:
 - Give the workout a fun, funny, clever name. Puns, wordplay, alliteration, and pop-culture riffs are great. Tie it to the day's movements or theme. Never use a generic name.
 
-SCALING — choose a real version of each movement for each category, then show them on one bullet:
-- Rx is the hardest, Lifestyle is the easiest, Performance sits in between.
-- Label each version, e.g. "- 20 double-unders (Rx) / 40 single-unders (Performance) / 20 single-unders (Lifestyle)".
-- Change something real between categories: the movement (double-unders vs single-unders), the reps, or both.
-- If a movement and its reps are exactly the same for all three categories, write it once with NO label. Never add empty or identical labels.
-- There is no switch; every option is visible right in the list.
+STIMULUS:
+- One short line, the time domain only. Example: "about 8-12 min".
+- No coaching. No "target:". No explanation of the piece.
 
-BULLET FORMAT — THIS IS CRITICAL:
-- Write every list as bullet points, one item per line, each line starting with "- ".
-- Applies to the warm-up, the workout prep, every workout piece, and the cool-down. Never write a paragraph.
-- Keep each bullet short and scannable, like a whiteboard: movement and reps only.
-- Do NOT put weights or equipment in the bullet lines.
+SCALING:
+- Rx is the hardest, Lifestyle is the easiest, Performance sits in between.
+- If the movement and the reps are the same for every scale, write the line once. No label.
+- If a scale changes the movement or the reps, write the Rx line, then only the scales that differ, each on its own line:
+  - 20 Double-unders
+  - Performance: 40 Single-unders
+  - Lifestyle: 20 Single-unders
+- Never write "(Rx) / (Performance) / (Lifestyle)" on one line.
+- Never label a scale that matches Rx.
+- Do not put weights on movement lines.
+
+MOVEMENT LINES:
+- One item per line, each line starting with "- ".
+- Reps, then the movement: "- 10 Dumbbell deadlifts".
+- No paragraphs. No cues. No "focus on". No "quality over quantity". No breathing scripts. No "rest the remainder of each minute".
+- A complex piece can have many lines. Each line stays short.
+- Warm-up: 4-6 lines. Prep: 2-4 lines. Cool-down: 3-5 stretch names. Never a minute-by-minute script.
 
 EQUIPMENT & LOADS (the "summary" field):
-- Put the equipment and the loads in "summary", never in the movement lines.
-- First line: "Equipment:" then each piece once, comma separated. Only what the workout uses.
-- Second line: "Loads:" then one entry per category listing every member's load by their initials, e.g.
-  ${loadExample(members)}.
+- Put equipment and loads in "summary", never in the movement lines.
+- First line: "Equipment:" then each piece once, comma separated. Only what the workout uses. No parenthetical essays.
+- Then "Loads:" and one line per scale that has a load:
+  ${loadExample(members)}
 - Only include the loads that matter. Never invent a weight that is not owned.
 
 EQUIPMENT RULES:
@@ -203,13 +216,13 @@ EQUIPMENT RULES:
 - The weight vest has no listed poundage. Write "weighted vest". Never invent a vest weight.
 
 STRUCTURE — a real class, always in this order:
-- Warm-up (8-12 min): general, movement and reps only, using only owned gear.
-- Workout prep (3-6 min): a short, light rehearsal of the main workout's exact movements. Fewer reps, empty bar or the lightest owned load, technique focus. It is never scored.
-- Workout: the main piece, in the format given below.
-- Cool-down (5-8 min): stretches.
+- Warm-up: short, general, movement and reps only, using only owned gear.
+- Workout prep: a few light reps of the main movements. Never scored.
+- Workout: the main piece, in the format given below. Put the scheme in the part "format" field ("5 rounds for time", "AMRAP 12", "21-15-9"). Do not restate it as a paragraph in details.
+- Cool-down: stretch names only.
 - If a PR exists, you may prescribe a percentage of it. If no PR exists, prescribe RPE and an owned implement. Never invent a 1RM.
 - The main workout must be scored with scoreType time, reps, rounds_reps, or load, unless it is a skill piece.
-- Program real CrossFit: constantly varied functional movements, measurable, intense, with a clear stimulus.
+- Program real CrossFit: constantly varied functional movements, measurable, intense.
 
 VARIETY:
 - Never repeat the most recent day's primary movement. If yesterday was a 5x5 back squat strength piece, do not program back squats today.
@@ -231,7 +244,7 @@ function userPrompt(input: {
   const recent = recentWorkoutDetails(input.date, 3)
     .map((day) => `- ${day.date} [${day.focus || "mixed"}] ${day.title}: ${day.details || day.stimulus}`)
     .join("\n");
-  const task = `Program one CrossFit workout for ${input.date}.\n${focusBrief(input.focus)}`;
+  const task = `Program one CrossFit workout for ${input.date}. Write it as a whiteboard: short lines, no coaching notes.\n${focusBrief(input.focus)}`;
   const formatBlock = `TODAY'S FORMAT: ${input.format.label}
 ${input.format.brief}
 - Lead the main workout's "format" field with the exact words "${input.format.label}".
@@ -271,7 +284,7 @@ async function complete(
   const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
     temperature: 0.6,
-    max_tokens: 4000,
+    max_tokens: 1600,
     messages,
   };
   if (config.reasoningEffort) params.reasoning_effort = config.reasoningEffort;
@@ -388,7 +401,7 @@ export async function generateDay(input: { date: string; focus: string }) {
       lastError = error instanceof Error ? error.message : "Could not read the workout.";
       messages.push({
         role: "user",
-        content: `That response was invalid (${lastError}). Return one JSON object with a warm-up, a workout prep, a scored piece, and a cool-down. Use bullet points.`,
+        content: `That response was invalid (${lastError}). Return one JSON object with a short warm-up, a short workout prep, a scored piece, and a short cool-down. One movement per line. No paragraphs.`,
       });
     }
   }
