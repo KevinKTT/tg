@@ -1,13 +1,17 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { editDay, editPart, removeDay, removeScore, saveScore } from "@/lib/actions";
-import { DAY_TRACK, type Sex } from "@/lib/athletes";
+import { DAY_TRACK, focusLabel, type Sex } from "@/lib/athletes";
+import { parseBoard, parseSummary, type BoardLine } from "@/lib/board";
+import { clockWorkout } from "@/lib/clock";
 import { formatLabel } from "@/lib/formats";
 import { findPercents } from "@/lib/resolve";
 import { formatLoad, formatTime, higherIsBetter } from "@/lib/scoring";
 import { closestLoad, formatPercentLoad, percentOf, type Plate } from "@/lib/scaling";
-import type { DayView, EquipmentRow, MovementRow, PrRow, ScoreView } from "@/lib/db";
+import type { DayView, EquipmentRow, MovementRow, PartView, PrRow, ScoreView } from "@/lib/db";
 import { useAthlete } from "./athlete";
+import { useClock } from "./clock";
 
 const KIND: Record<string, string> = {
   warmup: "Warm-up",
@@ -17,6 +21,8 @@ const KIND: Record<string, string> = {
   skill: "Skill",
   cooldown: "Cool-down",
 };
+
+const HERO = new Set(["strength", "metcon", "skill"]);
 
 export function WorkoutCard({
   day,
@@ -32,8 +38,18 @@ export function WorkoutCard({
   equipment: EquipmentRow[];
 }) {
   const { athlete, current, unit } = useAthlete();
+  const { register } = useClock();
   const person = current;
   const track = day.tracks.find((item) => item.track === DAY_TRACK) ?? day.tracks[0];
+  const spec = useMemo(() => {
+    if (!athlete || day.status === "rest" || !track) return null;
+    return clockWorkout(day.format, day.date, athlete, track.parts);
+  }, [athlete, day, track]);
+
+  useEffect(() => {
+    register(spec);
+    return () => register(null);
+  }, [register, spec]);
 
   if (!person || !athlete) return null;
 
@@ -51,43 +67,41 @@ export function WorkoutCard({
   if (!track) return null;
   const text = track.parts.map((part) => part.body).join("\n");
   const hits = findPercents(text);
-  const kicker = [formatLabel(day.format), day.focus || day.source].filter(Boolean).join(" · ");
+  const kicker = [formatLabel(day.format), day.focus ? focusLabel(day.focus) : day.source].filter(Boolean).join(" · ");
+  const summary = parseSummary(track.summary);
+  const heroes = track.parts.filter((part) => HERO.has(part.kind));
+  const lastHero = heroes[heroes.length - 1];
 
   return (
     <div className="stack">
-      <section className="card stack">
-        <div className="spread">
-          <div>
-            <p className="kicker">{kicker}</p>
-            <h2>{day.title}</h2>
+      <section className="board">
+        <p className="kicker">{kicker}</p>
+        <h2>{day.title}</h2>
+        {day.stimulus ? <p className="board-stimulus">{day.stimulus}</p> : null}
+        {summary.equipment.length ? <p className="board-gear">{summary.equipment.join(" · ")}</p> : null}
+
+        {track.parts.map((part) => (
+          <div key={part.id}>
+            <Piece part={part} date={day.date} showName={heroes.length > 1} />
+            {part.id === lastHero?.id ? (
+              <Loads loads={summary.loads} initials={person.initials} />
+            ) : null}
           </div>
-        </div>
-        <p className="muted">{day.stimulus}</p>
-        <p className="faint">{person.initials}</p>
+        ))}
+        {!lastHero ? <Loads loads={summary.loads} initials={person.initials} /> : null}
         {hits.length ? (
           <LoadCallout hits={hits} athlete={person.slug} sex={person.sex} unit={unit} prs={prs} movements={movements} equipment={equipment} />
         ) : null}
       </section>
 
-      {track.summary ? (
-        <section className="card">
-          <p className="kicker">Equipment &amp; loads</p>
-          <p className="pre">{track.summary}</p>
-        </section>
-      ) : null}
-
       {track.parts.map((part) => {
+        if (part.scoreType === "none") return null;
         const mine = scores.find((score) => score.partId === part.id && score.athleteSlug === athlete);
         return (
           <section className="card" key={part.id}>
-            <p className="kicker">{KIND[part.kind] || part.kind}</p>
+            <p className="kicker">Score</p>
             <h3>{part.name}</h3>
-            {part.format ? <p className="muted">{part.format}</p> : null}
-            {part.timeCapSec ? <p className="faint">Cap {formatTime(part.timeCapSec)}</p> : null}
-            <p className="pre">{part.body}</p>
-            {part.scoreType !== "none" ? (
-              <ScoreForm partId={part.id} scoreType={part.scoreType} athlete={athlete} unit={unit} existing={mine?.display} />
-            ) : null}
+            <ScoreForm partId={part.id} scoreType={part.scoreType} athlete={athlete} unit={unit} existing={mine?.display} />
             {mine ? (
               <form
                 action={removeScore}
@@ -136,6 +150,123 @@ export function WorkoutCard({
   );
 }
 
+function checksKey(date: string, partId: number) {
+  return `tg-board:${date}:${partId}`;
+}
+
+function readChecks(date: string, partId: number) {
+  try {
+    const raw = localStorage.getItem(checksKey(date, partId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((item) => Number.isInteger(item)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function Piece({ part, date, showName }: { part: PartView; date: string; showName: boolean }) {
+  const hero = HERO.has(part.kind);
+  const lines = parseBoard(part.body);
+  const label = KIND[part.kind] || part.kind;
+  const [done, setDone] = useState<number[]>([]);
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setDone(readChecks(date, part.id));
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [date, part.id]);
+
+  function toggle(index: number) {
+    setDone((current) => {
+      const next = current.includes(index) ? current.filter((item) => item !== index) : [...current, index];
+      try {
+        localStorage.setItem(checksKey(date, part.id), JSON.stringify(next));
+      } catch {
+        // Storage can be blocked. The check still shows for this view.
+      }
+      return next;
+    });
+  }
+
+  return (
+    <div className={hero ? "board-piece board-hero" : "board-piece"}>
+      <p className="kicker">{label}</p>
+      {showName && part.name && part.name !== label ? <h3 className="board-piece-name">{part.name}</h3> : null}
+      {part.format ? (
+        <p className="board-scheme">
+          {part.format}
+          {part.timeCapSec ? <span className="board-cap"> · Cap {formatTime(part.timeCapSec)}</span> : null}
+        </p>
+      ) : part.timeCapSec ? (
+        <p className="board-scheme">Cap {formatTime(part.timeCapSec)}</p>
+      ) : null}
+      {lines.length ? <BoardLines lines={lines} done={done} onToggle={toggle} /> : part.body ? <p className="pre">{part.body}</p> : null}
+    </div>
+  );
+}
+
+function BoardLines({ lines, done, onToggle }: { lines: BoardLine[]; done: number[]; onToggle: (index: number) => void }) {
+  return (
+    <div className="move-list">
+      {lines.map((line, index) =>
+        line.type === "note" ? (
+          <p className="board-note" key={index}>
+            {line.text}
+          </p>
+        ) : (
+          <button
+            type="button"
+            className="move"
+            key={index}
+            data-done={done.includes(index) ? "true" : "false"}
+            aria-pressed={done.includes(index)}
+            onClick={() => onToggle(index)}
+          >
+            <span className="move-reps">{line.reps}</span>
+            <span className="move-name">{line.name}</span>
+            {line.scales.map((scale) => (
+              <span className="scale-line" key={scale.label}>
+                <span className="scale-label">{scale.label}</span>
+                {scale.text}
+              </span>
+            ))}
+          </button>
+        ),
+      )}
+    </div>
+  );
+}
+
+function Loads({ loads, initials }: { loads: { label: string; value: string }[]; initials: string }) {
+  if (!loads.length) return null;
+  return (
+    <div className="load-grid">
+      {loads.map((row) => (
+        <div className="load-row" key={row.label}>
+          <span className="load-label">{row.label}</span>
+          <LoadValue value={row.value} initials={initials} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LoadValue({ value, initials }: { value: string; initials: string }) {
+  const parts = value.split(/(\s*\/\s*)/);
+  return (
+    <span className="load-value">
+      {parts.map((part, index) => {
+        const mine = Boolean(initials) && new RegExp(`^${initials.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(part.trim());
+        return (
+          <span key={index} data-mine={mine ? "true" : undefined}>
+            {part}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 function LoadCallout({
   hits,
   athlete,
@@ -172,7 +303,7 @@ function LoadCallout({
   return (
     <div>
       {rows.map((row) => (
-        <p key={row} className="muted">
+        <p key={row} className="board-callout">
           {row}
         </p>
       ))}

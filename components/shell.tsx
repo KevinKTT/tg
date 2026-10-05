@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import type { AthleteRow } from "@/lib/db";
 import { AthleteProvider, AthleteSwitch } from "./athlete";
 import { AthleteGate } from "./athlete-gate";
+import { ClockBar, ClockProvider } from "./clock";
 
 const LINKS = [
   { href: "/", label: "Today" },
@@ -25,7 +26,9 @@ function on(pathname: string, href: string) {
 export function Shell({ children, owned, members }: { children: React.ReactNode; owned: number; members: AthleteRow[] }) {
   return (
     <AthleteProvider members={members}>
-      <Frame owned={owned}>{children}</Frame>
+      <ClockProvider>
+        <Frame owned={owned}>{children}</Frame>
+      </ClockProvider>
       <AthleteGate />
     </AthleteProvider>
   );
@@ -42,21 +45,24 @@ function Frame({ children, owned }: { children: React.ReactNode; owned: number }
   return (
     <>
       <div className="shell">
-        <header className="topbar">
-          <Link href="/" className="logo" aria-label="the garage">
-            tg
-          </Link>
-          <span className="word">the garage</span>
-          <AthleteSwitch className="desktop-switch" />
-          <nav className="top-nav" aria-label="Primary">
-            {LINKS.map((link) => (
-              <Link key={link.href} href={link.href} data-on={on(pathname, link.href)}>
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-          <AthleteSwitch />
-        </header>
+        <div className="top-stack">
+          <header className="topbar">
+            <Link href="/" className="logo" aria-label="the garage">
+              tg
+            </Link>
+            <span className="word">the garage</span>
+            <AthleteSwitch className="desktop-switch" />
+            <nav className="top-nav" aria-label="Primary">
+              {LINKS.map((link) => (
+                <Link key={link.href} href={link.href} data-on={on(pathname, link.href)}>
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <AthleteSwitch />
+          </header>
+          <ClockBar />
+        </div>
         {owned === 0 && pathname !== "/equipment" ? (
           <Link href="/equipment" className="banner">
             Mark what you own in Equipment before generating workouts.
