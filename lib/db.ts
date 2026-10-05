@@ -101,6 +101,7 @@ export type DayMark = {
   status: string;
   title: string;
   scoreCount: number;
+  athleteCount: number;
 };
 
 type SqlEquipment = {
@@ -596,17 +597,22 @@ export function listDays(from: string, to: string): DayMark[] {
         (SELECT COUNT(*) FROM scores s
           JOIN workout_parts p ON p.id = s.part_id
           JOIN workout_tracks t ON t.id = p.track_id
-          WHERE t.day_id = d.id) AS score_count
+          WHERE t.day_id = d.id) AS score_count,
+        (SELECT COUNT(DISTINCT s.athlete_slug) FROM scores s
+          JOIN workout_parts p ON p.id = s.part_id
+          JOIN workout_tracks t ON t.id = p.track_id
+          WHERE t.day_id = d.id) AS athlete_count
        FROM workout_days d
        WHERE d.date >= ? AND d.date <= ?
        ORDER BY d.date`,
     )
-    .all(from, to) as { date: string; status: string; title: string; score_count: number }[];
+    .all(from, to) as { date: string; status: string; title: string; score_count: number; athlete_count: number }[];
   return rows.map((row) => ({
     date: row.date,
     status: row.status,
     title: row.title,
     scoreCount: row.score_count,
+    athleteCount: row.athlete_count,
   }));
 }
 

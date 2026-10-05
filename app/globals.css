@@ -219,18 +219,70 @@ button {
   z-index: 20;
 }
 
-.bottom-nav a {
+.bottom-nav > a,
+.bottom-nav > .nav-more > button {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.15rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
   color: var(--color-faint);
+  font: inherit;
   font-size: 0.65rem;
+  line-height: 1.1;
   padding: 0.25rem 0;
 }
 
-.bottom-nav a[data-on="true"] {
+.bottom-nav > a[data-on="true"],
+.bottom-nav > .nav-more > button[data-on="true"] {
   color: var(--color-amber);
+}
+
+.nav-more {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  border: 0;
+  background: transparent;
+}
+
+.settings-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.45rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 9.5rem;
+  padding: 0.3rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.9rem;
+  background: rgba(27, 24, 20, 0.98);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.settings-menu a {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.65rem;
+  color: var(--color-ink);
+  font-size: 0.95rem;
+}
+
+.settings-menu a[data-on="true"] {
+  color: var(--color-amber);
+  background: var(--color-raised);
 }
 
 .page-head {
@@ -616,6 +668,14 @@ button {
   opacity: 0.35;
 }
 
+.dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.14rem;
+  min-height: 0.38rem;
+}
+
 .dot {
   width: 0.38rem;
   height: 0.38rem;
@@ -704,7 +764,8 @@ details summary {
   }
 
   .bottom-nav,
-  .athlete-switch {
+  .athlete-switch,
+  .settings-backdrop {
     display: none;
   }
 
