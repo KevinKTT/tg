@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   try {
     const result = await generateDay({
       date: body.date,
-      focus: body.focus || "mixed",
+      focus: body.focus && body.focus !== "auto" ? body.focus : "",
     });
     revalidatePath("/", "layout");
     return Response.json({ ok: true, title: result.title });

@@ -2,9 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { WEEK_PLAN, focusForDate } from "@/lib/athletes";
 import { writeDay, restDay } from "@/lib/actions";
-import { weekdayShort, weekDates } from "@/lib/dates";
+import { parseISO, weekdayShort, weekDates } from "@/lib/dates";
 import { Generating, readGenerate } from "./generating";
 
 export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: boolean }) {
@@ -31,12 +30,11 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date,
-          mode: "program",
-          focus: focusForDate(date),
-          force: hasWorkout,
-        }),
+          body: JSON.stringify({
+            date,
+            mode: "program",
+            force: hasWorkout,
+          }),
       });
       const data = await readGenerate(response);
       if (!data.ok) {
@@ -61,15 +59,14 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
     try {
       for (let index = 0; index < dates.length; index += 1) {
         const day = dates[index];
-        const focus = WEEK_PLAN[index];
+        const rest = parseISO(day).getDay() === 0;
         setStatus(`${weekdayShort(day)}…`);
         const response = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             date: day,
-            mode: focus === "rest" ? "rest" : "program",
-            focus,
+            mode: rest ? "rest" : "program",
             force: replace,
           }),
         });
@@ -103,7 +100,7 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
         <p className="kicker">Build the day</p>
         <h2>Program the day</h2>
       </div>
-      <p className="muted">One shared workout for the whole gym. The week rotates strength, cardio, mixed, and heavy.</p>
+      <p className="muted">One shared workout. The coach varies the day so heavy days and running days do not stack. Sunday is rest.</p>
       {error ? <p className="error">{error}</p> : null}
       {status ? <p className="muted">{status}</p> : null}
       <label className="row">

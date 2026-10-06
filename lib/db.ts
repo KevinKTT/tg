@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS workout_days (
   source_text TEXT NOT NULL DEFAULT '',
   focus TEXT NOT NULL DEFAULT '',
   format TEXT NOT NULL DEFAULT '',
+  program TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT 'published',
   equipment_snapshot TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -243,6 +244,7 @@ export function getDb() {
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
   ensureColumn(db, "workout_days", "format", "format TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "workout_days", "program", "program TEXT NOT NULL DEFAULT ''");
   if (ensureColumn(db, "athletes", "sort", "sort INTEGER NOT NULL DEFAULT 0")) {
     db.exec("UPDATE athletes SET sort = rowid");
   }
@@ -616,42 +618,45 @@ export function listDays(from: string, to: string): DayMark[] {
   }));
 }
 
-export type RecentWorkout = {
+export type DaySignal = {
   date: string;
-  title: string;
   focus: string;
+  format: string;
   stimulus: string;
-  details: string;
+  program: string;
+  text: string;
 };
 
-export function recentWorkoutDetails(before: string, limit = 3): RecentWorkout[] {
+export function recentDaySignals(before: string, limit = 21): DaySignal[] {
   const db = getDb();
   const days = db
     .prepare(
-      `SELECT id, date, title, stimulus, focus FROM workout_days
+      `SELECT id, date, focus, format, stimulus, program FROM workout_days
        WHERE date < ? AND status != 'rest'
        ORDER BY date DESC LIMIT ?`,
     )
-    .all(before, limit) as { id: number; date: string; title: string; stimulus: string; focus: string }[];
+    .all(before, limit) as {
+    id: number;
+    date: string;
+    focus: string;
+    format: string;
+    stimulus: string;
+    program: string;
+  }[];
   const parts = db.prepare(
-    `SELECT p.name, p.format, p.body FROM workout_parts p
+    `SELECT p.body FROM workout_parts p
      JOIN workout_tracks t ON t.id = p.track_id
-     WHERE t.day_id = ? ORDER BY p.sort_order, p.id`,
+     WHERE t.day_id = ? AND p.kind NOT IN ('warmup', 'prep', 'cooldown')
+     ORDER BY p.sort_order, p.id`,
   );
-  return days.map((day) => {
-    const rows = parts.all(day.id) as { name: string; format: string; body: string }[];
-    const details = rows
-      .filter((row) => row.body.trim())
-      .map((row) => `${row.name}${row.format ? ` (${row.format})` : ""}: ${row.body.trim()}`)
-      .join(" | ");
-    return {
-      date: day.date,
-      title: day.title,
-      focus: day.focus,
-      stimulus: day.stimulus,
-      details,
-    };
-  });
+  return days.map((day) => ({
+    date: day.date,
+    focus: day.focus,
+    format: day.format,
+    stimulus: day.stimulus,
+    program: day.program ?? "",
+    text: (parts.all(day.id) as { body: string }[]).map((row) => row.body).join("\n"),
+  }));
 }
 
 export function recentFormats(before: string, limit = 3): string[] {
@@ -764,6 +769,7 @@ export function saveGeneratedDay(input: {
   sourceText: string;
   focus: string;
   format: string;
+  program?: string;
   status?: string;
   snapshot: string;
   track: GeneratedTrack;
@@ -774,8 +780,8 @@ export function saveGeneratedDay(input: {
     db.prepare("DELETE FROM workout_days WHERE date = ?").run(input.date);
     const day = db
       .prepare(
-        `INSERT INTO workout_days (date, title, stimulus, source, source_text, focus, format, status, equipment_snapshot)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO workout_days (date, title, stimulus, source, source_text, focus, format, program, status, equipment_snapshot)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.date,
@@ -785,6 +791,7 @@ export function saveGeneratedDay(input: {
         input.sourceText,
         input.focus,
         input.format,
+        input.program ?? "",
         input.status ?? "published",
         input.snapshot,
       );

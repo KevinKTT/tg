@@ -2,14 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { FOCUSES, WEEK_PLAN } from "@/lib/athletes";
+import { FOCUSES } from "@/lib/athletes";
 import { addDays, formatShort, startOfWeek, weekdayShort } from "@/lib/dates";
 import { Generating, readGenerate } from "./generating";
 
 export function WeekProgram({ anchor }: { anchor: string }) {
   const router = useRouter();
   const [offset, setOffset] = useState(0);
-  const [focuses, setFocuses] = useState<string[]>([...WEEK_PLAN]);
+  const [focuses, setFocuses] = useState<string[]>(["auto", "auto", "auto", "auto", "auto", "auto", "rest"]);
   const [replace, setReplace] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -32,7 +32,7 @@ export function WeekProgram({ anchor }: { anchor: string }) {
           body: JSON.stringify({
             date,
             mode: focus === "rest" ? "rest" : "program",
-            focus,
+            ...(focus !== "auto" ? { focus } : {}),
             force: replace,
           }),
         });
@@ -93,6 +93,7 @@ export function WeekProgram({ anchor }: { anchor: string }) {
               setFocuses(next);
             }}
           >
+            <option value="auto">Coach</option>
             {FOCUSES.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}

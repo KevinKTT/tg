@@ -1,3 +1,5 @@
+import { scanMovements } from "./program";
+
 export type GuardItem = {
   slug: string;
   name: string;
@@ -19,6 +21,13 @@ export type GuardTrack = {
   prep?: string;
   cooldown: string;
   parts: GuardPart[];
+};
+
+export type ProgramCheck = {
+  load: "heavy" | "moderate" | "light";
+  allowRun: boolean;
+  allowHeavy: boolean;
+  bannedMovements: string[];
 };
 
 const KEYWORDS: { pattern: RegExp; cap: string; label: string }[] = [
@@ -93,7 +102,33 @@ function prescribedLoads(text: string, category: "kettlebell" | "dumbbell" | "od
   return hits.map((hit) => ({ ...hit, category }));
 }
 
-export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardItem[]): string[] {
+function toPounds(value: number, unit: string): number {
+  return unit === "kg" ? value * 2.2046226218 : value;
+}
+
+function heavyRxViolation(summary: string, items: GuardItem[]): string | null {
+  if (!/\d+\s*(kg|lb)/i.test(summary) && !/%/.test(summary)) return "heavy day is missing an Rx load";
+  const lines = summary.split("\n").filter((line) => /\brx\b/i.test(line) && !/%/.test(line));
+  const loads: { value: number; unit: string }[] = [];
+  for (const line of lines) {
+    for (const match of line.matchAll(/(\d+(?:\.\d+)?)\s*(kg|lb)/gi)) {
+      loads.push({ value: Number(match[1]), unit: match[2].toLowerCase() });
+    }
+  }
+  if (!loads.length) return null;
+  const prescribed = loads.reduce((best, load) => (toPounds(load.value, load.unit) > toPounds(best.value, best.unit) ? load : best));
+  for (const category of ["dumbbell", "kettlebell"] as const) {
+    const owned = items.filter((item) => item.owned && item.category === category && item.loadValue != null && item.unit);
+    if (owned.length < 2) continue;
+    const lightest = owned.reduce((best, item) => (toPounds(item.loadValue ?? 0, item.unit ?? "lb") < toPounds(best.loadValue ?? 0, best.unit ?? "lb") ? item : best));
+    if (matchesImplement([lightest], category, prescribed.value, prescribed.unit)) {
+      return `Rx uses the lightest ${category}. Use a heavier owned implement.`;
+    }
+  }
+  return null;
+}
+
+export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardItem[], check?: ProgramCheck): string[] {
   const caps = capabilities(items);
   const violations: string[] = [];
   for (const [track, body] of Object.entries(tracks)) {
@@ -110,6 +145,25 @@ export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardIte
     if (!caps.has("barbell")) {
       if (BARBELL_EXPLICIT.test(text) || (BARBELL_MOVEMENTS.test(text) && !OWNED_SUBSTITUTES.test(text))) {
         violations.push(`${track} uses a barbell, which is not owned`);
+      }
+    }
+    if (check) {
+      const scored = [body.summary ?? "", ...body.parts.map((part) => `${part.name}\n${part.details}`)].join("\n");
+      const hits = scanMovements(scored);
+      if (!check.allowRun && hits.some((hit) => hit.slug === "run")) {
+        violations.push(`${track} programs running, which is banned today`);
+      }
+      if (!check.allowHeavy && /\b(1\s?rm|one[- ]rep max|build to a heavy|heavy single|find a (?:heavy|1))\b/i.test(scored)) {
+        violations.push(`${track} programs a heavy max, which is banned today`);
+      }
+      for (const slug of check.bannedMovements) {
+        if (hits.some((hit) => hit.slug === slug)) {
+          violations.push(`${track} repeats ${slug.replace(/_/g, " ")}, which is banned today`);
+        }
+      }
+      if (check.load === "heavy") {
+        const loadViolation = heavyRxViolation(body.summary ?? "", items);
+        if (loadViolation) violations.push(`${track} ${loadViolation}`);
       }
     }
     const loads = [
