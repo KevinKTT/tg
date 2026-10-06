@@ -3,17 +3,28 @@
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { saveScore } from "@/lib/actions";
-import { clockFace, OPEN_CLOCK, splitElapsed, type ClockPlan, type ClockWorkout } from "@/lib/clock";
+import {
+  clockFace,
+  OPEN_CLOCK,
+  PRESTART_SEC,
+  prestartCues,
+  prestartSecond,
+  splitElapsed,
+  type ClockPlan,
+  type ClockWorkout,
+} from "@/lib/clock";
 
 type ClockContextValue = {
   workout: ClockWorkout | null;
   selectedId: number | null;
   startedAt: number | null;
+  countdownUntil: number | null;
   now: number;
   armedUntil: number;
   register: (next: ClockWorkout | null) => void;
   tap: () => void;
   cycle: () => void;
+  cancel: () => void;
 };
 
 const ClockContext = createContext<ClockContextValue | null>(null);
@@ -22,20 +33,24 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   const [workout, setWorkout] = useState<ClockWorkout | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [countdownUntil, setCountdownUntil] = useState<number | null>(null);
   const [now, setNow] = useState(0);
   const [armedUntil, setArmedUntil] = useState(0);
   const runningRef = useRef(false);
   const startedAtRef = useRef<number | null>(null);
+  const countdownUntilRef = useRef<number | null>(null);
+  const announcedRef = useRef(PRESTART_SEC);
   const armedUntilRef = useRef(0);
   const workoutRef = useRef<ClockWorkout | null>(null);
   const selectedIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     startedAtRef.current = startedAt;
+    countdownUntilRef.current = countdownUntil;
     armedUntilRef.current = armedUntil;
     workoutRef.current = workout;
     selectedIdRef.current = selectedId;
-  }, [startedAt, armedUntil, workout, selectedId]);
+  }, [startedAt, countdownUntil, armedUntil, workout, selectedId]);
 
   const register = useCallback((next: ClockWorkout | null) => {
     if (runningRef.current) return;
@@ -57,6 +72,23 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     setArmedUntil(0);
   }, []);
 
+  const cancel = useCallback(() => {
+    if (countdownUntilRef.current == null) return;
+    countdownUntilRef.current = null;
+    announcedRef.current = PRESTART_SEC;
+    setCountdownUntil(null);
+  }, []);
+
+  const beginCountdown = useCallback(() => {
+    unlockAudio();
+    announcedRef.current = PRESTART_SEC;
+    const stamp = Date.now();
+    const until = stamp + PRESTART_SEC * 1000;
+    countdownUntilRef.current = until;
+    setCountdownUntil(until);
+    setNow(stamp);
+  }, []);
+
   const stop = useCallback(async () => {
     const started = startedAtRef.current;
     const current = workoutRef.current;
@@ -64,8 +96,11 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     const option = current?.parts.find((part) => part.id === selected) ?? current?.parts[0];
     runningRef.current = false;
     startedAtRef.current = null;
+    countdownUntilRef.current = null;
+    announcedRef.current = PRESTART_SEC;
     armedUntilRef.current = 0;
     setStartedAt(null);
+    setCountdownUntil(null);
     setArmedUntil(0);
     if (!started || !current || !option?.plan.savesTime) return;
     const elapsed = splitElapsed((Date.now() - started) / 1000);
@@ -85,8 +120,12 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const tap = useCallback(() => {
+    if (countdownUntilRef.current != null) {
+      cancel();
+      return;
+    }
     if (!runningRef.current) {
-      start();
+      beginCountdown();
       return;
     }
     if (armedUntilRef.current > Date.now()) {
@@ -97,10 +136,10 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     armedUntilRef.current = until;
     setArmedUntil(until);
     setNow(Date.now());
-  }, [start, stop]);
+  }, [beginCountdown, cancel, stop]);
 
   const cycle = useCallback(() => {
-    if (runningRef.current) return;
+    if (runningRef.current || countdownUntilRef.current != null) return;
     setSelectedId((current) => {
       const parts = workoutRef.current?.parts ?? [];
       if (parts.length < 2) return current;
@@ -110,13 +149,33 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (startedAt == null) return;
-    const id = window.setInterval(() => setNow(Date.now()), 200);
+    if (startedAt == null && countdownUntil == null) return;
+    const id = window.setInterval(() => {
+      const stamp = Date.now();
+      const until = countdownUntilRef.current;
+      if (until != null && !runningRef.current) {
+        const second = prestartSecond(Math.max(0, (until - stamp) / 1000));
+        const cues = prestartCues(announcedRef.current, second);
+        announcedRef.current = second;
+        for (const cue of cues) {
+          if (cue === "go") goBeep();
+          else beep();
+        }
+        if (stamp >= until) {
+          countdownUntilRef.current = null;
+          setCountdownUntil(null);
+          start();
+        }
+      }
+      setNow(stamp);
+    }, 200);
     return () => window.clearInterval(id);
-  }, [startedAt]);
+  }, [startedAt, countdownUntil, start]);
+
+  const holding = startedAt != null || countdownUntil != null;
 
   useEffect(() => {
-    if (startedAt == null || !("wakeLock" in navigator)) return;
+    if (!holding || !("wakeLock" in navigator)) return;
     let lock: WakeLockSentinel | null = null;
     let cancelled = false;
     navigator.wakeLock
@@ -130,11 +189,11 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       void lock?.release();
     };
-  }, [startedAt]);
+  }, [holding]);
 
   const value = useMemo(
-    () => ({ workout, selectedId, startedAt, now, armedUntil, register, tap, cycle }),
-    [workout, selectedId, startedAt, now, armedUntil, register, tap, cycle],
+    () => ({ workout, selectedId, startedAt, countdownUntil, now, armedUntil, register, tap, cycle, cancel }),
+    [workout, selectedId, startedAt, countdownUntil, now, armedUntil, register, tap, cycle, cancel],
   );
 
   return <ClockContext.Provider value={value}>{children}</ClockContext.Provider>;
@@ -148,14 +207,16 @@ export function useClock() {
 
 export function ClockBar() {
   const pathname = usePathname();
-  const { workout, selectedId, startedAt, now, armedUntil, tap, cycle } = useClock();
+  const { workout, selectedId, startedAt, countdownUntil, now, armedUntil, tap, cycle, cancel } = useClock();
   const onWorkout = pathname === "/" || pathname.startsWith("/workout/");
   const running = startedAt != null;
+  const counting = countdownUntil != null && !running;
   const option = workout?.parts.find((part) => part.id === selectedId) ?? workout?.parts[0] ?? null;
   const plan: ClockPlan = option?.plan ?? OPEN_CLOCK;
   const elapsed = running ? Math.max(0, (now - startedAt) / 1000) : 0;
   const face = clockFace(plan, elapsed);
   const armed = running && armedUntil > now;
+  const second = counting ? prestartSecond(Math.max(0, (countdownUntil - now) / 1000)) : 0;
   const mark = useRef(face.mark);
 
   useEffect(() => {
@@ -167,7 +228,19 @@ export function ClockBar() {
     mark.current = face.mark;
   }, [face.mark, running]);
 
+  useEffect(() => {
+    if (!onWorkout && countdownUntil != null) cancel();
+  }, [onWorkout, countdownUntil, cancel]);
+
   if (!onWorkout && !running) return null;
+
+  const label = counting
+    ? "Countdown. Tap to cancel"
+    : armed
+      ? "Tap again to stop the clock"
+      : running
+        ? "Clock running. Tap to arm stop"
+        : "Start clock";
 
   return (
     <div className="clock-row">
@@ -175,16 +248,19 @@ export function ClockBar() {
         type="button"
         className="clock"
         data-armed={armed ? "true" : "false"}
-        aria-label={armed ? "Tap again to stop the clock" : running ? "Clock running. Tap to arm stop" : "Start clock"}
+        data-counting={counting ? "true" : "false"}
+        aria-label={label}
         onClick={tap}
       >
-        <span className="clock-time">{face.display}</span>
+        <span className="clock-time" aria-live={counting ? "polite" : "off"}>
+          {counting ? String(Math.max(1, second)) : face.display}
+        </span>
         <span className="clock-meta">
-          <span className="clock-caption">{armed ? "Tap again" : face.caption}</span>
-          <span className="clock-hint">{running && option ? option.name : "Tap to start"}</span>
+          <span className="clock-caption">{armed ? "Tap again" : counting ? "Get ready" : face.caption}</span>
+          <span className="clock-hint">{counting ? "Tap to cancel" : running && option ? option.name : "Tap to start"}</span>
         </span>
       </button>
-      {workout && workout.parts.length > 1 && !running ? (
+      {workout && workout.parts.length > 1 && !running && !counting ? (
         <button type="button" className="clock-switch" onClick={cycle}>
           {option?.name}
         </button>
@@ -202,17 +278,26 @@ function unlockAudio() {
   if (audio.state === "suspended") void audio.resume();
 }
 
-function beep() {
+function tone(freq: number, duration: number, peak: number) {
   unlockAudio();
   if (!audio) return;
   const osc = audio.createOscillator();
   const gain = audio.createGain();
-  osc.frequency.value = 880;
-  gain.gain.setValueAtTime(0.0001, audio.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.08, audio.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.18);
+  const start = audio.currentTime;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   osc.connect(gain);
   gain.connect(audio.destination);
   osc.start();
-  osc.stop(audio.currentTime + 0.2);
+  osc.stop(start + duration + 0.02);
+}
+
+function beep() {
+  tone(880, 0.18, 0.08);
+}
+
+function goBeep() {
+  tone(660, 0.45, 0.1);
 }

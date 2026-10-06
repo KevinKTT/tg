@@ -38,6 +38,25 @@ export type ClockFace = {
   mark: number;
 };
 
+export const PRESTART_SEC = 10;
+
+export type PrestartCue = "tick" | "go";
+
+export function prestartSecond(leftSec: number): number {
+  if (leftSec <= 0) return 0;
+  return Math.min(PRESTART_SEC, Math.ceil(leftSec));
+}
+
+export function prestartCues(previous: number, next: number): PrestartCue[] {
+  if (next >= previous) return [];
+  const cues: PrestartCue[] = [];
+  for (let second = previous - 1; second >= next; second -= 1) {
+    if (second === 0) cues.push("go");
+    else if (second >= 1 && second <= 3) cues.push("tick");
+  }
+  return cues;
+}
+
 export const OPEN_CLOCK: ClockPlan = {
   kind: "up",
   seconds: 0,

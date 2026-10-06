@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { clockFace, clockPlan, clockWorkout, splitElapsed, type ClockPart } from "../lib/clock";
+import { clockFace, clockPlan, clockWorkout, prestartCues, prestartSecond, splitElapsed, type ClockPart } from "../lib/clock";
 
 function part(overrides: Partial<ClockPart> = {}): ClockPart {
   return {
@@ -97,6 +97,23 @@ test("the metcon is the default clock", () => {
   ]);
   assert.equal(workout?.defaultId, 3);
   assert.equal(workout?.parts.length, 2);
+});
+
+test("prestart counts from 10 and beeps on 3, 2, 1, and go", () => {
+  assert.equal(prestartSecond(10), 10);
+  assert.equal(prestartSecond(9.2), 10);
+  assert.equal(prestartSecond(9), 9);
+  assert.equal(prestartSecond(3), 3);
+  assert.equal(prestartSecond(0.2), 1);
+  assert.equal(prestartSecond(0), 0);
+  assert.equal(prestartSecond(12), 10);
+  assert.deepEqual(prestartCues(10, 10), []);
+  assert.deepEqual(prestartCues(10, 9), []);
+  assert.deepEqual(prestartCues(4, 3), ["tick"]);
+  assert.deepEqual(prestartCues(3, 2), ["tick"]);
+  assert.deepEqual(prestartCues(2, 1), ["tick"]);
+  assert.deepEqual(prestartCues(1, 0), ["go"]);
+  assert.deepEqual(prestartCues(4, 0), ["tick", "tick", "tick", "go"]);
 });
 
 test("elapsed time splits into the score fields", () => {
