@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { generateDay } from "@/lib/ai";
+import { generateDay, rewriteDay, rewriteIntent } from "@/lib/ai";
 import { isISODate } from "@/lib/dates";
 import { dayHasScores, getDay, markRest } from "@/lib/db";
 import { loadEnv } from "@/lib/env";
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     date?: string;
     mode?: string;
     focus?: string;
+    intent?: string;
     force?: boolean;
   } | null;
   if (!body?.date || !isISODate(body.date)) {
@@ -20,6 +21,26 @@ export async function POST(request: Request) {
   }
   const force = Boolean(body.force);
   const existing = getDay(body.date);
+  if (body.mode === "rewrite") {
+    if (!existing || existing.status === "rest") {
+      return Response.json({ ok: false, error: "There is no workout to rewrite." }, { status: 400 });
+    }
+    const intent = rewriteIntent(body.intent || "clarify");
+    if (!intent) {
+      return Response.json({ ok: false, error: "Pick clarify or a workout focus." }, { status: 400 });
+    }
+    if (dayHasScores(body.date) && !force) {
+      return Response.json({ ok: false, code: "scores", error: "Scores are logged on that day." }, { status: 409 });
+    }
+    try {
+      const result = await rewriteDay({ date: body.date, intent });
+      revalidatePath("/", "layout");
+      return Response.json({ ok: true, title: result.title });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Rewrite failed.";
+      return Response.json({ ok: false, error: message }, { status: 500 });
+    }
+  }
   if (existing && !force) {
     const code = dayHasScores(body.date) ? "scores" : "exists";
     const error = code === "scores" ? "Scores are logged on that day." : "That day already has a workout.";

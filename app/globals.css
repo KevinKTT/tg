@@ -129,8 +129,13 @@ button {
   text-transform: uppercase;
 }
 
-.clock[data-armed="true"] .clock-caption {
+.clock[data-armed="true"] .clock-caption,
+.clock[data-counting="true"] .clock-caption {
   color: var(--color-amber);
+}
+
+.clock[data-counting="true"] {
+  border-color: var(--color-amber);
 }
 
 .clock-hint {
@@ -357,6 +362,24 @@ button {
 .board h2 {
   font-size: 1.85rem;
   line-height: 1.05;
+}
+
+.board-rewrite {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-bottom: 0.45rem;
+}
+
+.board-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.board-top .kicker {
+  margin: 0;
 }
 
 .board-stimulus {

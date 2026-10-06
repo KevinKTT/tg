@@ -12,6 +12,7 @@ import { closestLoad, formatPercentLoad, percentOf, type Plate } from "@/lib/sca
 import type { DayView, EquipmentRow, MovementRow, PartView, PrRow, ScoreView } from "@/lib/db";
 import { useAthlete } from "./athlete";
 import { useClock } from "./clock";
+import { RewriteDay } from "./rewrite-day";
 
 const KIND: Record<string, string> = {
   warmup: "Warm-up",
@@ -75,7 +76,7 @@ export function WorkoutCard({
   return (
     <div className="stack">
       <section className="board">
-        <p className="kicker">{kicker}</p>
+        <RewriteDay date={day.date} hasScores={scores.length > 0} kicker={kicker} />
         <h2>{day.title}</h2>
         {day.stimulus ? <p className="board-stimulus">{day.stimulus}</p> : null}
         {summary.equipment.length ? <p className="board-gear">{summary.equipment.join(" · ")}</p> : null}

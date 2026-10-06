@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { isFormatError, modeOrder, resolveProvider, type JsonMode, type ProviderConfig } from "./ai-config";
+import { DAY_TRACK, focusLabel, FOCUSES } from "./athletes";
 import {
+  getDay,
   listAthletes,
   listEquipment,
   listMovements,
@@ -11,10 +13,12 @@ import {
   recentWorkoutDetails,
   saveGeneratedDay,
   type AthleteRow,
+  type DayView,
   type EquipmentRow,
+  type TrackView,
 } from "./db";
 import { env, loadEnv } from "./env";
-import { pickFormat, type FormatDef } from "./formats";
+import { formatById, pickFormat, type FormatDef } from "./formats";
 import { capabilities, guardWorkout } from "./guard";
 
 const scoreType = z.string().transform((value) => {
@@ -280,10 +284,11 @@ async function complete(
   messages: { role: "system" | "user"; content: string }[],
   config: ProviderConfig,
   mode: JsonMode,
+  temperature = 0.6,
 ) {
   const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
-    temperature: 0.6,
+    temperature,
     max_tokens: 1600,
     messages,
   };
@@ -308,12 +313,13 @@ async function complete(
 async function completeWithFallback(
   messages: { role: "system" | "user"; content: string }[],
   config: ProviderConfig,
+  temperature = 0.6,
 ) {
   const modes = modeOrder(config.jsonMode);
   let lastError: unknown = new Error("Could not generate a workout.");
   for (const mode of modes) {
     try {
-      return await complete(messages, config, mode);
+      return await complete(messages, config, mode, temperature);
     } catch (error) {
       lastError = error;
       if (!isFormatError(error)) break;
@@ -322,26 +328,29 @@ async function completeWithFallback(
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-export async function generateDay(input: { date: string; focus: string }) {
-  loadEnv();
-  const items = listEquipment();
-  if (!items.some((item) => item.owned)) {
-    throw new Error("Mark the equipment you own first. Workouts are built only from that list.");
-  }
+const ownedError = "Mark the equipment you own first. Workouts are built only from that list.";
 
+function ownedSnapshot(items: EquipmentRow[]) {
+  return JSON.stringify(items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity })));
+}
+
+async function draftDay(input: {
+  date: string;
+  focus: string;
+  formatId: string;
+  sourceText: string;
+  items: EquipmentRow[];
+  messages: { role: "system" | "user"; content: string }[];
+  temperature?: number;
+  rejected: (violations: string[]) => string;
+  invalid: (error: string) => string;
+}) {
   const config = resolveProvider(env);
-  const members = listAthletes();
-  const format = pickFormat(input.focus, capabilities(items), recentFormats(input.date));
-  const messages: { role: "system" | "user"; content: string }[] = [
-    { role: "system", content: systemPrompt(members) },
-    { role: "user", content: userPrompt({ ...input, items, members, format }) },
-  ];
-
   let lastError = "Could not generate a workout.";
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let content = "";
     try {
-      content = await completeWithFallback(messages, config);
+      content = await completeWithFallback(input.messages, config, input.temperature);
     } catch (error) {
       lastError = error instanceof Error ? error.message : "The AI provider request failed.";
       break;
@@ -362,11 +371,11 @@ export async function generateDay(input: { date: string; focus: string }) {
             })),
           },
         },
-        items,
+        input.items,
       );
       if (violations.length) {
         lastError = violations.slice(0, 6).join(" ");
-        messages.push({ role: "user", content: userPrompt({ ...input, items, members, format, violations }) });
+        input.messages.push({ role: "user", content: input.rejected(violations) });
         continue;
       }
       saveGeneratedDay({
@@ -374,12 +383,10 @@ export async function generateDay(input: { date: string; focus: string }) {
         title: parsed.title,
         stimulus: parsed.stimulus,
         source: "programmed",
-        sourceText: "",
+        sourceText: input.sourceText,
         focus: input.focus,
-        format: format.id,
-        snapshot: JSON.stringify(
-          items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity })),
-        ),
+        format: input.formatId,
+        snapshot: ownedSnapshot(input.items),
         track: {
           summary: parsed.summary,
           warmup: parsed.warmup,
@@ -399,11 +406,153 @@ export async function generateDay(input: { date: string; focus: string }) {
       return { title: parsed.title };
     } catch (error) {
       lastError = error instanceof Error ? error.message : "Could not read the workout.";
-      messages.push({
-        role: "user",
-        content: `That response was invalid (${lastError}). Return one JSON object with a short warm-up, a short workout prep, a scored piece, and a short cool-down. One movement per line. No paragraphs.`,
-      });
+      input.messages.push({ role: "user", content: input.invalid(lastError) });
     }
   }
   throw new Error(lastError);
+}
+
+export function rewriteIntent(value: string): string | null {
+  if (value === "clarify") return "clarify";
+  return FOCUSES.some((item) => item.id === value && item.id !== "rest") ? value : null;
+}
+
+export function rewriteTask(intent: string): string {
+  if (intent === "clarify") {
+    return "Clarify this workout so a person can follow it in one glance. Keep the same movements, loads, and intended scheme. Do not invent a new piece or a new stimulus. Fix only lines that are confusing, contradictory, or impossible to follow. If a line is already clear, leave it. Keep the title unless it does not match the work.";
+  }
+  return `Rewrite this session toward ${focusLabel(intent).toLowerCase()}. Keep it a rewrite of this workout when the movements can carry that bias. Change movements, reps, and format only when they cannot. Do not write an unrelated workout.\n${focusBrief(intent)}`;
+}
+
+function workoutText(day: DayView, track: TrackView) {
+  const pieces = track.parts
+    .map((part) => {
+      const meta = [
+        part.kind,
+        part.format,
+        part.scoreType !== "none" ? `score ${part.scoreType}` : "",
+        part.timeCapSec ? `cap ${Math.round(part.timeCapSec / 60)} min` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return `${part.name} (${meta})\n${part.body}`;
+    })
+    .join("\n\n");
+  return `Title: ${day.title}
+Stimulus: ${day.stimulus || "none"}
+Focus: ${day.focus || "mixed"}
+Format: ${day.format || "unspecified"}
+Summary:
+${track.summary || "none"}
+
+${pieces}`;
+}
+
+function rewritePrompt(input: {
+  date: string;
+  intent: string;
+  source: string;
+  focus: string;
+  format: FormatDef;
+  items: EquipmentRow[];
+  members: AthleteRow[];
+  violations?: string[];
+}) {
+  const clarify = input.intent === "clarify";
+  const formatBlock = clarify
+    ? `Keep today's format (${input.format.label}). Copy each part "format" field from the current workout. Do not change the scheme.`
+    : `TODAY'S FORMAT: ${input.format.label}
+${input.format.brief}
+- Lead the main workout's "format" field with the exact words "${input.format.label}".
+${shapeBrief(input.focus, input.format)}`;
+  const recent = clarify
+    ? ""
+    : `\n\nRECENT WORKOUTS (if you change the piece, do not repeat the main movements of the most recent day):\n${
+        recentWorkoutDetails(input.date, 3)
+          .map((item) => `- ${item.date} [${item.focus || "mixed"}] ${item.title}: ${item.details || item.stimulus}`)
+          .join("\n") || "- none"
+      }`;
+  const retry = input.violations?.length
+    ? `\n\nThe previous draft was rejected:\n${input.violations.map((item) => `- ${item}`).join("\n")}\nFix every rejection. Do not use equipment that is not owned.`
+    : "";
+  return `${rewriteTask(input.intent)}
+
+CURRENT WORKOUT:
+${input.source}
+
+${formatBlock}
+
+OWNED EQUIPMENT (anything absent is forbidden):
+${inventoryText(input.items)}
+
+CURRENT PRS:
+${prText(input.members)}${recent}${retry}`;
+}
+
+export async function generateDay(input: { date: string; focus: string }) {
+  loadEnv();
+  const items = listEquipment();
+  if (!items.some((item) => item.owned)) throw new Error(ownedError);
+
+  const members = listAthletes();
+  const format = pickFormat(input.focus, capabilities(items), recentFormats(input.date));
+  const messages: { role: "system" | "user"; content: string }[] = [
+    { role: "system", content: systemPrompt(members) },
+    { role: "user", content: userPrompt({ ...input, items, members, format }) },
+  ];
+  return draftDay({
+    date: input.date,
+    focus: input.focus,
+    formatId: format.id,
+    sourceText: "",
+    items,
+    messages,
+    rejected: (violations) => userPrompt({ ...input, items, members, format, violations }),
+    invalid: (error) =>
+      `That response was invalid (${error}). Return one JSON object with a short warm-up, a short workout prep, a scored piece, and a short cool-down. One movement per line. No paragraphs.`,
+  });
+}
+
+export async function rewriteDay(input: { date: string; intent: string }) {
+  loadEnv();
+  const intent = rewriteIntent(input.intent);
+  if (!intent) throw new Error("Pick clarify or a workout focus.");
+  const day = getDay(input.date);
+  const track = day?.tracks.find((item) => item.track === DAY_TRACK) ?? day?.tracks[0];
+  if (!day || day.status === "rest" || !track) throw new Error("There is no workout to rewrite.");
+
+  const items = listEquipment();
+  if (!items.some((item) => item.owned)) throw new Error(ownedError);
+
+  const members = listAthletes();
+  const clarify = intent === "clarify";
+  const focus = clarify ? (day.focus && day.focus !== "rest" ? day.focus : "mixed") : intent;
+  const picked = clarify ? formatById(day.format) : pickFormat(focus, capabilities(items), recentFormats(input.date));
+  const format: FormatDef = picked ?? {
+    id: "for_time",
+    label: day.format || "the scheme already on the board",
+    brief: "Keep the scheme already written on the board.",
+    focuses: [],
+  };
+  const source = workoutText(day, track);
+  const prompt = (violations?: string[]) =>
+    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, violations });
+  const messages: { role: "system" | "user"; content: string }[] = [
+    {
+      role: "system",
+      content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. Ignore the variety rule about not repeating this workout's movements. Follow the rewrite instructions over the naming rules.`,
+    },
+    { role: "user", content: prompt() },
+  ];
+  return draftDay({
+    date: input.date,
+    focus,
+    formatId: clarify ? day.format : format.id,
+    sourceText: `rewrite:${intent}`,
+    items,
+    messages,
+    temperature: clarify ? 0.3 : 0.6,
+    rejected: (violations) => prompt(violations),
+    invalid: (error) => `That response was invalid (${error}). Return one JSON object. ${rewriteTask(intent)}`,
+  });
 }
