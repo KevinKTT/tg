@@ -90,6 +90,24 @@ test("work and rest intervals alternate", () => {
   assert.equal(clockFace(plan, 180).caption, "Work");
 });
 
+test("a strength piece does not inherit the day clock", () => {
+  const plan = clockPlan("emom", part({ kind: "strength", scoreType: "time", timeCapSec: 600, format: "5x3" }));
+  assert.equal(plan.kind, "capped");
+  assert.equal(plan.label, "Cap");
+});
+
+test("a warm-up does not own the clock", () => {
+  const workout = clockWorkout("amrap", "2026-10-04", "kt", [
+    part({ id: 1, name: "Warm-up", kind: "metcon", scoreType: "time", timeCapSec: 300, format: "AMRAP 5" }),
+    part({ id: 2, name: "Metcon", kind: "metcon", scoreType: "rounds_reps", format: "AMRAP 12" }),
+  ]);
+  assert.equal(workout?.defaultId, 2);
+  assert.deepEqual(
+    workout?.parts.map((item) => item.id),
+    [2],
+  );
+});
+
 test("the metcon is the default clock", () => {
   const workout = clockWorkout("skill_metcon", "2026-10-04", "kt", [
     part({ id: 2, name: "Squat", kind: "strength", scoreType: "load", format: "Heavy Day" }),

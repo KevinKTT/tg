@@ -128,6 +128,50 @@ function heavyRxViolation(summary: string, items: GuardItem[]): string | null {
   return null;
 }
 
+export type SchemePart = {
+  name: string;
+  kind: string;
+  format: string;
+  scoreType: string;
+  timeCapMin: number | null;
+};
+
+const CLOCK_SCHEME = /\b(amrap|e\d*\s*mom|emom|every minute(?:\s+on the minute)?|\d+\s*rounds?\s+for\s+time|for time|cap\s+\d+)\b/i;
+const CLASS_NAME = /warm-?up|workout prep|^prep$|cool-?down/i;
+
+export function schemeViolations(input: {
+  warmup: string;
+  prep?: string;
+  cooldown: string;
+  parts: SchemePart[];
+}): string[] {
+  const problems: string[] = [];
+  const intro = [input.warmup, input.prep ?? "", input.cooldown].join("\n");
+  if (CLOCK_SCHEME.test(intro)) {
+    problems.push("warm-up, prep, or cool-down contains the metcon scheme. Put the scheme only on the scored piece.");
+  }
+  const classPart = input.parts.find((part) => CLASS_NAME.test(part.name) && (part.scoreType !== "none" || part.timeCapMin));
+  if (classPart) {
+    problems.push(`${classPart.name} is not scored and has no clock. Put the scheme on the metcon.`);
+  }
+  const metcons = input.parts.filter(
+    (part) => part.kind === "metcon" && part.scoreType !== "none" && !CLASS_NAME.test(part.name),
+  );
+  for (const part of metcons) {
+    if (!/\d/.test(part.format)) {
+      problems.push(`${part.name} format is missing its count. Write "5 rounds for time" or "AMRAP 12", not the label alone.`);
+    }
+  }
+  if (metcons.length) {
+    for (const part of input.parts) {
+      if (part.timeCapMin && !metcons.includes(part)) {
+        problems.push(`timeCapMin belongs on the metcon, not ${part.name}.`);
+      }
+    }
+  }
+  return problems;
+}
+
 export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardItem[], check?: ProgramCheck): string[] {
   const caps = capabilities(items);
   const violations: string[] = [];

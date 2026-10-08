@@ -9,6 +9,13 @@ test("clarify keeps the workout and only cleans the board", () => {
   assert.doesNotMatch(task, /Do not write an unrelated workout/);
 });
 
+test("a clarify note can change the scheme", () => {
+  const task = rewriteTask("clarify", "Make this an AMRAP");
+  assert.match(task, /Make this an AMRAP/);
+  assert.match(task, /unless the note changes them/);
+  assert.match(task, /update that part's format/);
+});
+
 test("a focus rewrite restyles this session", () => {
   assert.match(rewriteTask("heavy"), /toward heavy/);
   assert.match(rewriteTask("heavy"), /Heavy bias/);

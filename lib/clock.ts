@@ -65,20 +65,29 @@ export const OPEN_CLOCK: ClockPlan = {
   label: "Clock",
 };
 
+const CLASS_KIND = new Set(["warmup", "prep", "cooldown"]);
+const CLASS_NAME = /warm-?up|workout prep|cool-?down/i;
+
+function clockable(part: ClockPart) {
+  return part.scoreType !== "none" && !CLASS_KIND.has(part.kind) && !CLASS_NAME.test(part.name);
+}
+
 export function clockWorkout(dayFormat: string, date: string, athlete: string, parts: ClockPart[]): ClockWorkout | null {
-  const scored = parts.filter((part) => part.scoreType !== "none");
+  const scored = parts.filter(clockable);
   if (!scored.length) return null;
   const options = scored.map((part) => ({
     id: part.id,
     name: part.name,
     plan: clockPlan(dayFormat, part),
   }));
-  const metcon = scored.find((part) => part.kind === "metcon");
-  return { date, athlete, defaultId: metcon?.id ?? scored[0].id, parts: options };
+  const metcons = scored.filter((part) => part.kind === "metcon");
+  const timed = metcons.find((part) => (part.timeCapSec && part.timeCapSec > 0) || /\d/.test(part.format));
+  const chosen = timed ?? metcons[0] ?? scored[0];
+  return { date, athlete, defaultId: chosen.id, parts: options };
 }
 
 export function clockPlan(dayFormat: string, part: ClockPart): ClockPlan {
-  const text = `${part.format} ${dayFormat}`.toLowerCase();
+  const text = (part.kind === "metcon" ? `${part.format} ${dayFormat}` : part.format).toLowerCase();
   const cap = part.timeCapSec && part.timeCapSec > 0 ? part.timeCapSec : null;
   const every = readEvery(part.format);
 

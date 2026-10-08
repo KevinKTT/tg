@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guardWorkout, type GuardItem, type ProgramCheck } from "../lib/guard";
+import { guardWorkout, schemeViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
 
 const dumbbells: GuardItem[] = [
   { slug: "db_20lb", name: "20 lb", category: "dumbbell", owned: true, loadValue: 20, unit: "lb" },
@@ -66,6 +66,45 @@ test("rejects the lightest dumbbell on a heavy Rx line", () => {
     check,
   );
   assert.ok(violations.some((item) => /lightest/i.test(item)));
+});
+
+function piece(format: string, overrides: Partial<{ name: string; kind: string; scoreType: string; timeCapMin: number | null }> = {}) {
+  return {
+    name: "Metcon",
+    kind: "metcon",
+    format,
+    scoreType: "time",
+    timeCapMin: null,
+    ...overrides,
+  };
+}
+
+test("rejects a metcon scheme with no count", () => {
+  const problems = schemeViolations({
+    warmup: "10 air squats",
+    prep: "5 empty-bar squats",
+    cooldown: "hamstring stretch",
+    parts: [piece("Rounds for Time")],
+  });
+  assert.ok(problems.some((item) => /missing its count/i.test(item)));
+});
+
+test("rejects a metcon scheme written on the warm-up", () => {
+  const problems = schemeViolations({
+    warmup: "AMRAP 12\n- 10 burpees",
+    cooldown: "stretch",
+    parts: [piece("AMRAP 12", { scoreType: "rounds_reps", timeCapMin: 12 })],
+  });
+  assert.ok(problems.some((item) => /warm-up/i.test(item)));
+});
+
+test("rejects a clock on a piece that is not the metcon", () => {
+  const problems = schemeViolations({
+    warmup: "arm circles",
+    cooldown: "stretch",
+    parts: [piece("5x3", { name: "Squat", kind: "strength", scoreType: "load", timeCapMin: 8 }), piece("AMRAP 12", { scoreType: "rounds_reps", timeCapMin: 12 })],
+  });
+  assert.ok(problems.some((item) => /timeCapMin belongs on the metcon/i.test(item)));
 });
 
 test("allows a heavier dumbbell on a heavy Rx line", () => {
