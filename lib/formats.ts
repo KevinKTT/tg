@@ -94,6 +94,17 @@ export function formatLabel(id: string): string {
   return BY_ID.get(id as FormatId)?.label ?? "";
 }
 
+export function formatFromScheme(text: string): FormatId | null {
+  const value = text.toLowerCase();
+  if (/\bamrap\b/.test(value)) return "amrap";
+  if (/\be\d*\s*mom\b|\bemom\b|every minute/.test(value)) return "emom";
+  if (/\bon\b\s*\/\s*\S+\s*off\b|\bintervals?\b/.test(value)) return "interval";
+  if (/\bchipper\b/.test(value)) return "chipper";
+  if (/\b\d+\s*rounds?\b/.test(value)) return "rounds";
+  if (/\bfor time\b/.test(value)) return "for_time";
+  return null;
+}
+
 export function formatFitsGear(format: FormatDef, caps: Set<string>): boolean {
   if (format.needsBarbell && !caps.has("barbell")) return false;
   if (format.needsLoad) {

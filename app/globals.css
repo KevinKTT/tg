@@ -376,6 +376,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .board-top .kicker {
@@ -579,6 +580,10 @@ button {
 .area {
   min-height: 7rem;
   resize: vertical;
+}
+
+.area-note {
+  min-height: 4.5rem;
 }
 
 .seg,

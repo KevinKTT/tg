@@ -19,8 +19,8 @@ import {
 } from "./db";
 import { startOfWeek } from "./dates";
 import { env, loadEnv } from "./env";
-import { formatById, pickFormat, type FormatDef } from "./formats";
-import { capabilities, guardWorkout, type ProgramCheck } from "./guard";
+import { formatById, formatFromScheme, pickFormat, type FormatDef } from "./formats";
+import { capabilities, guardWorkout, schemeViolations, type ProgramCheck } from "./guard";
 import {
   assignmentPrompt,
   inferProgram,
@@ -185,68 +185,27 @@ function shapeBrief(focus: string, format: FormatDef) {
 }
 
 function systemPrompt(members: AthleteRow[]) {
-  const roster = members.length
-    ? members.map(memberLabel).join("; ")
-    : "no members added yet";
+  const roster = members.length ? members.map(memberLabel).join("; ") : "no members added yet";
   return `You are the coach for "the garage", a home CrossFit gym. The members are: ${roster}.
 
-Write the workout like a class whiteboard. A person mid-workout should read it in one glance on a phone or a TV. List the work and the loads. No coaching essay.
+Write a class whiteboard. One glance. Movement lines and loads only. No coaching.
 
-NAME:
-- Give the workout a fun, funny, clever name. Puns, wordplay, alliteration, and pop-culture riffs are great. Tie it to the day's movements or theme. Never use a generic name.
+Name: a fun name tied to the work. Not generic.
+Stimulus: the time domain only. Example: "about 8-12 min".
 
-STIMULUS:
-- One short line, the time domain only. Example: "about 8-12 min".
-- No coaching. No "target:". No explanation of the piece.
+Lines start with "- ", then reps, then the movement. No cues. No weights on the line.
+Same movement and reps for every scale: one line, no label. Never label a scale that matches Rx. Never write "(Rx) / (Performance) / (Lifestyle)" on one line.
+A scale that changes the movement or reps: the Rx line, then only the scales that differ.
+Loads live in "summary" only. "Equipment:" then the pieces used. Then "Loads:" and one line per scale:
+${loadExample(members)}
+Rx is hard: 85-95% of a PR, or the heaviest owned implement. Performance is about 75% of Rx. Lifestyle is about 55%, or an easier movement. Never invent a weight or a vest poundage. Never Rx the lightest owned implement when a heavier one exists. Write "weighted vest".
+Owned gear only. Bodyweight is always allowed. If a classic piece needs missing gear, substitute.
 
-SCALING:
-- Rx is the workout a good athlete might fail or get time-capped on. It is not a casual session.
-- Strength: Rx is 85-95% of a logged PR for that lift, sets of 1-5. If no PR exists, Rx is the heaviest owned implement at RPE 9. Never invent a 1RM.
-- Metcon: Rx loads come from the top of the owned implements, or 70-80% of a PR when one exists. Reps are dense enough that sets break.
-- Performance is about 75% of the Rx load, or fewer reps. It should be finishable.
-- Lifestyle is about 55% of the Rx load, or an easier movement. It should always be finishable.
-- If the movement and the reps are the same for every scale, write the line once. No label.
-- If a scale changes the movement or the reps, write the Rx line, then only the scales that differ, each on its own line:
-  - 20 Double-unders
-  - Performance: 40 Single-unders
-  - Lifestyle: 20 Single-unders
-- Never write "(Rx) / (Performance) / (Lifestyle)" on one line.
-- Never label a scale that matches Rx.
-- Do not put weights on movement lines.
-- Do not prescribe the lightest dumbbell or kettlebell for Rx when a heavier one is owned.
-
-MOVEMENT LINES:
-- One item per line, each line starting with "- ".
-- Reps, then the movement: "- 10 Dumbbell deadlifts".
-- No paragraphs. No cues. No "focus on". No "quality over quantity". No breathing scripts. No "rest the remainder of each minute".
-- A complex piece can have many lines. Each line stays short.
-- Warm-up: 4-6 lines. Prep: 2-4 lines. Cool-down: 3-5 stretch names. Never a minute-by-minute script.
-
-EQUIPMENT & LOADS (the "summary" field):
-- Put equipment and loads in "summary", never in the movement lines.
-- First line: "Equipment:" then each piece once, comma separated. Only what the workout uses. No parenthetical essays.
-- Then "Loads:" and one line per scale that has a load:
-  ${loadExample(members)}
-- Only include the loads that matter. Never invent a weight that is not owned.
-
-EQUIPMENT RULES:
-- Bodyweight is always allowed. Use ONLY equipment in the owned list. Never invent a machine, barbell, bell, plate, box, rig, or load that is not listed.
-- If a classic piece needs missing equipment, substitute a movement that keeps the stimulus with owned gear.
-- The weight vest has no listed poundage. Write "weighted vest". Never invent a vest weight.
-
-STRUCTURE — a real class, always in this order:
-- Warm-up: short, general, movement and reps only, using only owned gear.
-- Workout prep: a few light reps of the main movements. Never scored.
-- Workout: the main piece, in the format given below. Put the scheme in the part "format" field ("5 rounds for time", "AMRAP 12", "21-15-9"). Do not restate it as a paragraph in details.
-- Cool-down: stretch names only.
-- On a strength or heavy piece, if a PR exists for that lift, Rx is 85-95% of it. If no PR exists, Rx is the heaviest owned implement at RPE 9. Never invent a 1RM.
-- The main workout must be scored with scoreType time, reps, rounds_reps, or load, unless it is a skill piece.
-- Program real CrossFit: constantly varied functional movements, measurable, intense.
-
-ASSIGNMENT:
-- Follow today's assignment exactly. It already decided the shape, load, time domain, and pattern.
-- You are not shown previous workouts. Do not reuse a banned movement or invent a day from memory.
-- A day can be a single piece. Do not add a metcon, a lift, or a run unless the assignment asks for it.
+Class order: warmup, prep, parts, cooldown.
+Warm-up is 4-6 lines, prep 2-4, cool-down 3-5 stretch names. Movement lines only. Never a scheme, clock, AMRAP, EMOM, round count, or cap.
+Each scored part "format" is the full scheme with its number: "5 rounds for time", "AMRAP 12", "EMOM 12", "21-15-9". The label alone is invalid. Do not restate the scheme in details.
+timeCapMin is minutes on the metcon that owns the clock, otherwise null. scoreType matches the scheme: time, reps, rounds_reps, or load. A skill piece is scoreType none.
+Follow the assignment. Do not add a piece it does not ask for. Do not reuse a banned movement.
 
 Return one JSON object with title, stimulus, summary, warmup, prep, parts, and cooldown.
 Each part has name, kind (strength, metcon, or skill), format, details, timeCapMin, scoreType, repsPerRound, and equipment.`;
@@ -380,31 +339,40 @@ async function draftDay(input: {
     }
     try {
       const parsed = daySchema.parse(extractJson(content));
-      const violations = guardWorkout(
-        {
-          day: {
-            summary: parsed.summary,
-            warmup: parsed.warmup,
-            prep: parsed.prep,
-            cooldown: parsed.cooldown,
-            parts: parsed.parts.map((part) => ({
-              name: part.name,
-              details: part.details,
-              equipment: part.equipment,
-            })),
+      const violations = [
+        ...guardWorkout(
+          {
+            day: {
+              summary: parsed.summary,
+              warmup: parsed.warmup,
+              prep: parsed.prep,
+              cooldown: parsed.cooldown,
+              parts: parsed.parts.map((part) => ({
+                name: part.name,
+                details: part.details,
+                equipment: part.equipment,
+              })),
+            },
           },
-        },
-        input.items,
-        input.check,
-      );
+          input.items,
+          input.check,
+        ),
+        ...schemeViolations({
+          warmup: parsed.warmup,
+          prep: parsed.prep,
+          cooldown: parsed.cooldown,
+          parts: parsed.parts,
+        }),
+      ];
       if (violations.length) {
         lastError = violations.slice(0, 6).join(" ");
         input.messages.push({ role: "user", content: input.rejected(violations) });
         continue;
       }
       const written = parsed.parts.map((part) => `${part.name}\n${part.details}`).join("\n");
+      const nextFormat = clarifyFormat(input.sourceText, input.formatId, parsed.parts);
       const tag = tagFromDraft(
-        input.program ?? inferProgram({ focus: input.focus, format: input.formatId, text: written, stimulus: parsed.stimulus }),
+        input.program ?? inferProgram({ focus: input.focus, format: nextFormat, text: written, stimulus: parsed.stimulus }),
         written,
       );
       saveGeneratedDay({
@@ -414,7 +382,7 @@ async function draftDay(input: {
         source: "programmed",
         sourceText: input.sourceText,
         focus: input.focus,
-        format: input.formatId,
+        format: nextFormat,
         program: JSON.stringify(tag),
         snapshot: ownedSnapshot(input.items),
         track: {
@@ -447,9 +415,27 @@ export function rewriteIntent(value: string): string | null {
   return FOCUSES.some((item) => item.id === value && item.id !== "rest") ? value : null;
 }
 
-export function rewriteTask(intent: string): string {
+export function coachNote(value: string | undefined): string {
+  return (value ?? "").replace(/\s+/g, " ").trim().slice(0, 400);
+}
+
+function clarifyFormat(
+  sourceText: string,
+  formatId: string,
+  parts: { kind: string; name: string; format: string; scoreType: string }[],
+) {
+  if (!sourceText.startsWith("rewrite:clarify")) return formatId;
+  const metcon =
+    parts.find((part) => part.kind === "metcon" && !/warm-?up|workout prep|cool-?down/i.test(part.name)) ??
+    parts.find((part) => part.scoreType !== "none");
+  return formatFromScheme(metcon?.format ?? "") ?? formatId;
+}
+
+export function rewriteTask(intent: string, note = ""): string {
   if (intent === "clarify") {
-    return "Clarify this workout so a person can follow it in one glance. Keep the same movements, loads, and intended scheme. Do not invent a new piece or a new stimulus. Fix only lines that are confusing, contradictory, or impossible to follow. If a line is already clear, leave it. Keep the title unless it does not match the work.";
+    const ask = coachNote(note);
+    const asked = ask ? `\nApply this note, and only this note: ${ask}` : "";
+    return `Clarify this workout. Keep the same movements and loads unless the note changes them. Do not invent a new piece.${asked}\nIf the note changes the scheme, update that part's format, scoreType, and timeCapMin together. Otherwise keep the scheme and fix only what the note asks.`;
   }
   return `Rewrite this session toward ${focusLabel(intent).toLowerCase()}. Keep it a rewrite of this workout when the movements can carry that bias. Change movements, reps, and format only when they cannot. Do not write an unrelated workout.\n${focusBrief(intent)}`;
 }
@@ -487,19 +473,22 @@ function rewritePrompt(input: {
   items: EquipmentRow[];
   members: AthleteRow[];
   bans?: string;
+  note?: string;
   violations?: string[];
 }) {
   const clarify = input.intent === "clarify";
+  const ask = coachNote(input.note);
   const formatBlock = clarify
-    ? `Keep today's format (${input.format.label}). Copy each part "format" field from the current workout. Do not change the scheme.`
+    ? `Keep each part's scheme unless the note changes it. If the note changes the scheme, write the full scheme with its count in "format", and set scoreType and timeCapMin to match. Warm-up, prep, and cool-down never carry a scheme or a clock.`
     : `TODAY'S FORMAT: ${input.format.label}
 ${input.format.brief}
-- Lead the main workout's "format" field with the exact words "${input.format.label}".
+- The main workout's "format" field is a complete scheme in this style, including the count. Not the label alone.
 ${shapeBrief(input.focus, input.format)}`;
   const retry = input.violations?.length
     ? `\n\nThe previous draft was rejected:\n${input.violations.map((item) => `- ${item}`).join("\n")}\nFix every rejection. Do not use equipment that is not owned.`
     : "";
-  return `${rewriteTask(input.intent)}
+  const noted = ask ? `\n\nCOACH NOTE (do this, keep the rest): ${ask}` : "";
+  return `${rewriteTask(input.intent, ask)}
 
 CURRENT WORKOUT:
 ${input.source}
@@ -510,7 +499,7 @@ OWNED EQUIPMENT (anything absent is forbidden):
 ${inventoryText(input.items)}
 
 CURRENT PRS:
-${prText(input.members)}${clarify ? "" : input.bans || ""}${retry}`;
+${prText(input.members)}${clarify ? "" : input.bans || ""}${noted}${retry}`;
 }
 
 export async function generateDay(input: { date: string; focus?: string }) {
@@ -547,10 +536,12 @@ export async function generateDay(input: { date: string; focus?: string }) {
   });
 }
 
-export async function rewriteDay(input: { date: string; intent: string }) {
+export async function rewriteDay(input: { date: string; intent: string; note?: string }) {
   loadEnv();
   const intent = rewriteIntent(input.intent);
   if (!intent) throw new Error("Pick clarify or a workout focus.");
+  const note = coachNote(input.note);
+  if (intent === "clarify" && !note) throw new Error("Tell the coach what to fix.");
   const day = getDay(input.date);
   const track = day?.tracks.find((item) => item.track === DAY_TRACK) ?? day?.tracks[0];
   if (!day || day.status === "rest" || !track) throw new Error("There is no workout to rewrite.");
@@ -575,7 +566,7 @@ export async function rewriteDay(input: { date: string; intent: string }) {
   const source = workoutText(day, track);
   const bans = clarify ? "" : neighborBans(yesterday);
   const prompt = (violations?: string[]) =>
-    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, bans, violations });
+    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, bans, note, violations });
   const check: ProgramCheck | undefined = clarify
     ? undefined
     : {
@@ -587,7 +578,7 @@ export async function rewriteDay(input: { date: string; intent: string }) {
   const messages: { role: "system" | "user"; content: string }[] = [
     {
       role: "system",
-      content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. You may keep this workout's movements. Obey neighbor bans over the rewrite focus. Follow the rewrite instructions over the naming rules.`,
+      content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. You may keep this workout's movements. Obey neighbor bans over the rewrite focus. Follow the rewrite instructions over the naming rules. On a clarify, the coach note wins over the current scheme.`,
     },
     { role: "user", content: prompt() },
   ];
@@ -601,6 +592,6 @@ export async function rewriteDay(input: { date: string; intent: string }) {
     messages,
     temperature: clarify ? 0.3 : 0.6,
     rejected: (violations) => prompt(violations),
-    invalid: (error) => `That response was invalid (${error}). Return one JSON object. ${rewriteTask(intent)}`,
+    invalid: (error) => `That response was invalid (${error}). Return one JSON object. ${rewriteTask(intent, note)}`,
   });
 }

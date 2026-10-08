@@ -599,7 +599,7 @@ export function assignmentPrompt(assignment: Assignment): string {
   return `TODAY'S ASSIGNMENT (follow this; do not invent a different day):
 ${assignment.brief}
 - Format: ${assignment.formatLabel}. ${format?.brief ?? ""}
-- Lead the main workout's "format" field with the exact words "${assignment.formatLabel}".
+- The main part "format" is a complete scheme in that style, including the count. Not the label alone.
 - Banned movements: ${banned}
 - Banned today: ${assignment.bans.join("; ") || "none"}
 
