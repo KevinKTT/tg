@@ -273,7 +273,7 @@ async function complete(
   const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
     temperature,
-    max_tokens: 2200,
+    max_tokens: config.maxOutputTokens,
     messages,
   };
   if (config.reasoningEffort) params.reasoning_effort = config.reasoningEffort;
@@ -289,7 +289,9 @@ async function complete(
   const content = message?.content?.trim() || message?.reasoning_content?.trim() || "";
   if (!content) throw new Error("The model returned an empty workout.");
   if (response.choices[0]?.finish_reason === "length") {
-    throw new Error("The workout was cut off. Try again.");
+    throw new Error(
+      `The workout exceeded the ${config.maxOutputTokens}-token response limit. Increase AI_MAX_OUTPUT_TOKENS or lower AI_REASONING_EFFORT.`,
+    );
   }
   return content;
 }
