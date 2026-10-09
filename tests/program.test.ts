@@ -31,28 +31,14 @@ test("planDay never stacks a running day", () => {
   for (let index = 0; index < 40; index += 1) {
     const plan = planDay({ caps: gear, recent, week: recent, random: () => index / 40 });
     assert.notEqual(plan.tag.mono, "run");
-    assert.ok(plan.bans.includes("running"));
   }
 });
 
-test("planDay does not repeat yesterday's pattern", () => {
+test("planDay may repeat yesterday's pattern", () => {
   const recent = [tag({ load: "moderate", pattern: "squat", mono: "none", shape: "couplet", movements: ["thruster"] })];
   for (let index = 0; index < 40; index += 1) {
     const plan = planDay({ caps: gear, recent, week: recent, random: () => index / 40 });
-    assert.notEqual(plan.tag.pattern, "squat");
-    assert.deepEqual(plan.bannedMovements, ["thruster"]);
-  }
-});
-
-test("weekly heavy cap holds when yesterday was not heavy", () => {
-  const week = [
-    tag({ load: "moderate", pattern: "press", mono: "none", shape: "couplet" }),
-    tag({ load: "heavy", pattern: "hinge", mono: "none", shape: "heavy_only", format: "heavy" }),
-    tag({ load: "heavy", pattern: "squat", mono: "none", shape: "strength_metcon", format: "rounds" }),
-  ];
-  for (let index = 0; index < 40; index += 1) {
-    const plan = planDay({ caps: gear, recent: week, week, random: () => index / 40 });
-    assert.notEqual(plan.tag.load, "heavy");
+    assert.ok(plan.tag.pattern.length > 0);
   }
 });
 
@@ -101,7 +87,7 @@ test("tagFromDraft keeps exact movement-library ids", () => {
   assert.equal(next.mono, "jump_rope");
 });
 
-test("assignment prompt is tags and bans, not a workout", () => {
+test("assignment prompt is tags, not a workout", () => {
   const recent = [tag({ load: "heavy", pattern: "squat", mono: "none", shape: "heavy_only", movements: ["back_squat"] })];
   const plan = planDay({ caps: gear, recent, week: recent, random: () => 0 });
   const prompt = assignmentPrompt(plan);

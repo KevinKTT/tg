@@ -33,8 +33,6 @@ export type Assignment = {
   formatLabel: string;
   tag: ProgramTag;
   brief: string;
-  bannedMovements: string[];
-  bans: string[];
   yesterday: string;
 };
 
@@ -485,14 +483,6 @@ function isRunDay(tag: ProgramTag | undefined): boolean {
   return tag?.mono === "run" || Boolean(tag?.movements.includes("run"));
 }
 
-function weeklyOk(candidate: Candidate, week: ProgramTag[]): boolean {
-  if (candidate.load === "heavy" && week.filter((tag) => tag.load === "heavy").length >= 2) return false;
-  if (candidate.mono === "run" && week.filter((tag) => isRunDay(tag)).length >= 2) return false;
-  if (candidate.domain === "long" && week.filter((tag) => tag.domain === "long").length >= 2) return false;
-  if (candidate.pattern !== "none" && week.filter((tag) => tag.pattern === candidate.pattern).length >= 2) return false;
-  return true;
-}
-
 function biasOk(candidate: Candidate, bias: string | undefined): boolean {
   if (!bias || bias === "auto" || bias === "mixed") {
     if (bias === "mixed") return ["couplet", "triplet", "chipper", "ladder"].includes(candidate.shape);
@@ -567,7 +557,6 @@ export function planDay(input: {
 }): Assignment {
   const random = input.random ?? Math.random;
   const yesterday = input.recent[0];
-  const recentFormats = new Set(input.recent.slice(0, 3).map((tag) => tag.format).filter(Boolean));
   const hard = RECIPES.filter((recipe) => gearOk(recipe, input.caps))
     .flatMap((recipe) => expand(recipe, input.caps))
     .filter((candidate) => {
@@ -578,15 +567,7 @@ export function planDay(input: {
     });
 
   let pool = hard;
-  const filters: ((candidate: Candidate) => boolean)[] = [
-    (candidate) => weeklyOk(candidate, input.week),
-    (candidate) => !yesterday || yesterday.pattern === "none" || candidate.pattern !== yesterday.pattern,
-    (candidate) => biasOk(candidate, input.bias),
-    (candidate) => !yesterday || candidate.domain !== yesterday.domain,
-    (candidate) => !recentFormats.has(candidate.format),
-    (candidate) => !yesterday || candidate.shape !== yesterday.shape,
-    (candidate) => candidate.shape !== "benchmark" || !input.recent.slice(0, 14).some((tag) => tag.shape === "benchmark"),
-  ];
+  const filters: ((candidate: Candidate) => boolean)[] = [(candidate) => biasOk(candidate, input.bias)];
   for (const filter of filters) {
     const next = pool.filter(filter);
     if (next.length) pool = next;
@@ -607,12 +588,6 @@ export function planDay(input: {
   }
 
   const chosen = pick(pool, random);
-  const bannedMovements = unique(input.recent.slice(0, 3).flatMap((tag) => tag.movements)).slice(0, 10);
-  const bans = [
-    chosen.load !== "heavy" ? "a heavy max-out" : "",
-    chosen.mono !== "run" ? "running" : "",
-    yesterday && yesterday.pattern !== "none" ? `${yesterday.pattern} as the primary pattern` : "",
-  ].filter(Boolean);
   const format = formatById(chosen.format);
   const brief = [
     chosen.brief,
@@ -637,35 +612,16 @@ export function planDay(input: {
       format: chosen.format,
     },
     brief,
-    bannedMovements,
-    bans,
     yesterday: yesterdayLine(yesterday),
   };
 }
 
 export function assignmentPrompt(assignment: Assignment): string {
-  const banned = assignment.bannedMovements.map((slug) => slug.replace(/_/g, " ")).join(", ") || "none";
   const format = formatById(assignment.tag.format);
   return `TODAY'S ASSIGNMENT (follow this; do not invent a different day):
 ${assignment.brief}
 - Format: ${assignment.formatLabel}. ${format?.brief ?? ""}
 - The main part "format" is a complete scheme in that style, including the count. Not the label alone.
-- Banned movements: ${banned}
-- Banned today: ${assignment.bans.join("; ") || "none"}
 
 YESTERDAY (tags only — you are not shown the workout, do not remix one): ${assignment.yesterday}`;
-}
-
-export function neighborBans(yesterday: ProgramTag | undefined): string {
-  if (!yesterday) return "";
-  const lines = [
-    yesterday.load === "heavy" ? "Do not make this a heavy day." : "",
-    isRunDay(yesterday) ? "Do not program running." : "",
-    yesterday.pattern !== "none" ? `Do not use ${yesterday.pattern} as the primary pattern.` : "",
-    yesterday.movements.length
-      ? `Banned movements: ${yesterday.movements.map((slug) => slug.replace(/_/g, " ")).join(", ")}.`
-      : "",
-    "If a ban conflicts with the rewrite focus, obey the ban.",
-  ].filter(Boolean);
-  return `\n\nNEIGHBOR BANS (you are not shown the other workouts):\n${lines.map((line) => `- ${line}`).join("\n")}`;
 }
