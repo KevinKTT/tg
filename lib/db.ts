@@ -56,6 +56,7 @@ export type PartView = {
   format: string;
   body: string;
   timeCapSec: number | null;
+  estimatedDurationMin: number | null;
   scoreType: string;
   scoreDirection: string;
   repsPerRound: number | null;
@@ -188,6 +189,7 @@ CREATE TABLE IF NOT EXISTS workout_parts (
   format TEXT NOT NULL DEFAULT '',
   body TEXT NOT NULL DEFAULT '',
   time_cap_sec INTEGER,
+  estimated_duration_min INTEGER,
   score_type TEXT NOT NULL DEFAULT 'none',
   score_direction TEXT NOT NULL DEFAULT 'desc',
   reps_per_round INTEGER
@@ -245,6 +247,7 @@ export function getDb() {
   db.exec(SCHEMA);
   ensureColumn(db, "workout_days", "format", "format TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "workout_days", "program", "program TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "workout_parts", "estimated_duration_min", "estimated_duration_min INTEGER");
   if (ensureColumn(db, "athletes", "sort", "sort INTEGER NOT NULL DEFAULT 0")) {
     db.exec("UPDATE athletes SET sort = rowid");
   }
@@ -512,6 +515,7 @@ function mapPart(row: {
   format: string;
   body: string;
   time_cap_sec: number | null;
+  estimated_duration_min: number | null;
   score_type: string;
   score_direction: string;
   reps_per_round: number | null;
@@ -524,6 +528,7 @@ function mapPart(row: {
     format: row.format,
     body: row.body,
     timeCapSec: row.time_cap_sec,
+    estimatedDurationMin: row.estimated_duration_min,
     scoreType: row.score_type,
     scoreDirection: row.score_direction,
     repsPerRound: row.reps_per_round,
@@ -749,6 +754,7 @@ export type GeneratedPart = {
   format: string;
   details: string;
   timeCapMin: number | null;
+  estimatedDurationMin: number | null;
   scoreType: "time" | "reps" | "rounds_reps" | "load" | "done" | "none";
   repsPerRound: number | null;
 };
@@ -756,8 +762,11 @@ export type GeneratedPart = {
 export type GeneratedTrack = {
   summary: string;
   warmup: string;
+  warmupDurationMin: number | null;
   prep: string;
+  prepDurationMin: number | null;
   cooldown: string;
+  cooldownDurationMin: number | null;
   parts: GeneratedPart[];
 };
 
@@ -799,15 +808,15 @@ export function saveGeneratedDay(input: {
     const insertTrack = db.prepare("INSERT INTO workout_tracks (day_id, track, summary) VALUES (?, ?, ?)");
     const insertPart = db.prepare(
       `INSERT INTO workout_parts
-        (track_id, sort_order, kind, name, format, body, time_cap_sec, score_type, score_direction, reps_per_round)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (track_id, sort_order, kind, name, format, body, time_cap_sec, estimated_duration_min, score_type, score_direction, reps_per_round)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     const body = input.track;
     const inserted = insertTrack.run(dayId, DAY_TRACK, body.summary);
     const trackId = Number(inserted.lastInsertRowid);
-    insertPart.run(trackId, 0, "warmup", "Warm-up", "", body.warmup, null, "none", "desc", null);
+    insertPart.run(trackId, 0, "warmup", "Warm-up", "", body.warmup, null, body.warmupDurationMin, "none", "desc", null);
     if (body.prep.trim()) {
-      insertPart.run(trackId, 1, "prep", "Workout prep", "", body.prep, null, "none", "desc", null);
+      insertPart.run(trackId, 1, "prep", "Workout prep", "", body.prep, null, body.prepDurationMin, "none", "desc", null);
     }
     body.parts.forEach((part, index) => {
       insertPart.run(
@@ -818,12 +827,13 @@ export function saveGeneratedDay(input: {
         part.format,
         part.details,
         part.timeCapMin ? Math.round(part.timeCapMin * 60) : null,
+        part.estimatedDurationMin,
         part.scoreType,
         direction(part.scoreType),
         part.repsPerRound,
       );
     });
-    insertPart.run(trackId, 100, "cooldown", "Cool-down", "", body.cooldown, null, "none", "desc", null);
+    insertPart.run(trackId, 100, "cooldown", "Cool-down", "", body.cooldown, null, body.cooldownDurationMin, "none", "desc", null);
   });
   tx();
 }
@@ -851,6 +861,7 @@ export function saveManualDay(input: {
       format: "",
       details: input.strength.trim(),
       timeCapMin: null,
+      estimatedDurationMin: null,
       scoreType: "none",
       repsPerRound: null,
     });
@@ -860,15 +871,19 @@ export function saveManualDay(input: {
     kind: "metcon",
     format: "",
     details: input.metcon.trim(),
-      timeCapMin: scoreType === "time" ? input.timeCapMin : null,
+    timeCapMin: scoreType === "time" ? input.timeCapMin : null,
+    estimatedDurationMin: null,
     scoreType,
     repsPerRound: null,
   });
   const track: GeneratedTrack = {
     summary: "Written in the garage.",
     warmup: input.warmup.trim(),
+    warmupDurationMin: null,
     prep: input.prep.trim(),
+    prepDurationMin: null,
     cooldown: input.cooldown.trim(),
+    cooldownDurationMin: null,
     parts,
   };
   saveGeneratedDay({
@@ -888,8 +903,11 @@ export function markRest(date: string) {
   const track: GeneratedTrack = {
     summary: "",
     warmup: "Walk, or skip it.",
+    warmupDurationMin: null,
     prep: "",
+    prepDurationMin: null,
     cooldown: "Easy stretch if you want it.",
+    cooldownDurationMin: null,
     parts: [],
   };
   saveGeneratedDay({

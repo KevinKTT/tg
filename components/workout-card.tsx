@@ -80,6 +80,7 @@ export function WorkoutCard({
   const summary = parseSummary(track.summary);
   const heroes = track.parts.filter((part) => HERO.has(part.kind));
   const lastHero = heroes[heroes.length - 1];
+  const estimatedTotal = track.parts.reduce((total, part) => total + (part.estimatedDurationMin ?? 0), 0);
 
   return (
     <div className="stack">
@@ -87,6 +88,7 @@ export function WorkoutCard({
         <RewriteDay date={day.date} hasScores={scores.length > 0} kicker={kicker} />
         <h2>{day.title}</h2>
         {day.stimulus ? <p className="board-stimulus">{day.stimulus}</p> : null}
+        {estimatedTotal ? <p className="board-gear">~{estimatedTotal} min total</p> : null}
         {summary.equipment.length ? <p className="board-gear">{summary.equipment.join(" · ")}</p> : null}
 
         {track.parts.map((part) => (
@@ -208,9 +210,12 @@ function Piece({ part, date, dayFormat, showName }: { part: PartView; date: stri
           {visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
             <span className="board-cap"> · Cap {formatTime(part.timeCapSec ?? 0)}</span>
           ) : null}
+          {part.estimatedDurationMin ? <span className="board-cap"> · ~{part.estimatedDurationMin} min</span> : null}
         </p>
       ) : visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
         <p className="board-scheme">Cap {formatTime(part.timeCapSec ?? 0)}</p>
+      ) : part.estimatedDurationMin ? (
+        <p className="board-scheme">~{part.estimatedDurationMin} min</p>
       ) : null}
       {lines.length ? <BoardLines lines={lines} done={done} onToggle={toggle} /> : part.body ? <p className="pre">{part.body}</p> : null}
     </div>
@@ -476,4 +481,3 @@ function plateList(equipment: EquipmentRow[]): Plate[] {
       label: `${item.loadValue} ${item.unit}`,
     }));
 }
-

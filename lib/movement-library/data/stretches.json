@@ -1,0 +1,2006 @@
+[
+  {
+    "id": "st-upper-trap-stretch",
+    "name": "Upper Trapezius Stretch",
+    "aliases": [
+      "lateral neck stretch",
+      "ear-to-shoulder stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "neck",
+      "upper traps"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "vertical push",
+      "full-body/olympic-style",
+      "hinge"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Tilt the ear toward the shoulder and gently assist with the same-side hand while the opposite shoulder relaxes down.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/202/lateral-neck-flexion/"
+  },
+  {
+    "id": "st-levator-scapulae-stretch",
+    "name": "Levator Scapulae Stretch",
+    "aliases": [
+      "armpit-sniff stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "neck",
+      "levator scapulae"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "vertical push",
+      "horizontal pull"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Turn the head about 45 degrees and look down toward the armpit, gently pulling the head down with the hand.",
+    "source_url": "https://library.theprehabguys.com/vimeo-video/neck-stretch/"
+  },
+  {
+    "id": "st-neck-flexion-extension",
+    "name": "Neck Flexion and Extension",
+    "aliases": [
+      "chin-to-chest stretch"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "neck"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "vertical push",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "5-8 slow reps",
+    "short_description": "Slowly lower the chin to the chest, then lift the gaze toward the ceiling, without forcing the range.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/204/neck-flexion-and-extension/"
+  },
+  {
+    "id": "st-chin-tuck",
+    "name": "Chin Tucks",
+    "aliases": [
+      "cervical retraction"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "neck",
+      "deep neck flexors"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_hold": "10 x 3-sec hold",
+    "short_description": "Glide the head straight back to make a double chin, hold briefly, and release.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/205/shoulder-packing/"
+  },
+  {
+    "id": "st-scalene-stretch",
+    "name": "Scalene Stretch",
+    "aliases": [
+      "front neck side stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "neck",
+      "scalenes"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "vertical push"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Anchor one shoulder down, tilt the head away and slightly back, looking up diagonally.",
+    "source_url": "https://library.theprehabguys.com/vimeo-video/neck-stretch/"
+  },
+  {
+    "id": "st-cross-body-shoulder",
+    "name": "Cross-Body Shoulder Stretch",
+    "aliases": [
+      "across-chest stretch",
+      "posterior shoulder stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "rear deltoids",
+      "posterior shoulder"
+    ],
+    "pairs_with_patterns": [
+      "horizontal pull",
+      "vertical push",
+      "horizontal push",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Pull one straight arm across the chest with the other hand, keeping the shoulder down.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/rotator-cuff-and-shoulder-conditioning-program/"
+  },
+  {
+    "id": "st-sleeper-stretch",
+    "name": "Sleeper Stretch",
+    "aliases": [
+      "side-lying internal rotation stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "posterior shoulder",
+      "rotator cuff"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style",
+      "horizontal push"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Lying on one side with the bottom arm at 90 degrees, gently press the forearm toward the floor.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/rotator-cuff-and-shoulder-conditioning-program/"
+  },
+  {
+    "id": "st-overhead-triceps",
+    "name": "Overhead Triceps Stretch",
+    "aliases": [
+      "triceps stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "triceps",
+      "lats"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Reach one arm overhead, bend the elbow behind the head, and gently pull the elbow with the other hand.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/174/overhead-triceps-stretch/"
+  },
+  {
+    "id": "st-shoulder-extension",
+    "name": "Standing Shoulder Extension Stretch",
+    "aliases": [
+      "hands-behind-back stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "anterior shoulders",
+      "chest",
+      "biceps"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push",
+      "carry"
+    ],
+    "typical_hold": "30 sec",
+    "short_description": "Clasp the hands behind the back and lift the arms away from the body while the chest stays tall.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/199/standing-shoulder-extension/"
+  },
+  {
+    "id": "st-standing-chest",
+    "name": "Standing Chest Stretch",
+    "aliases": [
+      "clasped-hands chest opener"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "chest",
+      "anterior shoulders"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_hold": "30 sec",
+    "short_description": "Interlace the fingers behind the back, squeeze the shoulder blades, and open the chest.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/209/standing-chest-stretch/"
+  },
+  {
+    "id": "st-doorway-pec",
+    "name": "Doorway Pec Stretch",
+    "aliases": [
+      "wall pec stretch",
+      "corner stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "chest",
+      "anterior shoulders"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "Place the forearm on a doorframe or wall at shoulder height and step through until the chest stretches.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-prone-pec",
+    "name": "Prone Single-Arm Pec Stretch",
+    "aliases": [
+      "floor pec stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "chest",
+      "anterior shoulder"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "Lie face down with one arm out at 90 degrees and roll away from it, bracing with the other hand.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/209/standing-chest-stretch/"
+  },
+  {
+    "id": "st-biceps-stretch",
+    "name": "Seated Biceps Stretch",
+    "aliases": [
+      "bent-knee biceps stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "biceps",
+      "anterior shoulders"
+    ],
+    "pairs_with_patterns": [
+      "horizontal pull",
+      "vertical pull",
+      "carry"
+    ],
+    "typical_hold": "30 sec",
+    "short_description": "Sit with knees bent, hands behind you with fingers pointing back, and slide the hips forward.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/208/seated-bent-knee-biceps-stretch/"
+  },
+  {
+    "id": "st-puppy-pose",
+    "name": "Puppy Pose",
+    "aliases": [
+      "melting heart",
+      "extended puppy"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "lats",
+      "shoulders",
+      "thoracic spine"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style",
+      "horizontal pull",
+      "vertical pull"
+    ],
+    "typical_hold": "45-60 sec",
+    "short_description": "From hands and knees, walk the hands forward and lower the chest toward the floor with hips over the knees.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/227/childs-pose/"
+  },
+  {
+    "id": "st-thread-the-needle-hold",
+    "name": "Thread the Needle Hold",
+    "aliases": [
+      "thoracic rotation stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "thoracic spine",
+      "rear shoulders"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "horizontal pull",
+      "vertical push"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "From hands and knees, slide one arm under the body and rest that shoulder and ear on the floor.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/330/high-plank-t-spine-rotation/"
+  },
+  {
+    "id": "st-open-book-hold",
+    "name": "Open Book Hold",
+    "aliases": [
+      "side-lying chest opener"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "thoracic spine",
+      "chest"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "horizontal push"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "Lie on your side with knees stacked and bent, and rotate the top arm open to rest behind you.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/223/side-lying-arm-rolls/"
+  },
+  {
+    "id": "st-seated-spinal-twist",
+    "name": "Seated Spinal Twist",
+    "aliases": [
+      "seated twist",
+      "half lord of the fishes"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "thoracic spine",
+      "obliques",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "core/midline",
+      "hinge"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Sit with one knee bent and crossed over the straight leg, and rotate toward the bent knee using the opposite elbow.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/hip-conditioning-program/"
+  },
+  {
+    "id": "st-supine-twist",
+    "name": "Supine Spinal Twist",
+    "aliases": [
+      "lying twist",
+      "knee drop twist"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "low back",
+      "thoracic spine",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "hinge",
+      "core/midline"
+    ],
+    "typical_hold": "30-60 sec/side",
+    "short_description": "Lie on your back, drop bent knees to one side, and keep both shoulders on the floor.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/229/supine-spinal-twist-with-rib-grab-and-progressions/"
+  },
+  {
+    "id": "st-bench-thoracic-extension",
+    "name": "Bench Thoracic Extension Stretch",
+    "aliases": [
+      "elbows-on-bench stretch",
+      "prayer stretch on bench"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "bench"
+    ],
+    "target_areas": [
+      "thoracic spine",
+      "lats",
+      "triceps"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30-45 sec",
+    "short_description": "Kneel facing a bench, place the elbows on it with hands together, and sink the chest down while bending the elbows.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/141/kneeling-lat-stretch-w-bench/"
+  },
+  {
+    "id": "st-foam-roll-t-spine",
+    "name": "Foam Roller Thoracic Extension",
+    "aliases": [
+      "T-spine extension over roller"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "thoracic spine"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style",
+      "horizontal push"
+    ],
+    "typical_hold": "5-8 reps at 2-3 levels",
+    "short_description": "Lie with a roller under the upper back, hands behind the head, and extend back over it, moving it up a segment at a time.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-sphinx",
+    "name": "Sphinx Pose",
+    "aliases": [
+      "prone press-up on elbows"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "low back",
+      "abdominals",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Lie face down and prop up on the forearms, letting the low back and belly relax.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/16/cobra/"
+  },
+  {
+    "id": "st-cobra",
+    "name": "Cobra Stretch",
+    "aliases": [
+      "prone press-up",
+      "cobra pose"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "abdominals",
+      "hip flexors",
+      "spine"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "hinge"
+    ],
+    "typical_hold": "20-30 sec x 2",
+    "short_description": "Lying face down with hands under the shoulders, press the chest up while the hips stay down.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/16/cobra/"
+  },
+  {
+    "id": "st-upward-dog",
+    "name": "Upward-Facing Dog",
+    "aliases": [
+      "up dog"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "abdominals",
+      "hip flexors",
+      "chest"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "horizontal push"
+    ],
+    "typical_hold": "20-30 sec",
+    "short_description": "From prone, press up through straight arms lifting the thighs off the floor and opening the chest.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/244/upward-facing-dog/"
+  },
+  {
+    "id": "st-childs-pose",
+    "name": "Child's Pose",
+    "aliases": [
+      "balasana"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "low back",
+      "lats",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "squat",
+      "vertical push",
+      "core/midline"
+    ],
+    "typical_hold": "45-90 sec",
+    "short_description": "Sit the hips back to the heels with knees apart and arms extended forward, breathing into the back.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/227/childs-pose/"
+  },
+  {
+    "id": "st-side-reach-childs-pose",
+    "name": "Side-Reach Child's Pose",
+    "aliases": [
+      "lateral child's pose"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "lats",
+      "obliques"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "From child's pose, walk both hands to one side to lengthen the opposite lat.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/227/childs-pose/"
+  },
+  {
+    "id": "st-90-lat-stretch",
+    "name": "90 Lat Stretch",
+    "aliases": [
+      "standing lat stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "lats"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "horizontal pull",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Stand facing a support, hold it at about hip height, and sit the hips back while reaching through one arm.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/198/90-lat-stretch/"
+  },
+  {
+    "id": "st-kneeling-lat-bench",
+    "name": "Kneeling Lat Stretch on Bench",
+    "aliases": [
+      "bench lat stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "bench"
+    ],
+    "target_areas": [
+      "lats",
+      "triceps"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Kneel beside a bench, place one forearm on it, and sink the hips back and chest down.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/141/kneeling-lat-stretch-w-bench/"
+  },
+  {
+    "id": "st-standing-side-bend",
+    "name": "Standing Side Bend",
+    "aliases": [
+      "overhead side reach",
+      "QL stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "lats",
+      "obliques",
+      "quadratus lumborum"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "rotation",
+      "vertical push"
+    ],
+    "typical_hold": "20-30 sec/side",
+    "short_description": "Reach one arm overhead and lean the torso to the opposite side without twisting.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-wrist-flexor",
+    "name": "Wrist Flexor Stretch",
+    "aliases": [
+      "palm-up forearm stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "wrist flexors",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push",
+      "carry",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "With the arm straight and palm up, gently pull the fingers back toward you.",
+    "source_url": "https://health.clevelandclinic.org/wrist-pain-exercises"
+  },
+  {
+    "id": "st-wrist-extensor",
+    "name": "Wrist Extensor Stretch",
+    "aliases": [
+      "palm-down forearm stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "wrist extensors",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "horizontal pull",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "With the arm straight and palm down, gently pull the back of the hand toward you.",
+    "source_url": "https://health.clevelandclinic.org/wrist-pain-exercises"
+  },
+  {
+    "id": "st-prayer-stretch",
+    "name": "Prayer Stretch",
+    "aliases": [
+      "palms-together wrist stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "wrist flexors"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_hold": "30 sec",
+    "short_description": "Press the palms together in front of the chest and lower the hands while keeping the palms in contact.",
+    "source_url": "https://thewell.northwell.edu/joint-health-orthopedics/wrist-exercises"
+  },
+  {
+    "id": "st-reverse-prayer",
+    "name": "Reverse Prayer Stretch",
+    "aliases": [
+      "back-of-hands wrist stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "wrist extensors"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "horizontal pull"
+    ],
+    "typical_hold": "30 sec",
+    "short_description": "Press the backs of the hands together with fingers pointing down and lift the elbows slightly.",
+    "source_url": "https://thewell.northwell.edu/joint-health-orthopedics/wrist-exercises"
+  },
+  {
+    "id": "st-kneeling-wrist-stretch",
+    "name": "Kneeling Wrist Stretch (Fingers Back)",
+    "aliases": [
+      "quadruped reverse wrist stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "wrist flexors",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push",
+      "core/midline"
+    ],
+    "typical_hold": "30 sec",
+    "short_description": "On hands and knees, turn the fingers to point toward the knees and gently lean back.",
+    "source_url": "https://library.crossfit.com/free/pdf/08_03_Better_warmup.pdf"
+  },
+  {
+    "id": "st-forearm-smash",
+    "name": "Forearm Soft-Tissue Roll",
+    "aliases": [
+      "forearm smash",
+      "lacrosse ball forearm"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "massage_ball"
+    ],
+    "target_areas": [
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "horizontal pull",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Roll the forearm slowly over a massage ball on a table, pausing on tender spots.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-kneeling-hip-flexor",
+    "name": "Half-Kneeling Hip Flexor Stretch",
+    "aliases": [
+      "kneeling lunge stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "quadriceps"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "squat",
+      "locomotion",
+      "jump"
+    ],
+    "typical_hold": "30-60 sec/side",
+    "short_description": "In a half-kneeling position, tuck the pelvis and shift forward until the front of the rear hip stretches.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/142/kneeling-hip-flexor-stretch/"
+  },
+  {
+    "id": "st-couch-stretch",
+    "name": "Couch Stretch",
+    "aliases": [
+      "rear-foot-elevated hip flexor stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "hip flexors",
+      "quadriceps"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "squat",
+      "locomotion",
+      "jump"
+    ],
+    "typical_hold": "60-90 sec/side",
+    "short_description": "With the back knee near a wall or couch and the shin up it, step the other foot forward and lift the torso tall.",
+    "source_url": "https://thetimerlab.com/hip-mobility-routine-timer/"
+  },
+  {
+    "id": "st-low-lunge",
+    "name": "Low Lunge",
+    "aliases": [
+      "anjaneyasana",
+      "crescent low lunge"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "quadriceps",
+      "groin"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "locomotion"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "Sink into a long lunge with the back knee down and arms overhead, keeping the pelvis tucked.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/228/warrior-i/"
+  },
+  {
+    "id": "st-pigeon",
+    "name": "Pigeon Stretch",
+    "aliases": [
+      "pigeon pose"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "hip external rotators",
+      "piriformis"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "hinge",
+      "locomotion"
+    ],
+    "typical_hold": "60-90 sec/side",
+    "short_description": "With the front shin angled across the body and the back leg extended, lower the hips and fold forward.",
+    "source_url": "https://thetimerlab.com/hip-mobility-routine-timer/"
+  },
+  {
+    "id": "st-9090-hip",
+    "name": "90/90 Hip Stretch",
+    "aliases": [
+      "seated 90-90"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hip internal rotators",
+      "hip external rotators",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "rotation"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Sit with the front and back legs each bent 90 degrees and lean the torso over the front shin.",
+    "source_url": "https://health.clevelandclinic.org/90-90-stretch"
+  },
+  {
+    "id": "st-supine-9090",
+    "name": "Supine 90-90 Hip Rotator Stretch",
+    "aliases": [
+      "supine figure-four (90-90)"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "piriformis"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Lying on your back with one ankle crossed on the opposite knee, draw the legs toward the chest.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/148/supine-90-90-hip-rotator-stretch/"
+  },
+  {
+    "id": "st-deep-squat-hold",
+    "name": "Deep Squat Hold",
+    "aliases": [
+      "malasana",
+      "garland pose",
+      "resting squat"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hips",
+      "adductors",
+      "ankles",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "45-90 sec",
+    "short_description": "Sit into the deepest comfortable squat with heels down and elbows gently pressing the knees out.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/135/bodyweight-squat/"
+  },
+  {
+    "id": "st-happy-baby",
+    "name": "Happy Baby",
+    "aliases": [
+      "ananda balasana"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hips",
+      "adductors",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge"
+    ],
+    "typical_hold": "45-60 sec",
+    "short_description": "On your back, hold the outside of the feet with knees bent toward the armpits and rock gently.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "st-hip-cars",
+    "name": "Hip Controlled Articular Rotations",
+    "aliases": [
+      "hip CARs",
+      "quadruped hip circles"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "locomotion",
+      "rotation"
+    ],
+    "typical_hold": "3-5 slow circles/direction/side",
+    "short_description": "On hands and knees or standing, draw the biggest controlled circle possible with one knee while keeping the rest of the body still.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/201/standing-gate-openers-frankensteins/"
+  },
+  {
+    "id": "st-standing-it-band",
+    "name": "Standing Iliotibial Band Stretch",
+    "aliases": [
+      "standing lateral hip stretch",
+      "crossed-leg side lean"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "lateral hip",
+      "TFL",
+      "IT band"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "locomotion",
+      "jump"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Stand beside a wall, cross the inside leg behind the outside leg, and lean the hip toward the wall.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/hip-conditioning-program/"
+  },
+  {
+    "id": "st-figure-four",
+    "name": "Supine Figure-Four Stretch",
+    "aliases": [
+      "reclined pigeon",
+      "figure 4"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "piriformis"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge",
+      "locomotion"
+    ],
+    "typical_hold": "30-60 sec/side",
+    "short_description": "Lying on your back, cross one ankle over the opposite knee and pull the bottom thigh toward the chest.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/148/supine-90-90-hip-rotator-stretch/"
+  },
+  {
+    "id": "st-seated-figure-four",
+    "name": "Seated Figure-Four Stretch",
+    "aliases": [
+      "seated pigeon",
+      "chair glute stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "piriformis"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "locomotion"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "Sitting tall, cross one ankle over the opposite knee and hinge forward with a flat back.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-knee-to-opposite-shoulder",
+    "name": "Knee-to-Opposite-Shoulder Stretch",
+    "aliases": [
+      "piriformis stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "piriformis"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Lying on your back, pull one bent knee toward the opposite shoulder.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-single-knee-to-chest",
+    "name": "Single Knee-to-Chest",
+    "aliases": [
+      "one knee hug"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "squat"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Lying on your back, hug one knee to the chest while the other leg stays relaxed.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/hip-conditioning-program/"
+  },
+  {
+    "id": "st-double-knee-to-chest",
+    "name": "Double Knee-to-Chest",
+    "aliases": [
+      "knees-to-chest",
+      "apanasana"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "low back",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "squat",
+      "core/midline"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Lying on your back, hug both knees to the chest and gently rock side to side.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/hip-conditioning-program/"
+  },
+  {
+    "id": "st-supine-hamstring",
+    "name": "Supine Hamstring Stretch",
+    "aliases": [
+      "lying hamstring stretch",
+      "towel hamstring stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "lunge",
+      "locomotion",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30-60 sec/side",
+    "short_description": "Lying on your back, lift one straight leg and hold behind the thigh (or with a towel) until the back of the leg stretches.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/235/supine-hamstrings-stretch/"
+  },
+  {
+    "id": "st-seated-toe-touch",
+    "name": "Seated Forward Fold",
+    "aliases": [
+      "seated toe touch",
+      "paschimottanasana"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "low back",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Sit with legs straight and hinge from the hips to reach toward the toes with a long spine.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/213/seated-toe-touches/"
+  },
+  {
+    "id": "st-modified-hurdler",
+    "name": "Modified Hurdler's Stretch",
+    "aliases": [
+      "single-leg seated hamstring stretch",
+      "head-to-knee"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "locomotion",
+      "jump"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Sit with one leg straight and the other foot against the inner thigh, and fold over the straight leg.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/273/modified-hurdler-s-stretch/"
+  },
+  {
+    "id": "st-half-kneeling-hamstring",
+    "name": "Half-Kneeling Hamstring Stretch",
+    "aliases": [
+      "runner's stretch",
+      "half split"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "locomotion",
+      "lunge"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "From half-kneeling, shift the hips back over the rear knee and straighten the front leg with toes up.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-standing-forward-fold",
+    "name": "Standing Forward Fold",
+    "aliases": [
+      "ragdoll",
+      "uttanasana"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "low back",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "full-body/olympic-style",
+      "squat"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Hinge forward with soft knees and let the torso hang, holding opposite elbows.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/213/seated-toe-touches/"
+  },
+  {
+    "id": "st-wall-hamstring",
+    "name": "Wall Hamstring Stretch",
+    "aliases": [
+      "doorway hamstring stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "locomotion"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Lie near a doorway or wall with one heel up the wall and slowly straighten the knee.",
+    "source_url": "https://www.mayoclinic.org/diseases-conditions/hamstring-injury/multimedia/hamstring-stretch/img-20006930"
+  },
+  {
+    "id": "st-standing-quad",
+    "name": "Standing Quad Stretch",
+    "aliases": [
+      "standing quadriceps stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "locomotion",
+      "jump"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Standing tall, hold one ankle behind you and pull the heel toward the glute with knees together.",
+    "source_url": "https://barbend.com/quad-stretches/"
+  },
+  {
+    "id": "st-side-lying-quad",
+    "name": "Side-Lying Quad Stretch",
+    "aliases": [
+      "lying quadriceps stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "locomotion"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Lying on your side, hold the top ankle and pull the heel toward the glute, gently pressing the hip forward.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/149/side-lying-quadriceps-stretch/"
+  },
+  {
+    "id": "st-kneeling-quad",
+    "name": "Kneeling Quad Stretch",
+    "aliases": [
+      "half-kneeling quad pull"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "From half-kneeling, reach back to hold the rear foot and draw it toward the glute.",
+    "source_url": "https://barbend.com/quad-stretches/"
+  },
+  {
+    "id": "st-wall-calf",
+    "name": "Wall Calf Stretch (Straight Knee)",
+    "aliases": [
+      "gastrocnemius stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "calves",
+      "gastrocnemius"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion",
+      "squat"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "Hands on a wall, step one leg back with heel down and knee straight, and lean forward.",
+    "source_url": "https://orthoinfo.aaos.org/en/recovery/knee-conditioning-program/"
+  },
+  {
+    "id": "st-wall-soleus",
+    "name": "Wall Soleus Stretch (Bent Knee)",
+    "aliases": [
+      "bent-knee calf stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "soleus",
+      "Achilles tendon"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion",
+      "squat"
+    ],
+    "typical_hold": "30-45 sec/side",
+    "short_description": "In the wall calf position, bend the back knee while keeping the heel down to target the lower calf.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/152/standing-dorsi-flexion-calf-stretch/"
+  },
+  {
+    "id": "st-downward-dog",
+    "name": "Downward-Facing Dog",
+    "aliases": [
+      "down dog"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "hamstrings",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "hinge",
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "From a plank, push the hips up and back into an inverted V, pressing the heels toward the floor.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/18/downward-facing-dog/"
+  },
+  {
+    "id": "st-step-calf",
+    "name": "Step Calf Stretch",
+    "aliases": [
+      "heel drop stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "step"
+    ],
+    "target_areas": [
+      "calves",
+      "Achilles tendon"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Stand with the ball of one foot on a step and slowly lower the heel below the step.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/211/step-stretch/"
+  },
+  {
+    "id": "st-seated-calf-towel",
+    "name": "Seated Calf Stretch with Towel",
+    "aliases": [
+      "towel calf stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "towel"
+    ],
+    "target_areas": [
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Sit with legs straight, loop a towel around the ball of one foot, and gently pull the toes toward you.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/214/seated-calf-stretch/"
+  },
+  {
+    "id": "st-kneeling-shin",
+    "name": "Kneeling Shin Stretch",
+    "aliases": [
+      "tibialis anterior stretch",
+      "kneeling TA stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "tibialis anterior",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "30-45 sec",
+    "short_description": "Kneel with the tops of the feet flat on the floor and sit back onto the heels, lifting the knees slightly if comfortable.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/195/kneeling-ta-stretch/"
+  },
+  {
+    "id": "st-toe-sit",
+    "name": "Toe Sit",
+    "aliases": [
+      "toe stretch",
+      "kneeling toe extension"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "plantar fascia",
+      "toes",
+      "feet"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Kneel with the toes tucked under and sit back on the heels.",
+    "source_url": "https://barbend.com/ankle-mobility-exercises/"
+  },
+  {
+    "id": "st-ankle-cars",
+    "name": "Ankle Circles",
+    "aliases": [
+      "ankle CARs"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion",
+      "squat"
+    ],
+    "typical_hold": "10 circles/direction/side",
+    "short_description": "Seated or standing, draw slow, full circles with one foot while keeping the shin still.",
+    "source_url": "https://barbend.com/ankle-mobility-exercises/"
+  },
+  {
+    "id": "st-butterfly",
+    "name": "Butterfly Stretch",
+    "aliases": [
+      "seated butterfly",
+      "bound angle"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "groin"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Sit with the soles of the feet together and knees out, and hinge forward with a long spine.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/216/seated-butterfly-stretch/"
+  },
+  {
+    "id": "st-frog",
+    "name": "Frog Stretch",
+    "aliases": [
+      "frog pose",
+      "mandukasana"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "groin",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge"
+    ],
+    "typical_hold": "45-90 sec",
+    "short_description": "From hands and knees, slide the knees wide with shins parallel and ease the hips back.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "st-seated-straddle",
+    "name": "Seated Straddle Stretch",
+    "aliases": [
+      "wide-leg forward fold",
+      "pancake"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge"
+    ],
+    "typical_hold": "30-60 sec",
+    "short_description": "Sit with legs wide and hinge forward from the hips, walking the hands out.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/210/seated-straddle-stretch/"
+  },
+  {
+    "id": "st-side-straddle",
+    "name": "Seated Side Straddle Stretch",
+    "aliases": [
+      "straddle side reach"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "hamstrings",
+      "lats"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "rotation"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "In a wide seated straddle, reach toward one foot while keeping the chest open.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/215/seated-straddle-with-side-reaches/"
+  },
+  {
+    "id": "st-side-lunge-hold",
+    "name": "Side Lunge Stretch",
+    "aliases": [
+      "lateral lunge hold",
+      "cossack hold"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "groin"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "locomotion"
+    ],
+    "typical_hold": "30 sec/side",
+    "short_description": "Shift into a side lunge with the straight leg's toes up and hold the bottom position.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/50/side-lunge/"
+  },
+  {
+    "id": "st-adductor-rockback",
+    "name": "Quadruped Adductor Rock-Back",
+    "aliases": [
+      "half-frog rock"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge"
+    ],
+    "typical_hold": "8-10 slow reps/side",
+    "short_description": "On hands and knees with one leg out straight to the side, rock the hips back and forth.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "st-cat-camel-cooldown",
+    "name": "Slow Cat-Camel",
+    "aliases": [
+      "cat-cow (cooldown)"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "spine",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "6-8 breaths",
+    "short_description": "Move slowly between spinal flexion and extension on hands and knees, timing each with a slow breath.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/15/cat-cow/"
+  },
+  {
+    "id": "st-pelvic-tilt",
+    "name": "Supine Pelvic Tilts",
+    "aliases": [
+      "pelvic rocks"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "low back",
+      "abdominals"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline"
+    ],
+    "typical_hold": "10-15 slow reps",
+    "short_description": "Lying on your back with knees bent, gently flatten and then arch the low back.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-roll-quads",
+    "name": "Foam Roll Quadriceps",
+    "aliases": [
+      "quad roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "quadriceps",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "60-90 sec/side",
+    "short_description": "Lying face down with the roller under the thighs, roll slowly from hip to just above the knee, pausing on tender spots.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-roll-it-band",
+    "name": "Foam Roll Lateral Thigh",
+    "aliases": [
+      "IT band roll",
+      "TFL roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "lateral thigh",
+      "TFL"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "locomotion",
+      "jump"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Lie on your side on the roller and roll slowly between the hip and knee, supporting with the top leg.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-roll-calves",
+    "name": "Foam Roll Calves",
+    "aliases": [
+      "calf roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Sit with the roller under the calves and roll from ankle to knee, crossing one leg over for more pressure.",
+    "source_url": "https://www.nasm.org/resource-center/exercise-library/foam-roll-calves"
+  },
+  {
+    "id": "st-roll-lats",
+    "name": "Foam Roll Lats",
+    "aliases": [
+      "lat roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "lats"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "horizontal pull",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Lie on your side with the arm overhead and the roller under the armpit area, rolling slowly along the side of the back.",
+    "source_url": "https://www.nasm.org/resource-center/exercise-library/foam-roll-latissimus-dorsi"
+  },
+  {
+    "id": "st-roll-adductors",
+    "name": "Foam Roll Adductors",
+    "aliases": [
+      "inner thigh roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "adductors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Lie face down with one leg out to the side and the roller under the inner thigh, rolling from knee to groin.",
+    "source_url": "https://www.nasm.org/resource-center/exercise-library/foam-roll-adductors"
+  },
+  {
+    "id": "st-roll-glutes",
+    "name": "Foam Roll Glutes",
+    "aliases": [
+      "piriformis roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "glutes",
+      "piriformis"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Sit on the roller with one ankle crossed over the opposite knee and lean into the crossed-leg glute.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-roll-hamstrings",
+    "name": "Foam Roll Hamstrings",
+    "aliases": [
+      "hamstring roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "locomotion"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Sit with the roller under the hamstrings and roll from just above the knee to the glute.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-ball-pec",
+    "name": "Massage Ball Pec Release",
+    "aliases": [
+      "lacrosse ball pec smash"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "massage_ball"
+    ],
+    "target_areas": [
+      "chest",
+      "anterior shoulder"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Pin a massage ball between the chest and a wall below the collarbone and move the arm slowly.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-ball-foot",
+    "name": "Massage Ball Foot Roll",
+    "aliases": [
+      "plantar fascia roll"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "massage_ball"
+    ],
+    "target_areas": [
+      "feet",
+      "plantar fascia"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Roll the sole of the foot slowly over a massage ball from heel to toes.",
+    "source_url": "https://www.nasm.org/resource-center/blog/recovery/foam-rolling-and-self-myofascial-release-the-trainer-application-guide"
+  },
+  {
+    "id": "st-box-breathing",
+    "name": "Box Breathing",
+    "aliases": [
+      "square breathing",
+      "4-4-4-4 breathing"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [],
+    "target_areas": [
+      "nervous system",
+      "diaphragm"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge",
+      "horizontal push",
+      "vertical push",
+      "horizontal pull",
+      "vertical pull",
+      "carry",
+      "core/midline",
+      "jump",
+      "locomotion",
+      "full-body/olympic-style",
+      "rotation"
+    ],
+    "typical_hold": "2-5 min",
+    "short_description": "Inhale for 4 counts, hold for 4, exhale for 4, and hold for 4, repeating calmly.",
+    "source_url": "https://health.clevelandclinic.org/box-breathing-benefits"
+  },
+  {
+    "id": "st-diaphragmatic-breathing",
+    "name": "Supine Diaphragmatic Breathing",
+    "aliases": [
+      "belly breathing"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [],
+    "target_areas": [
+      "diaphragm",
+      "nervous system"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge",
+      "horizontal push",
+      "vertical push",
+      "horizontal pull",
+      "vertical pull",
+      "carry",
+      "core/midline",
+      "jump",
+      "locomotion",
+      "full-body/olympic-style",
+      "rotation"
+    ],
+    "typical_hold": "2-5 min",
+    "short_description": "Lie on your back with knees bent, one hand on the chest and one on the belly, and breathe so only the belly hand rises.",
+    "source_url": "https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing"
+  },
+  {
+    "id": "st-crocodile-breathing",
+    "name": "Crocodile Breathing",
+    "aliases": [
+      "prone belly breathing"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [],
+    "target_areas": [
+      "diaphragm",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline",
+      "carry"
+    ],
+    "typical_hold": "2-3 min",
+    "short_description": "Lie face down with the forehead on the hands and breathe into the belly so the low back rises and falls.",
+    "source_url": "https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing"
+  },
+  {
+    "id": "st-478-breathing",
+    "name": "4-7-8 Breathing",
+    "aliases": [
+      "relaxing breath"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [],
+    "target_areas": [
+      "nervous system"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge",
+      "horizontal push",
+      "vertical push",
+      "horizontal pull",
+      "vertical pull",
+      "carry",
+      "core/midline",
+      "jump",
+      "locomotion",
+      "full-body/olympic-style",
+      "rotation"
+    ],
+    "typical_hold": "4 cycles",
+    "short_description": "Inhale through the nose for 4 counts, hold for 7, and exhale fully through the mouth for 8.",
+    "source_url": "https://health.clevelandclinic.org/4-7-8-breathing"
+  },
+  {
+    "id": "st-cyclic-sighing",
+    "name": "Cyclic Sighing",
+    "aliases": [
+      "physiological sigh"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [],
+    "target_areas": [
+      "nervous system",
+      "diaphragm"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge",
+      "horizontal push",
+      "vertical push",
+      "horizontal pull",
+      "vertical pull",
+      "carry",
+      "core/midline",
+      "jump",
+      "locomotion",
+      "full-body/olympic-style",
+      "rotation"
+    ],
+    "typical_hold": "3-5 min",
+    "short_description": "Take a full inhale through the nose, a second short top-up inhale, then a long slow exhale through the mouth; repeat.",
+    "source_url": "https://pubmed.ncbi.nlm.nih.gov/36630953/"
+  },
+  {
+    "id": "st-legs-up-wall",
+    "name": "Legs Up the Wall",
+    "aliases": [
+      "viparita karani"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "hamstrings",
+      "low back",
+      "nervous system"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump",
+      "lunge",
+      "squat"
+    ],
+    "typical_hold": "3-5 min",
+    "short_description": "Lie on your back with the hips near a wall and the legs resting up it, breathing slowly.",
+    "source_url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/stretching/art-20546848"
+  },
+  {
+    "id": "st-9090-breathing",
+    "name": "90/90 Wall Breathing",
+    "aliases": [
+      "feet-on-wall breathing",
+      "90-90 hip lift breathing"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "diaphragm",
+      "low back",
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline",
+      "squat"
+    ],
+    "typical_hold": "5 slow breaths x 2-3",
+    "short_description": "Lie on your back with hips and knees at 90 degrees and feet on a wall, tuck the pelvis slightly, and take slow full exhales.",
+    "source_url": "https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing"
+  }
+]

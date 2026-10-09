@@ -1,4 +1,5 @@
 import { scanMovements } from "./program";
+import { isLibraryMovementId } from "./movement-library";
 
 export type GuardItem = {
   slug: string;
@@ -28,6 +29,7 @@ export type ProgramCheck = {
   allowRun: boolean;
   allowHeavy: boolean;
   bannedMovements: string[];
+  allowedLibraryMovements?: string[];
 };
 
 const KEYWORDS: { pattern: RegExp; cap: string; label: string }[] = [
@@ -136,6 +138,11 @@ export type SchemePart = {
   timeCapMin: number | null;
 };
 
+export type DurationPart = {
+  name: string;
+  estimatedDurationMin: number | null;
+};
+
 const CLOCK_SCHEME = /\b(amrap|e\d*\s*mom|emom|every minute(?:\s+on the minute)?|\d+\s*rounds?\s+for\s+time|for time|cap\s+\d+)\b/i;
 const CLASS_NAME = /warm-?up|workout prep|^prep$|cool-?down/i;
 
@@ -172,6 +179,41 @@ export function schemeViolations(input: {
   return problems;
 }
 
+export function sessionDurationViolations(input: {
+  warmupDurationMin: number | null;
+  prepDurationMin: number | null;
+  cooldownDurationMin: number | null;
+  parts: DurationPart[];
+}): string[] {
+  const sections = [
+    { name: "warm-up", value: input.warmupDurationMin },
+    { name: "workout prep", value: input.prepDurationMin },
+    ...input.parts.map((part) => ({ name: part.name, value: part.estimatedDurationMin })),
+    { name: "cool-down", value: input.cooldownDurationMin },
+  ];
+  const missing = sections.filter((section) => section.value == null || !Number.isFinite(section.value));
+  if (missing.length) {
+    return [`estimated duration is missing for ${missing.map((section) => section.name).join(", ")}`];
+  }
+  const problems: string[] = [];
+  if ((input.warmupDurationMin ?? 0) < 8 || (input.warmupDurationMin ?? 0) > 12) {
+    problems.push("warm-up estimate must be 8-12 minutes");
+  }
+  if ((input.prepDurationMin ?? 0) < 5 || (input.prepDurationMin ?? 0) > 10) {
+    problems.push("workout prep estimate must be 5-10 minutes");
+  }
+  if ((input.cooldownDurationMin ?? 0) < 3 || (input.cooldownDurationMin ?? 0) > 7) {
+    problems.push("cool-down estimate must be 3-7 minutes");
+  }
+  const work = input.parts.reduce((sum, part) => sum + (part.estimatedDurationMin ?? 0), 0);
+  if (work < 18 || work > 30) problems.push("workout pieces must total 18-30 minutes");
+  const total = sections.reduce((sum, section) => sum + (section.value ?? 0), 0);
+  if (total < 40 || total > 50) {
+    problems.push(`estimated session duration is ${total} minutes; make the complete session 40-50 minutes`);
+  }
+  return problems;
+}
+
 export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardItem[], check?: ProgramCheck): string[] {
   const caps = capabilities(items);
   const violations: string[] = [];
@@ -194,7 +236,7 @@ export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardIte
     if (check) {
       const scored = [body.summary ?? "", ...body.parts.map((part) => `${part.name}\n${part.details}`)].join("\n");
       const hits = scanMovements(scored);
-      if (!check.allowRun && hits.some((hit) => hit.slug === "run")) {
+      if (!check.allowRun && hits.some((hit) => hit.slug === "run" || hit.slug.includes("run"))) {
         violations.push(`${track} programs running, which is banned today`);
       }
       if (!check.allowHeavy && /\b(1\s?rm|one[- ]rep max|build to a heavy|heavy single|find a (?:heavy|1))\b/i.test(scored)) {
@@ -203,6 +245,13 @@ export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardIte
       for (const slug of check.bannedMovements) {
         if (hits.some((hit) => hit.slug === slug)) {
           violations.push(`${track} repeats ${slug.replace(/_/g, " ")}, which is banned today`);
+        }
+      }
+      if (check.allowedLibraryMovements) {
+        const allowed = new Set(check.allowedLibraryMovements);
+        const outsideMenu = hits.find((hit) => isLibraryMovementId(hit.slug) && !allowed.has(hit.slug));
+        if (outsideMenu) {
+          violations.push(`${track} uses ${outsideMenu.slug}, which was not in today's equipment-safe movement menu`);
         }
       }
       if (check.load === "heavy") {

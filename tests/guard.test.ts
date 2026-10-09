@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guardWorkout, schemeViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
+import { guardWorkout, schemeViolations, sessionDurationViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
 
 const dumbbells: GuardItem[] = [
   { slug: "db_20lb", name: "20 lb", category: "dumbbell", owned: true, loadValue: 20, unit: "lb" },
@@ -56,6 +56,12 @@ test("rejects a banned movement from yesterday", () => {
   const check: ProgramCheck = { ...open, bannedMovements: ["thruster"] };
   const violations = guardWorkout(day("21-15-9 dumbbell thrusters and burpees"), dumbbells, check);
   assert.ok(violations.some((item) => /thruster/i.test(item)));
+});
+
+test("rejects a library movement outside today's curated menu", () => {
+  const check: ProgramCheck = { ...open, allowedLibraryMovements: ["db-deadlift"] };
+  const violations = guardWorkout(day("3 rounds: 12 Dumbbell Suitcase Deadlift"), dumbbells, check);
+  assert.ok(violations.some((item) => /equipment-safe movement menu/i.test(item)));
 });
 
 test("rejects the lightest dumbbell on a heavy Rx line", () => {
@@ -115,4 +121,34 @@ test("allows a heavier dumbbell on a heavy Rx line", () => {
     check,
   );
   assert.ok(!violations.some((item) => /lightest/i.test(item)));
+});
+
+test("accepts a complete 45 minute session", () => {
+  const problems = sessionDurationViolations({
+    warmupDurationMin: 9,
+    prepDurationMin: 7,
+    parts: [{ name: "Strength", estimatedDurationMin: 14 }, { name: "Metcon", estimatedDurationMin: 10 }],
+    cooldownDurationMin: 5,
+  });
+  assert.deepEqual(problems, []);
+});
+
+test("rejects short sessions and missing section estimates", () => {
+  assert.ok(
+    sessionDurationViolations({
+      warmupDurationMin: 6,
+      prepDurationMin: 4,
+      parts: [{ name: "Metcon", estimatedDurationMin: 10 }],
+      cooldownDurationMin: 4,
+    }).some((problem) => /24 minutes/.test(problem)),
+  );
+  assert.match(
+    sessionDurationViolations({
+      warmupDurationMin: 9,
+      prepDurationMin: null,
+      parts: [{ name: "Metcon", estimatedDurationMin: 25 }],
+      cooldownDurationMin: 5,
+    })[0],
+    /workout prep/,
+  );
 });
