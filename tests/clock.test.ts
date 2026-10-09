@@ -90,6 +90,16 @@ test("work and rest intervals alternate", () => {
   assert.equal(clockFace(plan, 180).caption, "Work");
 });
 
+test("an EMOM is a minute clock, not a cap", () => {
+  const plan = clockPlan("emom", part({ scoreType: "time", timeCapSec: 720, format: "EMOM 12" }));
+  assert.equal(plan.kind, "minute");
+  assert.equal(plan.savesTime, false);
+  assert.equal(plan.count, 12);
+  assert.equal(clockFace(plan, 0).caption, "Min 1");
+  assert.equal(clockFace(plan, 11 * 60).caption, "Min 12");
+  assert.equal(clockFace(plan, 12 * 60).caption, "Done");
+});
+
 test("a strength piece does not inherit the day clock", () => {
   const plan = clockPlan("emom", part({ kind: "strength", scoreType: "time", timeCapSec: 600, format: "5x3" }));
   assert.equal(plan.kind, "capped");

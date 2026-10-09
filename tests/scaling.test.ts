@@ -31,6 +31,7 @@ test("snaps to the closest loadable weight", () => {
 
 test("normalizes scores", () => {
   assert.deepEqual(normalizeScore({ scoreType: "time", minutes: 3, seconds: 7 }), { value: 187, display: "3:07" });
+  assert.deepEqual(normalizeScore({ scoreType: "done" }), { value: 1, display: "Done" });
   assert.equal(formatTime(65), "1:05");
   assert.equal(roundsValue(8, 15), 80015);
   const load = normalizeScore({ scoreType: "load", load: 60, unit: "kg" });

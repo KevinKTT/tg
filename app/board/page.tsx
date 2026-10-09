@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { addDays, formatLong, isISODate, todayISO } from "@/lib/dates";
 import { getDay, getScores, listAthletes } from "@/lib/db";
+import { pieceScheme } from "@/lib/formats";
 import { higherIsBetter } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +16,15 @@ export default async function BoardPage({
   const day = getDay(date);
   const members = listAthletes();
   const scores = day && day.status !== "rest" ? getScores(day.id) : [];
+  const parts = day?.tracks.flatMap((track) => track.parts) ?? [];
   const groups = new Map<string, typeof scores>();
   for (const score of scores) {
-    const key = `${score.partKind}:${score.partName}:${score.scoreType}`;
-    groups.set(key, [...(groups.get(key) ?? []), score]);
+    const part = parts.find((item) => item.id === score.partId);
+    const scoreType = part && day ? (pieceScheme(part.format, day.format, part.kind)?.scoreType ?? score.scoreType) : score.scoreType;
+    if (scoreType === "none") continue;
+    const typed = { ...score, scoreType };
+    const key = `${typed.partKind}:${typed.partName}:${typed.scoreType}`;
+    groups.set(key, [...(groups.get(key) ?? []), typed]);
   }
   const prev = addDays(date, -1);
   const next = addDays(date, 1);
@@ -48,8 +54,9 @@ export default async function BoardPage({
         </section>
       ) : null}
       {[...groups.entries()].map(([key, rows]) => {
+        const done = rows[0].scoreType === "done";
         const betterLow = rows[0].scoreDirection === "asc" || !higherIsBetter(rows[0].scoreType);
-        const ranked = [...rows].sort((a, b) => (betterLow ? a.valueNumeric - b.valueNumeric : b.valueNumeric - a.valueNumeric));
+        const ranked = done ? rows : [...rows].sort((a, b) => (betterLow ? a.valueNumeric - b.valueNumeric : b.valueNumeric - a.valueNumeric));
         const comparable = new Set(rows.map((row) => row.scoreType)).size === 1;
         return (
           <section className="card" key={key}>
@@ -64,7 +71,7 @@ export default async function BoardPage({
                     {member.name} <span className="faint">{member.initials}</span>
                   </span>
                   <strong>
-                    {score ? score.display : "—"} {place && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
+                    {score ? score.display : "—"} {place && !done && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
                   </strong>
                 </div>
               );
