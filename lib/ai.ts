@@ -10,7 +10,6 @@ import {
   listPrs,
   bestPr,
   recentDaySignals,
-  recentFormats,
   saveGeneratedDay,
   type AthleteRow,
   type DayView,
@@ -21,11 +20,10 @@ import { startOfWeek } from "./dates";
 import { env, loadEnv } from "./env";
 import { formatById, formatFromScheme, pickFormat, pieceScheme, type FormatDef } from "./formats";
 import { capabilities, guardWorkout, schemeViolations, sessionDurationViolations, type ProgramCheck } from "./guard";
-import { movementMenu, movementMenuIds, movementMenuPrompt } from "./movement-library";
+import { movementMenu, movementMenuPrompt } from "./movement-library";
 import {
   assignmentPrompt,
   inferProgram,
-  neighborBans,
   planDay,
   tagFromDraft,
   tagFromSignal,
@@ -283,10 +281,7 @@ async function complete(
     params.response_format = { type: "json_object" };
   }
   const response = await client(config).chat.completions.create(params);
-  const message = response.choices[0]?.message as
-    | (OpenAI.Chat.ChatCompletionMessage & { reasoning_content?: string | null })
-    | undefined;
-  const content = message?.content?.trim() || message?.reasoning_content?.trim() || "";
+  const content = response.choices[0]?.message?.content?.trim() || "";
   if (!content) throw new Error("The model returned an empty workout.");
   if (response.choices[0]?.finish_reason === "length") {
     throw new Error(
@@ -329,14 +324,27 @@ function programHistory(date: string) {
   };
 }
 
-function checkFor(tag: ProgramTag, bannedMovements: string[], allowedLibraryMovements?: string[]): ProgramCheck {
+function checkFor(tag: ProgramTag): ProgramCheck {
   return {
     load: tag.load,
     allowRun: tag.mono === "run",
     allowHeavy: tag.load === "heavy",
-    bannedMovements,
-    allowedLibraryMovements,
   };
+}
+
+function describeSchemaError(error: unknown): string {
+  if (error instanceof z.ZodError) {
+    const issues = error.issues.map((issue) => {
+      const path = issue.path.length ? issue.path.join(".") : "workout";
+      if (issue.code === "too_small") {
+        return issue.origin === "string" ? `${path} must not be empty` : `${path} must be greater than 0`;
+      }
+      if (issue.code === "invalid_type") return `${path} is missing or the wrong type`;
+      return `${path}: ${issue.message}`;
+    });
+    return [...new Set(issues)].slice(0, 8).join("; ");
+  }
+  return error instanceof Error ? error.message : "Could not read the workout.";
 }
 
 async function draftDay(input: {
@@ -354,7 +362,7 @@ async function draftDay(input: {
 }) {
   const config = resolveProvider(env);
   let lastError = "Could not generate a workout.";
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     let content = "";
     try {
       content = await completeWithFallback(input.messages, config, input.temperature);
@@ -441,8 +449,12 @@ async function draftDay(input: {
       });
       return { title: parsed.title };
     } catch (error) {
-      lastError = error instanceof Error ? error.message : "Could not read the workout.";
-      input.messages.push({ role: "user", content: input.invalid(lastError) });
+      const readable = describeSchemaError(error);
+      lastError =
+        error instanceof z.ZodError
+          ? `The coach returned an incomplete workout (${readable}). Try again.`
+          : readable;
+      input.messages.push({ role: "user", content: input.invalid(readable) });
     }
   }
   throw new Error(lastError);
@@ -512,7 +524,6 @@ function rewritePrompt(input: {
   items: EquipmentRow[];
   members: AthleteRow[];
   library: string;
-  bans?: string;
   note?: string;
   violations?: string[];
 }) {
@@ -541,7 +552,7 @@ OWNED EQUIPMENT (anything absent is forbidden):
 ${inventoryText(input.items)}
 
 CURRENT PRS:
-${prText(input.members)}${clarify ? "" : input.bans || ""}${noted}${retry}`;
+${prText(input.members)}${noted}${retry}`;
 }
 
 export async function generateDay(input: { date: string; focus?: string }) {
@@ -562,7 +573,6 @@ export async function generateDay(input: { date: string; focus?: string }) {
     items,
     pattern: assignment.tag.pattern,
     mono: assignment.tag.mono,
-    recentIds: history.recent.slice(0, 5).flatMap((tag) => tag.movements),
   });
   const library = movementMenuPrompt(menu);
   const prompt = (violations?: string[]) => userPrompt({ date: input.date, items, members, assignment, library, violations });
@@ -575,13 +585,13 @@ export async function generateDay(input: { date: string; focus?: string }) {
     focus: assignment.focus,
     formatId: assignment.tag.format,
     program: assignment.tag,
-    check: checkFor(assignment.tag, assignment.bannedMovements, movementMenuIds(menu)),
+    check: checkFor(assignment.tag),
     sourceText: "",
     items,
     messages,
     rejected: (violations) => prompt(violations),
     invalid: (error) =>
-      `That response was invalid (${error}). Return one JSON object for a complete 40-50 minute session with duration estimates for every section. One movement per line. No paragraphs.`,
+      `That response was invalid (${error}). Return one JSON object for a complete 40-50 minute session. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. One movement per line. No paragraphs.`,
   });
 }
 
@@ -603,9 +613,7 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
   const history = programHistory(input.date);
   const yesterday = history.recent[0];
   const focus = clarify ? (day.focus && day.focus !== "rest" ? day.focus : "mixed") : intent;
-  const avoided = recentFormats(input.date);
-  if (!clarify && yesterday?.load === "heavy" && !avoided.includes("heavy")) avoided.push("heavy");
-  const picked = clarify ? formatById(day.format) : pickFormat(focus, capabilities(items), avoided);
+  const picked = clarify ? formatById(day.format) : pickFormat(focus, capabilities(items), []);
   const format: FormatDef = picked ?? {
     id: "for_time",
     label: day.format || "the scheme already on the board",
@@ -619,24 +627,21 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
       items,
       pattern: sourceProgram.pattern,
       mono: sourceProgram.mono,
-      recentIds: history.recent.slice(0, 5).flatMap((tag) => tag.movements),
     }),
   );
-  const bans = clarify ? "" : neighborBans(yesterday);
   const prompt = (violations?: string[]) =>
-    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, library, bans, note, violations });
+    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, library, note, violations });
   const check: ProgramCheck | undefined = clarify
     ? undefined
     : {
         load: intent === "heavy" && yesterday?.load !== "heavy" ? "heavy" : "moderate",
         allowRun: !(yesterday && (yesterday.mono === "run" || yesterday.movements.includes("run"))),
         allowHeavy: yesterday?.load !== "heavy",
-        bannedMovements: yesterday?.movements ?? [],
       };
   const messages: { role: "system" | "user"; content: string }[] = [
     {
       role: "system",
-      content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. You may keep this workout's movements. Obey neighbor bans over the rewrite focus. Follow the rewrite instructions over the naming rules. On a clarify, the coach note wins over the current scheme.`,
+      content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. You may keep this workout's movements. Follow the rewrite instructions over the naming rules. On a clarify, the coach note wins over the current scheme.`,
     },
     { role: "user", content: prompt() },
   ];
@@ -650,6 +655,7 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
     messages,
     temperature: clarify ? 0.3 : 0.6,
     rejected: (violations) => prompt(violations),
-    invalid: (error) => `That response was invalid (${error}). Return one JSON object. ${rewriteTask(intent, note)}`,
+    invalid: (error) =>
+      `That response was invalid (${error}). Return one JSON object. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. ${rewriteTask(intent, note)}`,
   });
 }

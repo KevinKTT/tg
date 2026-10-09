@@ -44,24 +44,12 @@ test("rejects an unqualified barbell movement that is not owned", () => {
   assert.ok(violations.some((item) => /barbell/i.test(item)));
 });
 
-const open: ProgramCheck = { load: "moderate", allowRun: true, allowHeavy: true, bannedMovements: [] };
+const open: ProgramCheck = { load: "moderate", allowRun: true, allowHeavy: true };
 
 test("rejects running when the assignment bans it", () => {
   const check: ProgramCheck = { ...open, allowRun: false };
   const violations = guardWorkout(day("4 rounds: 400m run, 15 air squats"), dumbbells, check);
   assert.ok(violations.some((item) => /running/i.test(item)));
-});
-
-test("rejects a banned movement from yesterday", () => {
-  const check: ProgramCheck = { ...open, bannedMovements: ["thruster"] };
-  const violations = guardWorkout(day("21-15-9 dumbbell thrusters and burpees"), dumbbells, check);
-  assert.ok(violations.some((item) => /thruster/i.test(item)));
-});
-
-test("rejects a library movement outside today's curated menu", () => {
-  const check: ProgramCheck = { ...open, allowedLibraryMovements: ["db-deadlift"] };
-  const violations = guardWorkout(day("3 rounds: 12 Dumbbell Suitcase Deadlift"), dumbbells, check);
-  assert.ok(violations.some((item) => /equipment-safe movement menu/i.test(item)));
 });
 
 test("rejects the lightest dumbbell on a heavy Rx line", () => {

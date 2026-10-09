@@ -1,5 +1,4 @@
 import { scanMovements } from "./program";
-import { isLibraryMovementId } from "./movement-library";
 
 export type GuardItem = {
   slug: string;
@@ -28,8 +27,6 @@ export type ProgramCheck = {
   load: "heavy" | "moderate" | "light";
   allowRun: boolean;
   allowHeavy: boolean;
-  bannedMovements: string[];
-  allowedLibraryMovements?: string[];
 };
 
 const KEYWORDS: { pattern: RegExp; cap: string; label: string }[] = [
@@ -241,18 +238,6 @@ export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardIte
       }
       if (!check.allowHeavy && /\b(1\s?rm|one[- ]rep max|build to a heavy|heavy single|find a (?:heavy|1))\b/i.test(scored)) {
         violations.push(`${track} programs a heavy max, which is banned today`);
-      }
-      for (const slug of check.bannedMovements) {
-        if (hits.some((hit) => hit.slug === slug)) {
-          violations.push(`${track} repeats ${slug.replace(/_/g, " ")}, which is banned today`);
-        }
-      }
-      if (check.allowedLibraryMovements) {
-        const allowed = new Set(check.allowedLibraryMovements);
-        const outsideMenu = hits.find((hit) => isLibraryMovementId(hit.slug) && !allowed.has(hit.slug));
-        if (outsideMenu) {
-          violations.push(`${track} uses ${outsideMenu.slug}, which was not in today's equipment-safe movement menu`);
-        }
       }
       if (check.load === "heavy") {
         const loadViolation = heavyRxViolation(body.summary ?? "", items);
