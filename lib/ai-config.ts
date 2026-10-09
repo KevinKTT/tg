@@ -9,12 +9,14 @@ export type ProviderConfig = {
   model: string;
   jsonMode: JsonMode;
   reasoningEffort: ReasoningEffort | null;
+  maxOutputTokens: number;
 };
 
 export type EnvReader = (name: string) => string;
 
 export const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 export const DEFAULT_MODEL = "gpt-4o-mini";
+export const DEFAULT_MAX_OUTPUT_TOKENS = 6000;
 export const FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1";
 
 function parseJsonMode(value: string): JsonMode {
@@ -28,6 +30,12 @@ function parseEffort(value: string): ReasoningEffort | null {
   return (REASONING_EFFORTS as readonly string[]).includes(normalized) ? (normalized as ReasoningEffort) : null;
 }
 
+function parseMaxOutputTokens(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_MAX_OUTPUT_TOKENS;
+  return Math.min(32_000, Math.max(1_000, Math.floor(parsed)));
+}
+
 export function resolveProvider(get: EnvReader): ProviderConfig {
   const baseURL = get("AI_BASE_URL") || DEFAULT_BASE_URL;
   const explicitEffort = parseEffort(get("AI_REASONING_EFFORT"));
@@ -37,6 +45,7 @@ export function resolveProvider(get: EnvReader): ProviderConfig {
     model: get("AI_MODEL") || DEFAULT_MODEL,
     jsonMode: parseJsonMode(get("AI_JSON_MODE")),
     reasoningEffort: explicitEffort ?? (/fireworks/i.test(baseURL) ? "none" : null),
+    maxOutputTokens: parseMaxOutputTokens(get("AI_MAX_OUTPUT_TOKENS")),
   };
 }
 

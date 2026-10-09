@@ -25,6 +25,7 @@ Workout generation talks to any **OpenAI-compatible Chat Completions** endpoint,
 | `AI_API_KEY` | — | Your provider key. `FIREWORKS_API_KEY` is also accepted as an alias. |
 | `AI_BASE_URL` | `https://api.openai.com/v1` | The provider's OpenAI-compatible base URL. |
 | `AI_MODEL` | `gpt-4o-mini` | The model name as that provider expects it. |
+| `AI_MAX_OUTPUT_TOKENS` | `6000` | Completion budget, including reasoning tokens on reasoning-capable models. |
 | `AI_JSON_MODE` | `schema` | `schema`, `object`, or `none`. The app degrades automatically if the provider rejects `json_schema`. |
 | `AI_REASONING_EFFORT` | unset | Sent only when set. Auto-set to `none` for a Fireworks base URL. |
 
