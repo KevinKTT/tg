@@ -94,6 +94,58 @@ export function formatLabel(id: string): string {
   return BY_ID.get(id as FormatId)?.label ?? "";
 }
 
+export type ScoreKind = "time" | "reps" | "rounds_reps" | "load" | "done" | "none";
+
+export type PieceScheme = {
+  scoreType: ScoreKind;
+  allowCap: boolean;
+};
+
+const EMOM_TEXT = /\be\d*\s*mom\b|\bemom\b|every minute/i;
+const AMRAP_TEXT = /\bamrap\b/i;
+const INTERVAL_TEXT = /\bon\b\s*\/\s*.+\boff\b|\bintervals?\b|\btabata\b/i;
+const MAX_REPS = /\bmax(?:imum)?\s+reps?\b/i;
+const CAP_TEXT = /\bcap\b/i;
+const TIMED_DAYS = new Set(["for_time", "rounds", "chipper", "ladder", "benchmark", "skill_metcon"]);
+
+export function pieceScheme(format: string, dayFormat: string, kind: string): PieceScheme | null {
+  if (kind === "skill" || kind === "warmup" || kind === "prep" || kind === "cooldown") {
+    return { scoreType: "none", allowCap: false };
+  }
+  const own = format.toLowerCase();
+  const day = dayFormat.toLowerCase();
+  if (EMOM_TEXT.test(own) || (kind === "metcon" && (day === "emom" || EMOM_TEXT.test(day)))) {
+    return { scoreType: "done", allowCap: false };
+  }
+  if (AMRAP_TEXT.test(own) || (kind === "metcon" && day === "amrap")) {
+    return { scoreType: "rounds_reps", allowCap: false };
+  }
+  if (INTERVAL_TEXT.test(own) || (kind === "metcon" && day === "interval")) {
+    return { scoreType: MAX_REPS.test(own) ? "reps" : "done", allowCap: false };
+  }
+  if (kind === "strength" && (format.trim() || day === "heavy")) {
+    return { scoreType: "load", allowCap: false };
+  }
+  if (day === "heavy" && kind !== "metcon") {
+    return { scoreType: "load", allowCap: false };
+  }
+  if (kind === "metcon" && (format.trim() || TIMED_DAYS.has(day))) {
+    return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
+  }
+  if (/\bfor time\b|\bchipper\b/i.test(own)) {
+    return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
+  }
+  return null;
+}
+
+export function visibleCap(format: string, dayFormat: string, kind: string, timeCapSec: number | null): number | null {
+  if (!timeCapSec || timeCapSec <= 0) return null;
+  const scheme = pieceScheme(format, dayFormat, kind);
+  if (!scheme) return timeCapSec;
+  if (scheme.scoreType !== "time" || !scheme.allowCap) return null;
+  return timeCapSec;
+}
+
 export function formatFromScheme(text: string): FormatId | null {
   const value = text.toLowerCase();
   if (/\bamrap\b/.test(value)) return "amrap";

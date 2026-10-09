@@ -8,6 +8,7 @@ export type ClockPlan = {
   restSec: number;
   savesTime: boolean;
   label: string;
+  count: number;
 };
 
 export type ClockPart = {
@@ -63,6 +64,7 @@ export const OPEN_CLOCK: ClockPlan = {
   restSec: 0,
   savesTime: false,
   label: "Clock",
+  count: 0,
 };
 
 const CLASS_KIND = new Set(["warmup", "prep", "cooldown"]);
@@ -91,31 +93,36 @@ export function clockPlan(dayFormat: string, part: ClockPart): ClockPlan {
   const cap = part.timeCapSec && part.timeCapSec > 0 ? part.timeCapSec : null;
   const every = readEvery(part.format);
 
-  if (part.scoreType === "load" || (dayFormat === "heavy" && part.scoreType !== "time")) {
-    return { kind: "interval", seconds: every ?? 300, restSec: 0, savesTime: false, label: "Set" };
+  if (isEmom(text)) {
+    const seconds = every && every > 60 ? every : 60;
+    return { kind: "minute", seconds, restSec: 0, savesTime: false, label: "EMOM", count: readEmomCount(part.format) };
   }
 
-  if (isEmom(text) || every) {
-    const seconds = every && every > 60 ? every : 60;
-    return { kind: "minute", seconds, restSec: 0, savesTime: false, label: "EMOM" };
+  if (part.scoreType === "load" || (dayFormat === "heavy" && part.scoreType !== "time")) {
+    return { kind: "interval", seconds: every ?? 300, restSec: 0, savesTime: false, label: "Set", count: 0 };
+  }
+
+  if (every) {
+    const seconds = every > 60 ? every : 60;
+    return { kind: "minute", seconds, restSec: 0, savesTime: false, label: "EMOM", count: readEmomCount(part.format) };
   }
 
   const split = readOnOff(part.format);
   if (split) {
-    return { kind: "interval", seconds: split.work, restSec: split.rest, savesTime: false, label: "Work" };
+    return { kind: "interval", seconds: split.work, restSec: split.rest, savesTime: false, label: "Work", count: 0 };
   }
 
   const duration = cap ?? readAmrap(part.format) ?? readCap(part.format);
   const amrap = dayFormat === "amrap" || /\bamrap\b/.test(text);
   if (amrap || ((part.scoreType === "reps" || part.scoreType === "rounds_reps") && duration)) {
-    if (duration) return { kind: "down", seconds: duration, restSec: 0, savesTime: false, label: "AMRAP" };
+    if (duration) return { kind: "down", seconds: duration, restSec: 0, savesTime: false, label: "AMRAP", count: 0 };
   }
 
-  if (part.scoreType === "time" && duration) {
-    return { kind: "capped", seconds: duration, restSec: 0, savesTime: true, label: "Cap" };
+  if (part.scoreType === "time" && duration && !isEmom(part.format)) {
+    return { kind: "capped", seconds: duration, restSec: 0, savesTime: true, label: "Cap", count: 0 };
   }
   if (part.scoreType === "time") {
-    return { kind: "up", seconds: 0, restSec: 0, savesTime: true, label: "For time" };
+    return { kind: "up", seconds: 0, restSec: 0, savesTime: true, label: "For time", count: 0 };
   }
   return OPEN_CLOCK;
 }
@@ -127,6 +134,9 @@ export function clockFace(plan: ClockPlan, elapsedSec: number): ClockFace {
   }
   if (plan.kind === "minute") {
     const window = Math.floor(elapsed / plan.seconds);
+    if (plan.count > 0 && window >= plan.count) {
+      return { display: "0:00", caption: "Done", mark: plan.count };
+    }
     return {
       display: formatTime(elapsed % plan.seconds),
       caption: plan.seconds === 60 ? `Min ${window + 1}` : `Rd ${window + 1}`,
@@ -170,6 +180,18 @@ function intervalFace(plan: ClockPlan, elapsed: number): ClockFace {
 
 function isEmom(text: string) {
   return /\be\d*\s*mom\b|\bemom\b|every minute/.test(text);
+}
+
+function readEmomCount(format: string): number {
+  const lead = format.match(/\b(?:e\d*\s*mom|emom)\s+(\d+)/i);
+  if (lead) return Number(lead[1]);
+  const trail = format.match(/(\d+)\s*(?:min(?:ute)?s?)?\s*(?:e\d*\s*mom|emom)\b/i);
+  if (trail) return Number(trail[1]);
+  const every = format.match(/every minute(?:\s+on the minute)?(?:\s+for)?\s+(\d+)/i);
+  if (every) return Number(every[1]);
+  const times = format.match(/(\d+)\s*(?:min(?:ute)?s?)?\s*(?:of\s+)?every minute/i);
+  if (times) return Number(times[1]);
+  return 0;
 }
 
 function readEvery(format: string): number | null {

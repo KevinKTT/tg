@@ -153,6 +153,7 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
               <option value="reps">Reps</option>
               <option value="rounds_reps">Rounds + reps</option>
               <option value="load">Load</option>
+              <option value="done">Done</option>
               <option value="none">Not scored</option>
             </select>
             <input className="field" name="timeCap" type="number" min="1" placeholder="Cap, minutes" />

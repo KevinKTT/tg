@@ -5,7 +5,7 @@ import { editDay, editPart, removeDay, removeScore, saveScore } from "@/lib/acti
 import { DAY_TRACK, focusLabel, type Sex } from "@/lib/athletes";
 import { parseBoard, parseSummary, type BoardLine } from "@/lib/board";
 import { clockWorkout } from "@/lib/clock";
-import { formatLabel } from "@/lib/formats";
+import { formatLabel, pieceScheme, visibleCap } from "@/lib/formats";
 import { findPercents } from "@/lib/resolve";
 import { formatLoad, formatTime, higherIsBetter } from "@/lib/scoring";
 import { closestLoad, formatPercentLoad, percentOf, type Plate } from "@/lib/scaling";
@@ -44,7 +44,15 @@ export function WorkoutCard({
   const track = day.tracks.find((item) => item.track === DAY_TRACK) ?? day.tracks[0];
   const spec = useMemo(() => {
     if (!athlete || day.status === "rest" || !track) return null;
-    return clockWorkout(day.format, day.date, athlete, track.parts);
+    return clockWorkout(
+      day.format,
+      day.date,
+      athlete,
+      track.parts.map((part) => ({
+        ...part,
+        scoreType: pieceScheme(part.format, day.format, part.kind)?.scoreType ?? part.scoreType,
+      })),
+    );
   }, [athlete, day, track]);
 
   useEffect(() => {
@@ -83,7 +91,7 @@ export function WorkoutCard({
 
         {track.parts.map((part) => (
           <div key={part.id}>
-            <Piece part={part} date={day.date} showName={heroes.length > 1} />
+            <Piece part={part} date={day.date} dayFormat={day.format} showName={heroes.length > 1} />
             {part.id === lastHero?.id ? (
               <Loads loads={summary.loads} initials={person.initials} />
             ) : null}
@@ -96,14 +104,15 @@ export function WorkoutCard({
       </section>
 
       {track.parts.map((part) => {
-        if (part.scoreType === "none") return null;
+        const scoreType = pieceScheme(part.format, day.format, part.kind)?.scoreType ?? part.scoreType;
+        if (scoreType === "none") return null;
         const mine = scores.find((score) => score.partId === part.id && score.athleteSlug === athlete);
         return (
           <section className="card" key={part.id}>
             <p className="kicker">Score</p>
             <h3>{part.name}</h3>
-            <ScoreForm partId={part.id} scoreType={part.scoreType} athlete={athlete} unit={unit} existing={mine?.display} />
-            {mine ? (
+            <ScoreForm partId={part.id} scoreType={scoreType} athlete={athlete} unit={unit} existing={mine?.display} existingId={mine?.id} />
+            {mine && scoreType !== "done" ? (
               <form
                 action={removeScore}
                 onSubmit={(event) => {
@@ -120,7 +129,7 @@ export function WorkoutCard({
         );
       })}
 
-      <DayBoard scores={scores} />
+      <DayBoard scores={scores} parts={track.parts} dayFormat={day.format} />
 
       <details className="card">
         <summary>Edits</summary>
@@ -165,7 +174,7 @@ function readChecks(date: string, partId: number) {
   }
 }
 
-function Piece({ part, date, showName }: { part: PartView; date: string; showName: boolean }) {
+function Piece({ part, date, dayFormat, showName }: { part: PartView; date: string; dayFormat: string; showName: boolean }) {
   const hero = HERO.has(part.kind);
   const lines = parseBoard(part.body);
   const label = KIND[part.kind] || part.kind;
@@ -196,10 +205,12 @@ function Piece({ part, date, showName }: { part: PartView; date: string; showNam
       {part.format ? (
         <p className="board-scheme">
           {part.format}
-          {part.timeCapSec ? <span className="board-cap"> · Cap {formatTime(part.timeCapSec)}</span> : null}
+          {visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
+            <span className="board-cap"> · Cap {formatTime(part.timeCapSec ?? 0)}</span>
+          ) : null}
         </p>
-      ) : part.timeCapSec ? (
-        <p className="board-scheme">Cap {formatTime(part.timeCapSec)}</p>
+      ) : visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
+        <p className="board-scheme">Cap {formatTime(part.timeCapSec ?? 0)}</p>
       ) : null}
       {lines.length ? <BoardLines lines={lines} done={done} onToggle={toggle} /> : part.body ? <p className="pre">{part.body}</p> : null}
     </div>
@@ -318,13 +329,48 @@ function ScoreForm({
   athlete,
   unit,
   existing,
+  existingId,
 }: {
   partId: number;
   scoreType: string;
   athlete: string;
   unit: "lb" | "kg";
   existing?: string;
+  existingId?: number;
 }) {
+  const [pending, setPending] = useState(false);
+
+  if (scoreType === "done") {
+    return (
+      <label className="row" style={{ marginTop: "0.8rem" }}>
+        <input
+          type="checkbox"
+          checked={Boolean(existingId)}
+          disabled={pending}
+          onChange={(event) => {
+            const checked = event.target.checked;
+            setPending(true);
+            const form = new FormData();
+            if (checked) {
+              form.set("partId", String(partId));
+              form.set("athlete", athlete);
+              form.set("scoreType", "done");
+              void saveScore(form).finally(() => setPending(false));
+              return;
+            }
+            if (!existingId) {
+              setPending(false);
+              return;
+            }
+            form.set("id", String(existingId));
+            void removeScore(form).finally(() => setPending(false));
+          }}
+        />
+        Done
+      </label>
+    );
+  }
+
   return (
     <form action={saveScore} className="stack" style={{ marginTop: "0.8rem" }}>
       <input type="hidden" name="partId" value={partId} />
@@ -355,13 +401,16 @@ function ScoreForm({
   );
 }
 
-function DayBoard({ scores }: { scores: ScoreView[] }) {
+function DayBoard({ scores, parts, dayFormat }: { scores: ScoreView[]; parts: PartView[]; dayFormat: string }) {
   const { members } = useAthlete();
   const groups = new Map<string, ScoreView[]>();
   for (const score of scores) {
-    if (score.scoreType === "none") continue;
-    const key = `${score.partKind}:${score.partName}:${score.scoreType}`;
-    groups.set(key, [...(groups.get(key) ?? []), score]);
+    const part = parts.find((item) => item.id === score.partId);
+    const scoreType = part ? (pieceScheme(part.format, dayFormat, part.kind)?.scoreType ?? score.scoreType) : score.scoreType;
+    if (scoreType === "none") continue;
+    const typed = { ...score, scoreType };
+    const key = `${typed.partKind}:${typed.partName}:${typed.scoreType}`;
+    groups.set(key, [...(groups.get(key) ?? []), typed]);
   }
   if (groups.size === 0) return null;
   return (
@@ -369,8 +418,9 @@ function DayBoard({ scores }: { scores: ScoreView[] }) {
       <p className="kicker">Today</p>
       <h3>Board</h3>
       {[...groups.entries()].map(([key, rows]) => {
+        const done = rows[0]?.scoreType === "done";
         const direction = rows[0]?.scoreDirection === "asc" || !higherIsBetter(rows[0]?.scoreType || "");
-        const ranked = [...rows].sort((a, b) => (direction ? a.valueNumeric - b.valueNumeric : b.valueNumeric - a.valueNumeric));
+        const ranked = done ? rows : [...rows].sort((a, b) => (direction ? a.valueNumeric - b.valueNumeric : b.valueNumeric - a.valueNumeric));
         return (
           <div key={key} style={{ marginTop: "0.7rem" }}>
             <p className="muted">{rows[0].partName}</p>
@@ -381,7 +431,7 @@ function DayBoard({ scores }: { scores: ScoreView[] }) {
                 <div className="spread" key={member.slug}>
                   <span>{member.initials}</span>
                   <span>
-                    {score ? score.display : "—"} {place && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
+                    {score ? score.display : "—"} {place && !done && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
                   </span>
                 </div>
               );

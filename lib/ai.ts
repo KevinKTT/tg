@@ -19,7 +19,7 @@ import {
 } from "./db";
 import { startOfWeek } from "./dates";
 import { env, loadEnv } from "./env";
-import { formatById, formatFromScheme, pickFormat, type FormatDef } from "./formats";
+import { formatById, formatFromScheme, pickFormat, pieceScheme, type FormatDef } from "./formats";
 import { capabilities, guardWorkout, schemeViolations, type ProgramCheck } from "./guard";
 import {
   assignmentPrompt,
@@ -38,6 +38,7 @@ const scoreType = z.string().transform((value) => {
   if (["reps", "rep", "amrap", "calories", "cals"].includes(normalized)) return "reps" as const;
   if (["rounds_reps", "rounds_and_reps", "rounds"].includes(normalized)) return "rounds_reps" as const;
   if (["load", "weight", "1rm"].includes(normalized)) return "load" as const;
+  if (["done", "checkbox", "check"].includes(normalized)) return "done" as const;
   return "none" as const;
 });
 
@@ -72,7 +73,7 @@ const partJsonSchema = {
     format: { type: "string" },
     details: { type: "string" },
     timeCapMin: { anyOf: [{ type: "number" }, { type: "null" }] },
-    scoreType: { type: "string", enum: ["time", "reps", "rounds_reps", "load", "none"] },
+    scoreType: { type: "string", enum: ["time", "reps", "rounds_reps", "load", "done", "none"] },
     repsPerRound: { anyOf: [{ type: "integer" }, { type: "null" }] },
     equipment: { type: "array", items: { type: "string" } },
   },
@@ -204,7 +205,7 @@ Owned gear only. Bodyweight is always allowed. If a classic piece needs missing 
 Class order: warmup, prep, parts, cooldown.
 Warm-up is 4-6 lines, prep 2-4, cool-down 3-5 stretch names. Movement lines only. Never a scheme, clock, AMRAP, EMOM, round count, or cap.
 Each scored part "format" is the full scheme with its number: "5 rounds for time", "AMRAP 12", "EMOM 12", "21-15-9". The label alone is invalid. Do not restate the scheme in details.
-timeCapMin is minutes on the metcon that owns the clock, otherwise null. scoreType matches the scheme: time, reps, rounds_reps, or load. A skill piece is scoreType none.
+EMOM and intervals are scoreType done with timeCapMin null. AMRAP is rounds_reps, no cap. For time is time. A cap only if the scheme says cap. Heavy is load. Skill is none.
 Follow the assignment. Do not add a piece it does not ask for. Do not reuse a banned movement.
 
 Return one JSON object with title, stimulus, summary, warmup, prep, parts, and cooldown.
@@ -390,15 +391,18 @@ async function draftDay(input: {
           warmup: parsed.warmup,
           prep: parsed.prep,
           cooldown: parsed.cooldown,
-          parts: parsed.parts.map((part) => ({
-            name: part.name,
-            kind: part.kind,
-            format: part.format,
-            details: part.details,
-            timeCapMin: part.timeCapMin,
-            scoreType: part.scoreType,
-            repsPerRound: part.repsPerRound,
-          })),
+          parts: parsed.parts.map((part) => {
+            const scheme = pieceScheme(part.format, nextFormat, part.kind);
+            return {
+              name: part.name,
+              kind: part.kind,
+              format: part.format,
+              details: part.details,
+              timeCapMin: scheme && !scheme.allowCap ? null : part.timeCapMin,
+              scoreType: scheme?.scoreType ?? part.scoreType,
+              repsPerRound: part.repsPerRound,
+            };
+          }),
         },
       });
       return { title: parsed.title };

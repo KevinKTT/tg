@@ -81,5 +81,6 @@ export function normalizeScore(input: ScoreInput): { value: number; display: str
     const unit = input.unit === "kg" ? "kg" : "lb";
     return { value: lbFrom(load, unit), display: `${roundLoad(load, unit)} ${unit}` };
   }
+  if (input.scoreType === "done") return { value: 1, display: "Done" };
   return null;
 }

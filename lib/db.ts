@@ -749,7 +749,7 @@ export type GeneratedPart = {
   format: string;
   details: string;
   timeCapMin: number | null;
-  scoreType: "time" | "reps" | "rounds_reps" | "load" | "none";
+  scoreType: "time" | "reps" | "rounds_reps" | "load" | "done" | "none";
   repsPerRound: number | null;
 };
 
@@ -840,7 +840,7 @@ export function saveManualDay(input: {
   timeCapMin: number | null;
   cooldown: string;
 }) {
-  const scoreType = (["time", "reps", "rounds_reps", "load", "none"].includes(input.scoreType)
+  const scoreType = (["time", "reps", "rounds_reps", "load", "done", "none"].includes(input.scoreType)
     ? input.scoreType
     : "time") as GeneratedPart["scoreType"];
   const parts: GeneratedPart[] = [];
@@ -860,7 +860,7 @@ export function saveManualDay(input: {
     kind: "metcon",
     format: "",
     details: input.metcon.trim(),
-    timeCapMin: input.timeCapMin,
+      timeCapMin: scoreType === "time" ? input.timeCapMin : null,
     scoreType,
     repsPerRound: null,
   });
