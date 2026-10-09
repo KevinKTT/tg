@@ -20,7 +20,8 @@ import {
 import { startOfWeek } from "./dates";
 import { env, loadEnv } from "./env";
 import { formatById, formatFromScheme, pickFormat, pieceScheme, type FormatDef } from "./formats";
-import { capabilities, guardWorkout, schemeViolations, type ProgramCheck } from "./guard";
+import { capabilities, guardWorkout, schemeViolations, sessionDurationViolations, type ProgramCheck } from "./guard";
+import { movementMenu, movementMenuIds, movementMenuPrompt } from "./movement-library";
 import {
   assignmentPrompt,
   inferProgram,
@@ -48,6 +49,7 @@ const partSchema = z.object({
   format: z.string().catch(""),
   details: z.string().min(1),
   timeCapMin: z.number().nullable().catch(null),
+  estimatedDurationMin: z.number().int().positive(),
   scoreType,
   repsPerRound: z.number().int().positive().nullable().catch(null),
   equipment: z.array(z.string()).catch([]),
@@ -58,21 +60,25 @@ const daySchema = z.object({
   stimulus: z.string().min(1),
   summary: z.string().catch(""),
   warmup: z.string().min(1),
+  warmupDurationMin: z.number().int().positive(),
   prep: z.string().min(1),
+  prepDurationMin: z.number().int().positive(),
   parts: z.array(partSchema).min(1).max(4),
   cooldown: z.string().min(1),
+  cooldownDurationMin: z.number().int().positive(),
 });
 
 const partJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["name", "kind", "format", "details", "timeCapMin", "scoreType", "repsPerRound", "equipment"],
+  required: ["name", "kind", "format", "details", "timeCapMin", "estimatedDurationMin", "scoreType", "repsPerRound", "equipment"],
   properties: {
     name: { type: "string" },
     kind: { type: "string", enum: ["strength", "metcon", "skill"] },
     format: { type: "string" },
     details: { type: "string" },
     timeCapMin: { anyOf: [{ type: "number" }, { type: "null" }] },
+    estimatedDurationMin: { type: "integer" },
     scoreType: { type: "string", enum: ["time", "reps", "rounds_reps", "load", "done", "none"] },
     repsPerRound: { anyOf: [{ type: "integer" }, { type: "null" }] },
     equipment: { type: "array", items: { type: "string" } },
@@ -82,14 +88,17 @@ const partJsonSchema = {
 const jsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "stimulus", "summary", "warmup", "prep", "parts", "cooldown"],
+  required: ["title", "stimulus", "summary", "warmup", "warmupDurationMin", "prep", "prepDurationMin", "parts", "cooldown", "cooldownDurationMin"],
   properties: {
     title: { type: "string" },
     stimulus: { type: "string" },
     summary: { type: "string" },
     warmup: { type: "string" },
+    warmupDurationMin: { type: "integer" },
     prep: { type: "string" },
+    prepDurationMin: { type: "integer" },
     cooldown: { type: "string" },
+    cooldownDurationMin: { type: "integer" },
     parts: {
       type: "array",
       minItems: 1,
@@ -174,22 +183,31 @@ function focusBrief(focus: string) {
 
 function shapeBrief(focus: string, format: FormatDef) {
   if (format.id === "heavy") {
-    return "Day shape: one heavy strength piece only. No conditioning piece.";
+    return "Day shape: one 20-25 minute heavy strength piece only. No conditioning piece.";
   }
   if (format.id === "skill_metcon") {
-    return "Day shape: a skill piece (kind skill) first, then a brief metcon (kind metcon).";
+    return "Day shape: an 8-10 minute skill piece (kind skill) first, then a 12-16 minute metcon (kind metcon).";
   }
   if (focus === "strength" || focus === "heavy") {
-    return "Day shape: a strength piece (kind strength) first, then a short metcon (kind metcon) in today's format.";
+    return "Day shape: a 12-18 minute strength piece (kind strength) first, then an 8-12 minute metcon (kind metcon) in today's format.";
   }
   return "Day shape: one main piece in today's format.";
 }
 
 function systemPrompt(members: AthleteRow[]) {
   const roster = members.length ? members.map(memberLabel).join("; ") : "no members added yet";
-  return `You are the coach for "the garage", a home CrossFit gym. The members are: ${roster}.
+  return `You are the head coach and programmer for "the garage", a home CrossFit gym. The members are: ${roster}.
 
-Write a class whiteboard. One glance. Movement lines and loads only. No coaching.
+PROGRAMMING STANDARD
+- Write a realistic CrossFit class, not a random exercise circuit.
+- The complete session is 40-50 minutes, including warm-up, workout prep, every workout piece, transitions, and cool-down.
+- Give every section an integer estimated duration. Budget 8-12 minutes for warm-up, 5-10 for prep, 18-30 total for workout pieces, and 3-7 for cool-down. The estimates must add to 40-50 minutes. Include transitions in the neighboring section.
+- Normal Rx is challenging but sustainable: moderate sets usually break, sprint pace is difficult to hold, and athletes commonly finish near the cap. Do not train to failure or max out every day.
+- Vary movement combinations, rep structures, planes, unilateral work, and workout feel. Do not default to air squats, burpees, push-ups, thrusters, or basic dumbbell work unless selected for today's assignment.
+- Follow the supplied movement library. For its supported equipment, use exact displayed movement names and its matched preparation. Movements using other owned equipment are still allowed.
+
+WHITEBOARD STYLE
+One glance. Movement lines, doses, and loads only. No coaching paragraphs or technique cues.
 
 Name: a fun name tied to the work. Not generic.
 Stimulus: the time domain only. Example: "about 8-12 min".
@@ -199,17 +217,17 @@ Same movement and reps for every scale: one line, no label. Never label a scale 
 A scale that changes the movement or reps: the Rx line, then only the scales that differ.
 Loads live in "summary" only. "Equipment:" then the pieces used. Then "Loads:" and one line per scale:
 ${loadExample(members)}
-Rx is hard: 85-95% of a PR, or the heaviest owned implement. Performance is about 75% of Rx. Lifestyle is about 55%, or an easier movement. Never invent a weight or a vest poundage. Never Rx the lightest owned implement when a heavier one exists. Write "weighted vest".
+Heavy-day Rx is 85-95% of a PR or the heaviest owned implement. Conditioning Rx is generally 70-80% of a PR or the upper half of owned implements. Performance is about 75% of Rx. Lifestyle is about 55%, fewer reps, or the library's easier movement. Never invent a weight or vest poundage. Never Rx the lightest owned implement when a heavier one exists. Write "weighted vest".
 Owned gear only. Bodyweight is always allowed. If a classic piece needs missing gear, substitute.
 
 Class order: warmup, prep, parts, cooldown.
-Warm-up is 4-6 lines, prep 2-4, cool-down 3-5 stretch names. Movement lines only. Never a scheme, clock, AMRAP, EMOM, round count, or cap.
+Warm-up is 6-8 lines: one general raise, 1-2 activation drills, and 2-3 dynamic mobility drills, with useful doses. Prep is 3-5 lines that rehearse and ramp the exact workout movements. Cool-down is 3-5 matched mobility/stretch/breathing lines. Never put the workout's scheme, AMRAP, EMOM, round count, or cap in these sections.
 Each scored part "format" is the full scheme with its number: "5 rounds for time", "AMRAP 12", "EMOM 12", "21-15-9". The label alone is invalid. Do not restate the scheme in details.
 EMOM and intervals are scoreType done with timeCapMin null. AMRAP is rounds_reps, no cap. For time is time. A cap only if the scheme says cap. Heavy is load. Skill is none.
 Follow the assignment. Do not add a piece it does not ask for. Do not reuse a banned movement.
 
-Return one JSON object with title, stimulus, summary, warmup, prep, parts, and cooldown.
-Each part has name, kind (strength, metcon, or skill), format, details, timeCapMin, scoreType, repsPerRound, and equipment.`;
+Return one JSON object with title, stimulus, summary, warmup, warmupDurationMin, prep, prepDurationMin, parts, cooldown, and cooldownDurationMin.
+Each part has name, kind (strength, metcon, or skill), format, details, timeCapMin, estimatedDurationMin, scoreType, repsPerRound, and equipment.`;
 }
 
 function userPrompt(input: {
@@ -217,6 +235,7 @@ function userPrompt(input: {
   items: EquipmentRow[];
   members: AthleteRow[];
   assignment: Assignment;
+  library: string;
   violations?: string[];
 }) {
   const retry = input.violations?.length
@@ -225,6 +244,8 @@ function userPrompt(input: {
   return `Program one CrossFit workout for ${input.date}. Write it as a whiteboard: short lines, no coaching notes.
 
 ${assignmentPrompt(input.assignment)}
+
+${input.library}
 
 OWNED EQUIPMENT (anything absent is forbidden):
 ${inventoryText(input.items)}
@@ -252,7 +273,7 @@ async function complete(
   const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
     temperature,
-    max_tokens: 1600,
+    max_tokens: 2200,
     messages,
   };
   if (config.reasoningEffort) params.reasoning_effort = config.reasoningEffort;
@@ -306,12 +327,13 @@ function programHistory(date: string) {
   };
 }
 
-function checkFor(tag: ProgramTag, bannedMovements: string[]): ProgramCheck {
+function checkFor(tag: ProgramTag, bannedMovements: string[], allowedLibraryMovements?: string[]): ProgramCheck {
   return {
     load: tag.load,
     allowRun: tag.mono === "run",
     allowHeavy: tag.load === "heavy",
     bannedMovements,
+    allowedLibraryMovements,
   };
 }
 
@@ -364,6 +386,12 @@ async function draftDay(input: {
           cooldown: parsed.cooldown,
           parts: parsed.parts,
         }),
+        ...sessionDurationViolations({
+          warmupDurationMin: parsed.warmupDurationMin,
+          prepDurationMin: parsed.prepDurationMin,
+          cooldownDurationMin: parsed.cooldownDurationMin,
+          parts: parsed.parts,
+        }),
       ];
       if (violations.length) {
         lastError = violations.slice(0, 6).join(" ");
@@ -389,8 +417,11 @@ async function draftDay(input: {
         track: {
           summary: parsed.summary,
           warmup: parsed.warmup,
+          warmupDurationMin: parsed.warmupDurationMin,
           prep: parsed.prep,
+          prepDurationMin: parsed.prepDurationMin,
           cooldown: parsed.cooldown,
+          cooldownDurationMin: parsed.cooldownDurationMin,
           parts: parsed.parts.map((part) => {
             const scheme = pieceScheme(part.format, nextFormat, part.kind);
             return {
@@ -399,6 +430,7 @@ async function draftDay(input: {
               format: part.format,
               details: part.details,
               timeCapMin: scheme && !scheme.allowCap ? null : part.timeCapMin,
+              estimatedDurationMin: part.estimatedDurationMin,
               scoreType: scheme?.scoreType ?? part.scoreType,
               repsPerRound: part.repsPerRound,
             };
@@ -452,6 +484,7 @@ function workoutText(day: DayView, track: TrackView) {
         part.format,
         part.scoreType !== "none" ? `score ${part.scoreType}` : "",
         part.timeCapSec ? `cap ${Math.round(part.timeCapSec / 60)} min` : "",
+        part.estimatedDurationMin ? `estimated ${part.estimatedDurationMin} min` : "",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -476,6 +509,7 @@ function rewritePrompt(input: {
   format: FormatDef;
   items: EquipmentRow[];
   members: AthleteRow[];
+  library: string;
   bans?: string;
   note?: string;
   violations?: string[];
@@ -499,6 +533,8 @@ ${input.source}
 
 ${formatBlock}
 
+${input.library}
+
 OWNED EQUIPMENT (anything absent is forbidden):
 ${inventoryText(input.items)}
 
@@ -520,7 +556,14 @@ export async function generateDay(input: { date: string; focus?: string }) {
     recent: history.recent,
     week: history.week,
   });
-  const prompt = (violations?: string[]) => userPrompt({ date: input.date, items, members, assignment, violations });
+  const menu = movementMenu({
+    items,
+    pattern: assignment.tag.pattern,
+    mono: assignment.tag.mono,
+    recentIds: history.recent.slice(0, 5).flatMap((tag) => tag.movements),
+  });
+  const library = movementMenuPrompt(menu);
+  const prompt = (violations?: string[]) => userPrompt({ date: input.date, items, members, assignment, library, violations });
   const messages: { role: "system" | "user"; content: string }[] = [
     { role: "system", content: systemPrompt(members) },
     { role: "user", content: prompt() },
@@ -530,13 +573,13 @@ export async function generateDay(input: { date: string; focus?: string }) {
     focus: assignment.focus,
     formatId: assignment.tag.format,
     program: assignment.tag,
-    check: checkFor(assignment.tag, assignment.bannedMovements),
+    check: checkFor(assignment.tag, assignment.bannedMovements, movementMenuIds(menu)),
     sourceText: "",
     items,
     messages,
     rejected: (violations) => prompt(violations),
     invalid: (error) =>
-      `That response was invalid (${error}). Return one JSON object with a short warm-up, a short workout prep, a scored piece, and a short cool-down. One movement per line. No paragraphs.`,
+      `That response was invalid (${error}). Return one JSON object for a complete 40-50 minute session with duration estimates for every section. One movement per line. No paragraphs.`,
   });
 }
 
@@ -568,9 +611,18 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
     focuses: [],
   };
   const source = workoutText(day, track);
+  const sourceProgram = inferProgram({ focus, format: day.format, text: source, stimulus: day.stimulus });
+  const library = movementMenuPrompt(
+    movementMenu({
+      items,
+      pattern: sourceProgram.pattern,
+      mono: sourceProgram.mono,
+      recentIds: history.recent.slice(0, 5).flatMap((tag) => tag.movements),
+    }),
+  );
   const bans = clarify ? "" : neighborBans(yesterday);
   const prompt = (violations?: string[]) =>
-    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, bans, note, violations });
+    rewritePrompt({ date: input.date, intent, source, focus, format, items, members, library, bans, note, violations });
   const check: ProgramCheck | undefined = clarify
     ? undefined
     : {

@@ -93,6 +93,14 @@ test("tagFromDraft keeps the movements that were actually written", () => {
   assert.ok(next.movements.includes("deadlift"));
 });
 
+test("tagFromDraft keeps exact movement-library ids", () => {
+  const base = tag({ load: "moderate", pattern: "hinge", mono: "none", shape: "couplet" });
+  const next = tagFromDraft(base, "- 12 Dumbbell Suitcase Deadlift\n- 40 Jump Rope Boxer Step");
+  assert.ok(next.movements.includes("db-suitcase-deadlift"));
+  assert.ok(next.movements.includes("boxer-step"));
+  assert.equal(next.mono, "jump_rope");
+});
+
 test("assignment prompt is tags and bans, not a workout", () => {
   const recent = [tag({ load: "heavy", pattern: "squat", mono: "none", shape: "heavy_only", movements: ["back_squat"] })];
   const plan = planDay({ caps: gear, recent, week: recent, random: () => 0 });

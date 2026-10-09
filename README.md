@@ -4,6 +4,8 @@ the garage. CrossFit for your garage gym.
 
 No accounts. Add your members, then pick who's lifting when you log a score or a PR. Each day is one shared workout, using only the equipment marked owned. Members are managed on the Members page; the app remembers the last person you selected on each device.
 
+Workout generation supplements the standard CrossFit equipment catalog with the curated garage movement, warm-up, and cooldown data in `lib/movement-library/data`. The source guide and original archive are retained in `docs/movement-library`.
+
 ## Local
 
 ```bash

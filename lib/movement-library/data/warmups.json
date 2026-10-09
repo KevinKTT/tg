@@ -1,0 +1,2061 @@
+[
+  {
+    "id": "wu-easy-jog",
+    "name": "Easy Jog",
+    "aliases": [
+      "light jog",
+      "warm-up run"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "full body",
+      "calves",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump",
+      "lunge",
+      "squat"
+    ],
+    "typical_dose": "2-4 min or 400 m",
+    "short_description": "Jog at a conversational pace to raise heart rate and tissue temperature.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-jog-in-place",
+    "name": "Jog in Place",
+    "aliases": [
+      "stationary jog"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "hips",
+      "full body"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "60-90 sec",
+    "short_description": "Jog lightly in place on the balls of the feet with relaxed arms; a quiet indoor raise.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-light-jumping-jacks",
+    "name": "Light Jumping Jacks",
+    "aliases": [
+      "warm-up jacks"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "shoulders",
+      "full body"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion",
+      "vertical push"
+    ],
+    "typical_dose": "30-60 sec",
+    "short_description": "Perform easy-paced jumping jacks to elevate heart rate and loosen the shoulders and hips.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "wu-easy-single-unders",
+    "name": "Easy Single-Unders",
+    "aliases": [
+      "warm-up singles"
+    ],
+    "type": "general_raise",
+    "equipment": [
+      "jump_rope"
+    ],
+    "target_areas": [
+      "calves",
+      "ankles",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "1-2 min",
+    "short_description": "Jump rope at a relaxed tempo with minimal jump height to raise the heart rate and prime the ankles.",
+    "source_url": "https://wodprep.com/blog/beginner-progression-double-unders/"
+  },
+  {
+    "id": "wu-jump-rope-boxer-step",
+    "name": "Jump Rope Boxer Step Warm-Up",
+    "aliases": [
+      "easy boxer skip"
+    ],
+    "type": "general_raise",
+    "equipment": [
+      "jump_rope"
+    ],
+    "target_areas": [
+      "calves",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "1-2 min",
+    "short_description": "Use a relaxed boxer step over the rope as a low-intensity, low-impact raise.",
+    "source_url": "https://doperopes.co.uk/pages/jump-rope-training-footwork-series"
+  },
+  {
+    "id": "wu-high-knee-march",
+    "name": "High-Knee March",
+    "aliases": [
+      "marching",
+      "knee drive march"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "glutes",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "lunge",
+      "squat"
+    ],
+    "typical_dose": "30-60 sec",
+    "short_description": "March with exaggerated knee drive and opposite arm swing while standing tall.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-butt-kicks",
+    "name": "Butt Kicks",
+    "aliases": [
+      "heel flicks"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump",
+      "lunge"
+    ],
+    "typical_dose": "30 sec or 20 m",
+    "short_description": "Jog lightly while flicking the heels toward the glutes.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-a-skip",
+    "name": "A-Skip",
+    "aliases": [
+      "A skips"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "calves",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "2 x 15-20 m",
+    "short_description": "Skip forward driving one knee to hip height and striking down under the hips with a dorsiflexed foot.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-carioca",
+    "name": "Carioca",
+    "aliases": [
+      "karaoke",
+      "grapevine"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "hips",
+      "adductors",
+      "obliques"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "lunge",
+      "rotation"
+    ],
+    "typical_dose": "2 x 15-20 m/side",
+    "short_description": "Move laterally by alternately crossing the trail leg in front of and behind the lead leg while rotating the hips.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-lateral-shuffle",
+    "name": "Lateral Shuffle Warm-Up",
+    "aliases": [
+      "side shuffle"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "glute medius",
+      "adductors",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 15 m/direction",
+    "short_description": "Shuffle sideways in an athletic stance without crossing the feet.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/181/lateral-shuffles/"
+  },
+  {
+    "id": "wu-backpedal",
+    "name": "Backpedal",
+    "aliases": [
+      "backward jog"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "2 x 15-20 m",
+    "short_description": "Jog backward on the balls of the feet with a slight forward lean.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-forward-skip",
+    "name": "Forward Skip",
+    "aliases": [
+      "skipping"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "2 x 20 m",
+    "short_description": "Skip forward rhythmically with an easy arm swing.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-shadow-boxing",
+    "name": "Shadow Boxing",
+    "aliases": [
+      "air punching"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "core",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "horizontal push",
+      "locomotion"
+    ],
+    "typical_dose": "60-90 sec",
+    "short_description": "Throw light punches in an athletic, bouncing stance, rotating through the hips.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-bear-crawl",
+    "name": "Bear Crawl Warm-Up",
+    "aliases": [
+      "bear crawl forward/back"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "wrists",
+      "core",
+      "quadriceps"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push",
+      "core/midline",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 10 m",
+    "short_description": "Crawl forward and back with knees hovering to warm the shoulders, wrists, and trunk.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/150/bear-crawl/"
+  },
+  {
+    "id": "wu-slow-mountain-climbers",
+    "name": "Slow Mountain Climbers",
+    "aliases": [
+      "controlled mountain climbers"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "core",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "horizontal push",
+      "locomotion"
+    ],
+    "typical_dose": "30 sec",
+    "short_description": "From a high plank, drive alternate knees toward the chest at a slow, controlled tempo.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/258/mountain-climbers/"
+  },
+  {
+    "id": "wu-step-jacks",
+    "name": "Step Jacks",
+    "aliases": [
+      "low-impact jacks"
+    ],
+    "type": "general_raise",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "vertical push"
+    ],
+    "typical_dose": "30-60 sec",
+    "short_description": "Alternate stepping one foot out while raising the arms overhead; a quiet, no-jump raise.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "wu-glute-bridge",
+    "name": "Glute Bridge (activation)",
+    "aliases": [
+      "hip bridge activation"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "squat",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 10-15",
+    "short_description": "Lie on your back and drive the hips up with a 2-second squeeze at the top.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/49/glute-bridge/"
+  },
+  {
+    "id": "wu-single-leg-glute-bridge",
+    "name": "Single-Leg Glute Bridge (activation)",
+    "aliases": [
+      "SL bridge activation"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 8/side",
+    "short_description": "Bridge on one leg keeping the pelvis level, pausing at the top.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/145/glute-bridge-single-leg-progression/"
+  },
+  {
+    "id": "wu-clamshell",
+    "name": "Clamshell",
+    "aliases": [
+      "side-lying clam"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glute medius",
+      "hip external rotators"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 12/side",
+    "short_description": "Lie on your side with knees bent and lift the top knee while keeping the feet together and pelvis still.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/38/side-lying-hip-abduction/"
+  },
+  {
+    "id": "wu-side-lying-leg-raise",
+    "name": "Side-Lying Leg Raise",
+    "aliases": [
+      "side-lying hip abduction"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glute medius"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 12/side",
+    "short_description": "Lying on your side, raise the straight top leg slightly behind the body and lower slowly.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/38/side-lying-hip-abduction/"
+  },
+  {
+    "id": "wu-fire-hydrant",
+    "name": "Fire Hydrant",
+    "aliases": [
+      "quadruped hip abduction",
+      "dirty dog"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glute medius",
+      "hip abductors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 10/side",
+    "short_description": "On hands and knees, lift one bent knee out to the side without shifting the torso.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/109/dirty-dog/"
+  },
+  {
+    "id": "wu-quadruped-hip-extension",
+    "name": "Quadruped Hip Extension",
+    "aliases": [
+      "donkey kick"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "lunge"
+    ],
+    "typical_dose": "2 x 10/side",
+    "short_description": "On hands and knees, drive one bent knee back and up until the thigh is parallel to the floor without arching the back.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/270/quadruped-bent-knee-hip-extensions/"
+  },
+  {
+    "id": "wu-band-lateral-walk",
+    "name": "Banded Lateral Walk",
+    "aliases": [
+      "monster walk sideways",
+      "mini-band walk"
+    ],
+    "type": "activation",
+    "equipment": [
+      "band"
+    ],
+    "target_areas": [
+      "glute medius",
+      "hip abductors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 10 steps/direction",
+    "short_description": "With a mini-band around the knees or ankles, step sideways in a quarter squat keeping tension on the band.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-band-pull-apart",
+    "name": "Band Pull-Apart",
+    "aliases": [
+      "pull-aparts"
+    ],
+    "type": "activation",
+    "equipment": [
+      "band"
+    ],
+    "target_areas": [
+      "rear deltoids",
+      "rhomboids",
+      "mid traps"
+    ],
+    "pairs_with_patterns": [
+      "horizontal pull",
+      "vertical push",
+      "horizontal push",
+      "full-body/olympic-style",
+      "vertical pull"
+    ],
+    "typical_dose": "2 x 15",
+    "short_description": "Hold a light band at shoulder height with straight arms and pull it apart to the chest.",
+    "source_url": "https://www.crossfit.com/essentials/the-dumbbell-power-snatch"
+  },
+  {
+    "id": "wu-bird-dog",
+    "name": "Bird Dog (activation)",
+    "aliases": [
+      "quadruped reach"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "erector spinae",
+      "glutes",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline",
+      "carry"
+    ],
+    "typical_dose": "2 x 6-8/side",
+    "short_description": "Extend the opposite arm and leg from hands and knees with a 2-second hold, keeping the hips square.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/14/bird-dog/"
+  },
+  {
+    "id": "wu-dead-bug",
+    "name": "Dead Bug (activation)",
+    "aliases": [
+      "deadbug brace"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "deep core"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "squat",
+      "hinge",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 6-8/side",
+    "short_description": "On your back, slowly lower opposite arm and leg while keeping the low back pressed down.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "wu-plank-hold",
+    "name": "Plank Hold (activation)",
+    "aliases": [
+      "warm-up plank"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "core",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "horizontal push",
+      "carry"
+    ],
+    "typical_dose": "2 x 20-30 sec",
+    "short_description": "Hold a forearm or high plank with glutes squeezed and ribs down.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/32/front-plank/"
+  },
+  {
+    "id": "wu-side-plank",
+    "name": "Side Plank (activation)",
+    "aliases": [
+      "side bridge activation"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "obliques",
+      "glute medius"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "carry",
+      "lunge"
+    ],
+    "typical_dose": "2 x 15-20 sec/side",
+    "short_description": "Hold a side plank with hips stacked and lifted.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/303/side-plank/"
+  },
+  {
+    "id": "wu-hollow-hold",
+    "name": "Hollow Hold (activation)",
+    "aliases": [
+      "hollow body prep"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "anterior core"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "vertical push",
+      "jump",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "2-3 x 15-20 sec",
+    "short_description": "Press the low back to the floor and hold the hollow shape; scale with bent knees or arms forward.",
+    "source_url": "https://barbend.com/hollow-hold/"
+  },
+  {
+    "id": "wu-superman-hold",
+    "name": "Superman Hold (activation)",
+    "aliases": [
+      "arch hold"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "erector spinae",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "full-body/olympic-style",
+      "horizontal pull"
+    ],
+    "typical_dose": "2 x 15-20 sec",
+    "short_description": "Lying face down, lift arms, chest, and legs and hold.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/9/supermans/"
+  },
+  {
+    "id": "wu-scap-push-up",
+    "name": "Scap Push-Up",
+    "aliases": [
+      "scapular push-up",
+      "push-up plus"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "serratus anterior",
+      "shoulder blades"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "In a high plank with straight arms, let the chest sink between the shoulder blades, then push the floor away to spread them.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/259/ckc-parascapular-exercises/"
+  },
+  {
+    "id": "wu-prone-ytw",
+    "name": "Prone Y-T-W Raises",
+    "aliases": [
+      "I-Y-T-W",
+      "YTWs"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "lower traps",
+      "rhomboids",
+      "rotator cuff"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal pull",
+      "vertical pull",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "1-2 x 6 each letter",
+    "short_description": "Lying face down, raise the arms into Y, T, and W shapes with thumbs up, squeezing the shoulder blades.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/249/prone-scapular-shoulder-stabilization-series-i-y-t-w-o-formation/"
+  },
+  {
+    "id": "wu-db-external-rotation",
+    "name": "Side-Lying Dumbbell External Rotation",
+    "aliases": [
+      "DB ER",
+      "rotator cuff external rotation"
+    ],
+    "type": "activation",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "rotator cuff"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "2 x 10-12/side (very light)",
+    "short_description": "Lying on your side with the elbow pinned to the ribs, rotate a very light dumbbell up from the belly.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/352/rotator-cuff-external-rotation/"
+  },
+  {
+    "id": "wu-tibialis-raise",
+    "name": "Tibialis Raise",
+    "aliases": [
+      "toe raise",
+      "wall tib raise"
+    ],
+    "type": "activation",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "tibialis anterior",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 15",
+    "short_description": "Lean your back against a wall with heels forward and lift the toes toward the shins, then lower.",
+    "source_url": "https://barbend.com/ankle-mobility-exercises/"
+  },
+  {
+    "id": "wu-calf-raise",
+    "name": "Calf Raise (activation)",
+    "aliases": [
+      "warm-up calf raise"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "Achilles tendon"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 15",
+    "short_description": "Rise slowly onto the toes and lower under control to prepare the ankles for jumping.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/73/standing-calf-raises-wall/"
+  },
+  {
+    "id": "wu-single-leg-balance",
+    "name": "Single-Leg Balance Reach",
+    "aliases": [
+      "single-leg stand with reaches"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "ankles",
+      "hip stabilizers"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "jump",
+      "hinge"
+    ],
+    "typical_dose": "2 x 20-30 sec/side",
+    "short_description": "Stand on one leg and reach the free leg or arms in several directions while keeping balance.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/114/single-leg-stand-with-reaches/"
+  },
+  {
+    "id": "wu-glute-bridge-march",
+    "name": "Glute Bridge March (activation)",
+    "aliases": [
+      "bridge march"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "lunge",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 8/side",
+    "short_description": "Hold a bridge and alternately lift each foot without the hips dropping.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/145/glute-bridge-single-leg-progression/"
+  },
+  {
+    "id": "wu-bear-hold-shoulder-tap",
+    "name": "Bear Hold Shoulder Taps",
+    "aliases": [
+      "beast shoulder taps"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "core",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "horizontal push",
+      "carry"
+    ],
+    "typical_dose": "2 x 8/side",
+    "short_description": "In a bear hold with knees hovering, tap opposite shoulders without rocking the hips.",
+    "source_url": "https://spmembersonly.com/pp-movement-library"
+  },
+  {
+    "id": "wu-arm-circles",
+    "name": "Arm Circles",
+    "aliases": [
+      "shoulder circles"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "full-body/olympic-style",
+      "horizontal pull",
+      "vertical pull"
+    ],
+    "typical_dose": "10 forward + 10 back",
+    "short_description": "Circle straight arms in small then large circles forward and backward.",
+    "source_url": "https://www.crossfit.com/essentials/purpose-of-the-general-warm-up"
+  },
+  {
+    "id": "wu-arm-swings",
+    "name": "Cross-Body Arm Swings",
+    "aliases": [
+      "arm hugs",
+      "open-close arm swings"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "chest",
+      "upper back",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "horizontal pull",
+      "vertical push"
+    ],
+    "typical_dose": "15-20 reps",
+    "short_description": "Swing the arms wide open and then across the chest in a hugging motion, alternating which arm is on top.",
+    "source_url": "https://www.crossfit.com/essentials/purpose-of-the-general-warm-up"
+  },
+  {
+    "id": "wu-leg-swings-front",
+    "name": "Leg Swings (Front-to-Back)",
+    "aliases": [
+      "forward leg swings"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "hamstrings",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "lunge",
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "10-15/side",
+    "short_description": "Holding a wall for balance, swing one straight leg forward and back through a growing range.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-leg-swings-lateral",
+    "name": "Leg Swings (Side-to-Side)",
+    "aliases": [
+      "lateral leg swings"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "adductors",
+      "hip abductors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "locomotion"
+    ],
+    "typical_dose": "10-15/side",
+    "short_description": "Facing a wall, swing one leg across the body and out to the side.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-hip-circles",
+    "name": "Standing Hip Circles",
+    "aliases": [
+      "hip openers",
+      "gate openers and closers"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hips",
+      "groin"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "locomotion"
+    ],
+    "typical_dose": "8-10/direction/side",
+    "short_description": "Lift one knee and draw a big circle out to the side and back (gate opener), then reverse (gate closer).",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/201/standing-gate-openers-frankensteins/"
+  },
+  {
+    "id": "wu-frankensteins",
+    "name": "Frankenstein Walk",
+    "aliases": [
+      "toy soldiers",
+      "straight-leg kicks"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 10 m",
+    "short_description": "Walk forward kicking a straight leg up toward the opposite outstretched hand.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/201/standing-gate-openers-frankensteins/"
+  },
+  {
+    "id": "wu-walking-knee-hug",
+    "name": "Walking Knee Hug",
+    "aliases": [
+      "knee-to-chest walk"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "glutes",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "squat",
+      "locomotion"
+    ],
+    "typical_dose": "10 m or 8/side",
+    "short_description": "Step forward, pull one knee to the chest while rising onto the toes, then step and switch.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-walking-quad-pull",
+    "name": "Walking Quad Pull",
+    "aliases": [
+      "standing quad pull"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "10 m or 8/side",
+    "short_description": "Step forward and pull the opposite heel to the glute while reaching the free arm overhead.",
+    "source_url": "https://barbend.com/quad-stretches/"
+  },
+  {
+    "id": "wu-cat-cow",
+    "name": "Cat-Cow",
+    "aliases": [
+      "cat-camel"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "spine",
+      "thoracic",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "core/midline",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "8-10 slow reps",
+    "short_description": "On hands and knees, alternate rounding the spine up and letting it sag with the chest forward, moving with the breath.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/15/cat-cow/"
+  },
+  {
+    "id": "wu-thread-the-needle",
+    "name": "Thread the Needle (dynamic)",
+    "aliases": [
+      "quadruped thoracic rotation"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "thoracic spine",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "vertical push",
+      "horizontal pull",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "8/side",
+    "short_description": "From hands and knees, reach one arm under the body and then up toward the ceiling, following the hand with the eyes.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/330/high-plank-t-spine-rotation/"
+  },
+  {
+    "id": "wu-open-book",
+    "name": "Open Book",
+    "aliases": [
+      "side-lying thoracic rotation"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "thoracic spine",
+      "chest"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "horizontal push",
+      "vertical push",
+      "horizontal pull"
+    ],
+    "typical_dose": "8/side",
+    "short_description": "Lying on your side with knees bent, rotate the top arm open across the body to the floor behind you and back.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/223/side-lying-arm-rolls/"
+  },
+  {
+    "id": "wu-worlds-greatest-stretch",
+    "name": "World's Greatest Stretch",
+    "aliases": [
+      "WGS",
+      "lunge with rotation"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "hamstrings",
+      "thoracic spine",
+      "adductors"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "squat",
+      "hinge",
+      "rotation",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "5/side",
+    "short_description": "From a long lunge, place the inside elbow toward the instep, rotate the arm to the ceiling, then straighten the front leg.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/140/lunge-with-elbow-instep/"
+  },
+  {
+    "id": "wu-spiderman-lunge",
+    "name": "Spiderman Lunge",
+    "aliases": [
+      "lunge with elbow to instep"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "adductors",
+      "groin"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "squat",
+      "locomotion"
+    ],
+    "typical_dose": "5-8/side",
+    "short_description": "Step a foot outside the hand into a deep lunge, sink the hips, then step to the other side.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/140/lunge-with-elbow-instep/"
+  },
+  {
+    "id": "wu-inchworm",
+    "name": "Inchworm (warm-up)",
+    "aliases": [
+      "walkout"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "shoulders",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "horizontal push",
+      "core/midline"
+    ],
+    "typical_dose": "5-8 reps",
+    "short_description": "Walk the hands out to a plank and walk the feet back in toward the hands, keeping the legs as straight as comfortable.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/254/inchworms/"
+  },
+  {
+    "id": "wu-down-dog-to-cobra",
+    "name": "Down Dog to Cobra Flow",
+    "aliases": [
+      "down dog / up dog",
+      "dog flow"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "calves",
+      "spine",
+      "chest"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "horizontal push",
+      "vertical push",
+      "core/midline"
+    ],
+    "typical_dose": "6-8 reps",
+    "short_description": "Flow from downward-facing dog to a cobra or upward dog and back, moving with the breath.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/18/downward-facing-dog/"
+  },
+  {
+    "id": "wu-hip-rotations-push-up",
+    "name": "Hip Rotations in Push-Up Position",
+    "aliases": [
+      "push-up position hip rotation"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hips",
+      "core",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "rotation",
+      "horizontal push"
+    ],
+    "typical_dose": "6/side",
+    "short_description": "From a push-up position, rotate one bent knee under the body toward the opposite side and back.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/110/hip-rotations-push-up-position/"
+  },
+  {
+    "id": "wu-squat-to-stand",
+    "name": "Squat-to-Stand",
+    "aliases": [
+      "toe-touch squat"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "hips",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge"
+    ],
+    "typical_dose": "8 reps",
+    "short_description": "Fold forward to hold the toes, drop the hips into a deep squat with chest up, then straighten the legs while holding the toes.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/361/squat-to-overhead-raise/"
+  },
+  {
+    "id": "wu-samson-stretch",
+    "name": "Samson Stretch",
+    "aliases": [
+      "lunge with overhead reach"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "quadriceps",
+      "lats"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "vertical push",
+      "squat"
+    ],
+    "typical_dose": "3-5 x 5 sec/side",
+    "short_description": "In a long lunge with arms locked overhead, drive the hips forward and reach up.",
+    "source_url": "https://www.crossfit.com/essentials/purpose-of-the-general-warm-up"
+  },
+  {
+    "id": "wu-9090-hip-switch",
+    "name": "90/90 Hip Switches",
+    "aliases": [
+      "windshield-wiper hip switch"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip internal/external rotators"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "rotation"
+    ],
+    "typical_dose": "8-10 switches",
+    "short_description": "Sit with both knees bent 90 degrees to one side and rotate the knees to the other side without using the hands if possible.",
+    "source_url": "https://health.clevelandclinic.org/90-90-stretch"
+  },
+  {
+    "id": "wu-ankle-rocks",
+    "name": "Knee-to-Wall Ankle Rocks",
+    "aliases": [
+      "ankle dorsiflexion rocks"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "ankles",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "jump",
+      "lunge"
+    ],
+    "typical_dose": "10/side",
+    "short_description": "In a half-kneeling or split stance, drive the front knee forward over the toes toward a wall without lifting the heel.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/224/standing-ankle-mobilization/"
+  },
+  {
+    "id": "wu-wrist-prep",
+    "name": "Wrist Circles and Rocks",
+    "aliases": [
+      "wrist warm-up",
+      "quadruped wrist rocks"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "wrists",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push",
+      "full-body/olympic-style",
+      "core/midline"
+    ],
+    "typical_dose": "10 each direction",
+    "short_description": "Circle the wrists, then on hands and knees rock forward and back over the palms with fingers forward, sideways, and back.",
+    "source_url": "https://library.crossfit.com/free/pdf/08_03_Better_warmup.pdf"
+  },
+  {
+    "id": "wu-neck-half-circles",
+    "name": "Neck Half Circles",
+    "aliases": [
+      "neck rolls (half)"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "neck"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "vertical push",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "5/direction",
+    "short_description": "Slowly roll the chin from one shoulder down across the chest to the other shoulder.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/204/neck-flexion-and-extension/"
+  },
+  {
+    "id": "wu-pass-through",
+    "name": "Band or PVC Pass-Through",
+    "aliases": [
+      "shoulder dislocates",
+      "pass-throughs"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [
+      "band_or_pvc"
+    ],
+    "target_areas": [
+      "shoulders",
+      "chest"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style",
+      "horizontal push",
+      "vertical pull"
+    ],
+    "typical_dose": "10-15 reps",
+    "short_description": "Hold a band or dowel with a wide grip and lift it overhead and behind the body with straight arms, then back.",
+    "source_url": "https://www.crossfit.com/essentials/the-dumbbell-power-snatch"
+  },
+  {
+    "id": "wu-walking-lunge-reach",
+    "name": "Walking Lunge with Overhead Reach",
+    "aliases": [
+      "lunge and reach"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "quadriceps",
+      "lats"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_dose": "10 m or 6/side",
+    "short_description": "Walk forward in lunges, reaching both arms overhead and slightly toward the front-leg side at the bottom.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/363/lunge/"
+  },
+  {
+    "id": "wu-reverse-lunge-twist",
+    "name": "Reverse Lunge with Twist",
+    "aliases": [
+      "reverse lunge with rotation"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "thoracic spine",
+      "obliques"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "rotation"
+    ],
+    "typical_dose": "6/side",
+    "short_description": "Step back into a lunge and rotate the torso toward the front leg, then return.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/360/reverse-lunge-with-rotation/"
+  },
+  {
+    "id": "wu-cossack-shift",
+    "name": "Cossack Shifts",
+    "aliases": [
+      "side-to-side lunge shifts"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "adductors",
+      "hips",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge"
+    ],
+    "typical_dose": "6/side",
+    "short_description": "From a wide stance, shift slowly into a deep side squat on one leg, then the other, staying low.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/364/lateral-lunge/"
+  },
+  {
+    "id": "wu-scorpion",
+    "name": "Prone Scorpion",
+    "aliases": [
+      "scorpion kick"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "thoracic spine",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "rotation",
+      "lunge",
+      "hinge"
+    ],
+    "typical_dose": "6/side",
+    "short_description": "Lying face down with arms out, lift one foot and reach it across the body toward the opposite hand.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-deep-squat-pry",
+    "name": "Deep Squat Pry",
+    "aliases": [
+      "goblet squat hold",
+      "prying squat"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "hips",
+      "ankles",
+      "adductors"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "30-60 sec",
+    "short_description": "Sit in the bottom of a squat holding a light dumbbell at the chest and use the elbows to gently pry the knees out while shifting side to side.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/362/goblet-squat/"
+  },
+  {
+    "id": "wu-db-complex-light",
+    "name": "Light Dumbbell Complex",
+    "aliases": [
+      "DB warm-up complex",
+      "DB barbell-style complex"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "full body"
+    ],
+    "pairs_with_patterns": [
+      "full-body/olympic-style",
+      "hinge",
+      "squat",
+      "vertical push"
+    ],
+    "typical_dose": "2-3 rounds of 5 reps each move",
+    "short_description": "With light dumbbells, perform 5 deadlifts, 5 hang power cleans, 5 front squats, and 5 push presses without putting them down.",
+    "source_url": "https://assets.crossfit.com/pdfs/seminars/Dumbbell_Training_Guide.pdf"
+  },
+  {
+    "id": "wu-db-snatch-progression",
+    "name": "Dumbbell Snatch Progression",
+    "aliases": [
+      "snatch drills",
+      "DB snatch breakdown"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "hips",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "full-body/olympic-style",
+      "hinge",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 5 each step/side",
+    "short_description": "With a light dumbbell, perform deadlift, high pull, muscle snatch, then hang power snatch in sequence.",
+    "source_url": "https://www.crossfit.com/essentials/the-dumbbell-power-snatch"
+  },
+  {
+    "id": "wu-db-clean-progression",
+    "name": "Dumbbell Clean Progression",
+    "aliases": [
+      "clean drills"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "hips",
+      "upper back",
+      "wrists"
+    ],
+    "pairs_with_patterns": [
+      "full-body/olympic-style",
+      "squat",
+      "hinge"
+    ],
+    "typical_dose": "2 x 5 each step",
+    "short_description": "With light dumbbells, perform hang muscle clean, hang power clean, then front squat to rehearse the rack.",
+    "source_url": "https://www.crossfit.com/essentials/the-dumbbell-hang-power-clean"
+  },
+  {
+    "id": "wu-db-push-press-drill",
+    "name": "Dip-Drive Drill",
+    "aliases": [
+      "push press dip and drive"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "quadriceps",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "2 x 8",
+    "short_description": "With light dumbbells at the shoulders, rehearse a vertical dip and drive to the toes, then add a press.",
+    "source_url": "https://www.crossfit.com/essentials/the-dumbbell-push-press"
+  },
+  {
+    "id": "wu-goblet-squat-tempo",
+    "name": "Tempo Goblet Squat",
+    "aliases": [
+      "slow goblet squat"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "quadriceps",
+      "glutes",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge"
+    ],
+    "typical_dose": "2 x 6 (3-sec lower)",
+    "short_description": "Hold a light dumbbell at the chest and lower for three seconds to full depth, then stand.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/362/goblet-squat/"
+  },
+  {
+    "id": "wu-db-rdl-light",
+    "name": "Light Dumbbell RDL",
+    "aliases": [
+      "warm-up RDL"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "hamstrings",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "2 x 8",
+    "short_description": "Perform slow Romanian deadlifts with light dumbbells to groove the hinge.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/317/romanian-deadlift/"
+  },
+  {
+    "id": "wu-hip-hinge-drill",
+    "name": "Hip Hinge Drill",
+    "aliases": [
+      "wall hip hinge",
+      "dowel hinge"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "glutes",
+      "low back"
+    ],
+    "pairs_with_patterns": [
+      "hinge",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "2 x 8",
+    "short_description": "With hands on hips or a dowel along the spine, push the hips back to a hinge keeping a neutral spine.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/33/hip-hinge/"
+  },
+  {
+    "id": "wu-tgu-practice",
+    "name": "Turkish Get-Up Practice (Unloaded)",
+    "aliases": [
+      "shoe-on-fist get-up"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "hips",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "full-body/olympic-style",
+      "vertical push"
+    ],
+    "typical_dose": "2-3/side",
+    "short_description": "Rehearse each step of the get-up with a shoe balanced on the fist or no load.",
+    "source_url": "https://www.crossfit.com/essentials/the-dumbbell-turkish-get-up"
+  },
+  {
+    "id": "wu-db-halo",
+    "name": "Light Dumbbell Halo",
+    "aliases": [
+      "halo warm-up"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "shoulders",
+      "upper back"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style",
+      "core/midline",
+      "vertical pull"
+    ],
+    "typical_dose": "5/direction",
+    "short_description": "Circle a light dumbbell around the head close to the neck in both directions.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/394/halo/"
+  },
+  {
+    "id": "wu-db-single-arm-row-light",
+    "name": "Light Single-Arm Row",
+    "aliases": [
+      "warm-up row"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "lats",
+      "upper back"
+    ],
+    "pairs_with_patterns": [
+      "horizontal pull",
+      "vertical pull"
+    ],
+    "typical_dose": "2 x 10/side",
+    "short_description": "Perform easy single-arm rows with a light dumbbell, focusing on scapular movement.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"
+  },
+  {
+    "id": "wu-air-squat-build",
+    "name": "Air Squat Build-Up",
+    "aliases": [
+      "warm-up air squats"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "glutes",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "lunge",
+      "jump"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "Perform air squats, gradually increasing depth and speed.",
+    "source_url": "https://www.crossfit.com/essentials/the-air-squat"
+  },
+  {
+    "id": "wu-push-up-negatives",
+    "name": "Push-Up Negatives",
+    "aliases": [
+      "eccentric push-ups"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "chest",
+      "triceps",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "horizontal push",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 5 (3-sec lower)",
+    "short_description": "From the top of a push-up, lower for three seconds to the floor, then reset on the knees.",
+    "source_url": "https://www.crossfit.com/essentials/the-push-up"
+  },
+  {
+    "id": "wu-pike-shoulder-shrug",
+    "name": "Pike Shoulder Shrug",
+    "aliases": [
+      "pike shrug",
+      "downward dog shrug"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "upper traps"
+    ],
+    "pairs_with_patterns": [
+      "vertical push"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "In a pike position, shrug the shoulders toward the ears and push the floor away without bending the elbows.",
+    "source_url": "https://www.crossfit.com/essentials/handstand-push-up-variations"
+  },
+  {
+    "id": "wu-burpee-breakdown",
+    "name": "Burpee Breakdown",
+    "aliases": [
+      "slow burpee",
+      "step-back burpee prep"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "full body"
+    ],
+    "pairs_with_patterns": [
+      "full-body/olympic-style",
+      "horizontal push",
+      "jump"
+    ],
+    "typical_dose": "5 slow reps",
+    "short_description": "Step back to plank, lower to the floor, push up, step in, and stand, gradually adding the jump.",
+    "source_url": "https://www.crossfit.com/essentials/the-burpee-2"
+  },
+  {
+    "id": "wu-penguin-jumps",
+    "name": "Penguin Jumps",
+    "aliases": [
+      "penguin taps",
+      "double-under taps"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "jump"
+    ],
+    "typical_dose": "2 x 8-10",
+    "short_description": "Jump with straight, tight legs and tap the thighs twice with the hands before landing.",
+    "source_url": "https://www.crossrope.com/blogs/blog/how-to-do-double-unders/"
+  },
+  {
+    "id": "wu-rope-handle-flicks",
+    "name": "Rope Handle Flicks (No Jump)",
+    "aliases": [
+      "rope turning drill",
+      "shadow rope"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "jump_rope"
+    ],
+    "target_areas": [
+      "wrists",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "jump"
+    ],
+    "typical_dose": "2 x 30 sec",
+    "short_description": "Hold both handles in one hand and spin the rope beside you from the wrist to build turning speed.",
+    "source_url": "https://wodprep.com/blog/beginner-progression-double-unders/"
+  },
+  {
+    "id": "wu-single-single-double",
+    "name": "Single-Single-Double Drill",
+    "aliases": [
+      "2 singles + 1 DU",
+      "DU timing drill"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "jump_rope"
+    ],
+    "target_areas": [
+      "calves",
+      "wrists"
+    ],
+    "pairs_with_patterns": [
+      "jump"
+    ],
+    "typical_dose": "3-5 x 30 sec",
+    "short_description": "Perform two single-unders then one double-under on repeat, building toward consecutive double-unders.",
+    "source_url": "https://wodprep.com/blog/beginner-progression-double-unders/"
+  },
+  {
+    "id": "wu-high-singles",
+    "name": "High Single-Unders",
+    "aliases": [
+      "power singles"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "jump_rope"
+    ],
+    "target_areas": [
+      "calves",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "Jump single-unders at double-under height with a tight body to rehearse jump timing.",
+    "source_url": "https://wodprep.com/blog/beginner-progression-double-unders/"
+  },
+  {
+    "id": "wu-pogo-hops",
+    "name": "Pogo Hops (prep)",
+    "aliases": [
+      "ankle hops prep"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "Achilles tendon"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 10-15",
+    "short_description": "Bounce lightly on the balls of the feet with stiff ankles and fast contacts.",
+    "source_url": "https://barbend.com/best-plyometric-exercises/"
+  },
+  {
+    "id": "wu-snap-down",
+    "name": "Snap-Down",
+    "aliases": [
+      "drop squat",
+      "snap down to stick"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "glutes",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "squat"
+    ],
+    "typical_dose": "2 x 5",
+    "short_description": "From tall on the toes with arms overhead, snap the arms down and drop into a quiet athletic quarter squat; hold 2 seconds.",
+    "source_url": "https://movekit.com/exercises/snap-down-landing"
+  },
+  {
+    "id": "wu-jump-to-stick",
+    "name": "Squat Jump to Stick",
+    "aliases": [
+      "jump and stick"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "glutes",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump"
+    ],
+    "typical_dose": "2 x 5",
+    "short_description": "Perform a small vertical jump and land softly, freezing in a balanced quarter squat with knees tracking over toes.",
+    "source_url": "https://movekit.com/exercises/snap-down-landing"
+  },
+  {
+    "id": "wu-split-stance-stick",
+    "name": "Split-Stance Snap-Down",
+    "aliases": [
+      "split snap-down"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "glutes",
+      "hip stabilizers"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "lunge"
+    ],
+    "typical_dose": "2 x 4/side",
+    "short_description": "Snap down from tall into a split stance and stick the landing quietly.",
+    "source_url": "https://movekit.com/exercises/snap-down-landing"
+  },
+  {
+    "id": "wu-single-leg-hop-stick",
+    "name": "Single-Leg Hop to Stick (prep)",
+    "aliases": [
+      "single-leg landing drill"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "ankles",
+      "knees",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "jump",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 4/side",
+    "short_description": "Hop a short distance on one leg and freeze the landing for two seconds.",
+    "source_url": "https://movekit.com/exercises/snap-down-landing"
+  },
+  {
+    "id": "wu-low-line-hops",
+    "name": "Low Line Hops",
+    "aliases": [
+      "easy hop-overs"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "calves",
+      "ankles"
+    ],
+    "pairs_with_patterns": [
+      "jump"
+    ],
+    "typical_dose": "2 x 10-15",
+    "short_description": "Hop lightly side to side or front to back over a line with small amplitude to prepare for jumping.",
+    "source_url": "https://spmembersonly.com/no-equipment"
+  },
+  {
+    "id": "wu-run-strides",
+    "name": "Build-Up Strides",
+    "aliases": [
+      "accelerations",
+      "strides"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "hamstrings",
+      "calves",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "jump"
+    ],
+    "typical_dose": "3-4 x 30-50 m",
+    "short_description": "Run gradually accelerating to about 80-90% speed over the distance, then walk back.",
+    "source_url": "https://www.scottishathletics.org.uk/wp-content/uploads/2014/04/Warm-up-revisted-.pdf"
+  },
+  {
+    "id": "wu-split-squat-iso",
+    "name": "Split Squat Isometric Hold",
+    "aliases": [
+      "lunge hold"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "quadriceps",
+      "glutes",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "lunge",
+      "squat"
+    ],
+    "typical_dose": "2 x 20 sec/side",
+    "short_description": "Hold the bottom of a split squat with the back knee just above the floor.",
+    "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/equipment/no-equipment/"
+  },
+  {
+    "id": "wu-vest-walk-easy",
+    "name": "Easy Vest Walk",
+    "aliases": [
+      "vest warm-up walk"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "weighted_vest"
+    ],
+    "target_areas": [
+      "full body",
+      "calves"
+    ],
+    "pairs_with_patterns": [
+      "locomotion",
+      "carry"
+    ],
+    "typical_dose": "3-5 min",
+    "short_description": "Walk easily wearing the vest before vest work to let the body adapt to the load.",
+    "source_url": "https://www.issaonline.com/blogs/strength/issa-or-beginner-guide-to-rucking-and-weighted-vest-training"
+  },
+  {
+    "id": "wu-farmer-hold-light",
+    "name": "Light Farmers Hold",
+    "aliases": [
+      "grip prep"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "dumbbell"
+    ],
+    "target_areas": [
+      "forearms",
+      "traps",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "carry",
+      "hinge"
+    ],
+    "typical_dose": "2 x 20-30 sec",
+    "short_description": "Hold moderate dumbbells at the sides standing tall to prime grip and bracing.",
+    "source_url": "https://www.crossfit.com/essentials/the-farmer-carry"
+  }
+]

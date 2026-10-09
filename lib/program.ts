@@ -1,4 +1,5 @@
 import { formatById, type FormatId } from "./formats";
+import { MOVEMENT_LIBRARY, type LibraryMovement, type LibraryPattern } from "./movement-library";
 
 export type Element = "M" | "G" | "W";
 export type Load = "heavy" | "moderate" | "light";
@@ -38,6 +39,41 @@ export type Assignment = {
 };
 
 type MovementHit = { slug: string; pattern: Pattern; element: Element };
+
+const LIBRARY_TERMS = MOVEMENT_LIBRARY.flatMap((movement) =>
+  [movement.name, ...movement.aliases].map((term) => ({ movement, term })),
+).sort((left, right) => right.term.length - left.term.length);
+const LIBRARY_BY_ID = new Map(MOVEMENT_LIBRARY.map((movement) => [movement.id, movement]));
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function libraryPattern(pattern: LibraryPattern): Pattern {
+  if (pattern === "squat" || pattern === "lunge") return "squat";
+  if (pattern === "hinge") return "hinge";
+  if (pattern === "horizontal push" || pattern === "vertical push") return "press";
+  if (pattern === "horizontal pull" || pattern === "vertical pull") return "pull";
+  if (pattern === "full-body/olympic-style") return "olympic";
+  if (pattern === "carry") return "carry";
+  return "none";
+}
+
+function libraryElement(movement: LibraryMovement): Element {
+  if (movement.modality === "monostructural") return "M";
+  if (movement.modality === "gymnastics") return "G";
+  return "W";
+}
+
+function movementMono(hits: MovementHit[]): Mono {
+  if (hits.some((hit) => hit.slug === "run" || hit.slug.includes("run"))) return "run";
+  if (hits.some((hit) => hit.slug === "jump_rope" || LIBRARY_BY_ID.get(hit.slug)?.category === "jump_rope")) {
+    return "jump_rope";
+  }
+  if (hits.some((hit) => hit.slug === "burpee" || hit.slug.includes("burpee"))) return "burpee";
+  if (hits.some((hit) => hit.slug === "carry" || hit.pattern === "carry")) return "carry";
+  return "none";
+}
 
 const DETECTORS: { re: RegExp; slug: string; pattern: Pattern; element: Element }[] = [
   { re: /\bthrusters?\b/i, slug: "thruster", pattern: "squat", element: "W" },
@@ -115,7 +151,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "One heavy strength piece only. Build to a heavy set of 3, 2, or 1. Score is load. No metcon, no running.",
+    brief: "One 20-25 minute heavy strength piece only. Build through purposeful sets to a heavy 5, 3, 2, or 1. Score is load. No metcon, no running.",
   },
   {
     shape: "strength_metcon",
@@ -126,7 +162,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "A hard strength piece first, sets of 5 or 3, then a short 6-9 minute metcon that is not the same pattern as the lift. Two scored pieces. No running.",
+    brief: "A 12-16 minute hard strength piece first, sets of 5 or 3, then an 8-12 minute metcon that is not the same pattern as the lift. Two scored pieces. No running.",
   },
   {
     shape: "strength_metcon",
@@ -137,7 +173,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "vary",
     needs: "load",
-    brief: "A heavy strength piece first, then a short nasty finisher under 8 minutes. The finisher is not a second heavy lift.",
+    brief: "A 14-18 minute heavy strength piece first, then a hard 8-12 minute finisher. The finisher is not a second heavy lift.",
   },
   {
     shape: "couplet",
@@ -148,7 +184,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "One scored couplet for time, about 5-9 minutes. Two movements. No separate strength piece. No running. Rx should feel like a sprint you might not finish unbroken.",
+    brief: "One scored couplet for time, about 12-16 minutes. Two movements. No separate strength piece. No running. Rx starts fast but requires broken sets.",
   },
   {
     shape: "couplet",
@@ -158,7 +194,7 @@ const RECIPES: Recipe[] = [
     domain: "medium",
     pattern: "none",
     mono: "vary",
-    brief: "One scored couplet AMRAP, 10-14 minutes. Gymnastics plus engine. No separate strength piece. No heavy barbell or dumbbell complex.",
+    brief: "One scored couplet AMRAP, 16-20 minutes. Gymnastics plus engine. No separate strength piece. No heavy barbell or dumbbell complex.",
   },
   {
     shape: "triplet",
@@ -169,7 +205,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "vary",
     needs: "load",
-    brief: "One AMRAP, 10-15 minutes. Three movements, one from each modality. No separate strength piece. Dense enough that sets break.",
+    brief: "One AMRAP, 18-22 minutes. Three movements, one from each modality. No separate strength piece. Dense enough that sets break.",
   },
   {
     shape: "chipper",
@@ -180,7 +216,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "vary",
     needs: "load",
-    brief: "One chipper, 16-25 minutes, once through for time. No separate strength piece. A grind, not a sprint.",
+    brief: "One chipper, 22-28 minutes, once through for time. No separate strength piece. A grind with meaningful movement variety, not a sprint.",
   },
   {
     shape: "intervals",
@@ -190,7 +226,7 @@ const RECIPES: Recipe[] = [
     domain: "medium",
     pattern: "none",
     mono: "vary",
-    brief: "Monostructural intervals only. No lifting piece. Repeated hard efforts with short rest, 12-20 minutes of work.",
+    brief: "Monostructural intervals only. No lifting piece. Repeated hard efforts with controlled rest, 20-25 minutes including recovery.",
   },
   {
     shape: "intervals",
@@ -200,7 +236,7 @@ const RECIPES: Recipe[] = [
     domain: "long",
     pattern: "none",
     mono: "vary",
-    brief: "One monostructural piece, 15-25 minutes. A time trial or a long steady effort. No lifting. No gymnastics couplet.",
+    brief: "One monostructural piece, 25-30 minutes. A time trial, progression, or hard steady effort. No lifting. No gymnastics couplet.",
   },
   {
     shape: "gymnastics",
@@ -210,7 +246,7 @@ const RECIPES: Recipe[] = [
     domain: "short",
     pattern: "vary",
     mono: "none",
-    brief: "A short gymnastics skill piece, then a brief bodyweight metcon. No heavy load. No running.",
+    brief: "An 8-10 minute gymnastics skill piece, then a 12-16 minute bodyweight metcon. No heavy load. No running.",
   },
   {
     shape: "gymnastics",
@@ -220,7 +256,7 @@ const RECIPES: Recipe[] = [
     domain: "medium",
     pattern: "vary",
     mono: "none",
-    brief: "One gymnastics EMOM, 10-16 minutes. No heavy load. No running. No separate strength piece.",
+    brief: "One alternating gymnastics EMOM, 18-24 minutes. Rotate 2-4 distinct stations. No heavy load, running, or separate strength piece.",
   },
   {
     shape: "ladder",
@@ -231,7 +267,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "One ascending or descending ladder, 10-16 minutes. No separate strength piece. No running.",
+    brief: "One ascending, descending, or wave ladder, 18-24 minutes. No separate strength piece. No running.",
   },
   {
     shape: "benchmark",
@@ -242,18 +278,29 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "barbell",
-    brief: "One named classic benchmark that does not include running. Rx is the original stimulus and hard to finish clean. No extra strength piece.",
+    brief: "An 8-10 minute technique or strength primer, then one named classic benchmark without running. Preserve the benchmark's original Rx stimulus.",
   },
   {
     shape: "couplet",
     format: "emom",
-    elements: ["W"],
+    elements: ["W", "G"],
     load: "moderate",
     domain: "short",
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "One EMOM, 10-16 minutes, built on a single lift pattern plus a bodyweight movement. No running. Sets should be hard at the top of the minute.",
+    brief: "One alternating 18-24 minute EMOM built on a lift pattern plus a contrasting bodyweight movement. No running. Work should leave only 10-20 seconds each minute.",
+  },
+  {
+    shape: "intervals",
+    format: "interval",
+    elements: ["W", "G", "M"],
+    load: "moderate",
+    domain: "medium",
+    pattern: "vary",
+    mono: "vary",
+    needs: "load",
+    brief: "Mixed-modal intervals for 20-26 minutes including rest. Use 3 distinct stations and repeat hard, sustainable efforts instead of writing an AMRAP.",
   },
 ];
 
@@ -275,6 +322,15 @@ function unique<T>(values: T[]): T[] {
 export function scanMovements(text: string): MovementHit[] {
   let rest = text;
   const found: MovementHit[] = [];
+  const libraryIds = new Set<string>();
+  for (const { movement, term } of LIBRARY_TERMS) {
+    if (libraryIds.has(movement.id)) continue;
+    const matcher = new RegExp(`(^|[^a-z0-9])${escapeRegExp(term)}(?=$|[^a-z0-9])`, "i");
+    if (!matcher.test(rest)) continue;
+    found.push({ slug: movement.id, pattern: libraryPattern(movement.movement_pattern), element: libraryElement(movement) });
+    libraryIds.add(movement.id);
+    rest = rest.replace(new RegExp(matcher.source, "gi"), " ");
+  }
   for (const detector of DETECTORS) {
     if (!new RegExp(detector.re.source, "i").test(rest)) continue;
     found.push({ slug: detector.slug, pattern: detector.pattern, element: detector.element });
@@ -290,7 +346,7 @@ export function parseProgram(raw: string): ProgramTag | null {
     if (!value || !LOADS.has(value.load as Load)) return null;
     const elements = Array.isArray(value.elements) ? value.elements.filter((item): item is Element => ELEMENTS.has(item as Element)) : [];
     const movements = Array.isArray(value.movements)
-      ? value.movements.filter((item): item is string => typeof item === "string").slice(0, 3)
+      ? value.movements.filter((item): item is string => typeof item === "string").slice(0, 8)
       : [];
     return {
       elements: elements.length ? elements : ["W"],
@@ -316,13 +372,7 @@ export function inferProgram(input: { focus: string; format: string; text: strin
     else elements.push("W");
   }
   const pattern = hits.find((hit) => hit.pattern !== "none")?.pattern ?? "none";
-  let mono: Mono = "none";
-  if (hits.some((hit) => hit.slug === "run") || input.focus === "cardio") {
-    mono = hits.some((hit) => hit.slug === "run") ? "run" : hits.some((hit) => hit.slug === "jump_rope") ? "jump_rope" : "none";
-  } else if (hits.some((hit) => hit.slug === "jump_rope")) mono = "jump_rope";
-  else if (hits.some((hit) => hit.slug === "burpee") && elements.length === 1) mono = "burpee";
-  else if (hits.some((hit) => hit.slug === "carry") && pattern === "carry") mono = "carry";
-  if (hits.some((hit) => hit.slug === "run")) mono = "run";
+  const mono = movementMono(hits);
 
   let load: Load = "moderate";
   if (input.focus === "heavy" || input.format === "heavy" || /\b(heavy single|1\s?rm|build to a heavy|9[05]%)\b/i.test(input.text)) {
@@ -358,7 +408,7 @@ export function inferProgram(input: { focus: string; format: string; text: strin
     domain,
     pattern,
     mono,
-    movements: unique(hits.map((hit) => hit.slug)).slice(0, 3),
+    movements: unique(hits.map((hit) => hit.slug)).slice(0, 8),
     shape,
     format: input.format || "for_time",
   };
@@ -370,14 +420,14 @@ export function tagFromSignal(input: { program: string; focus: string; format: s
 
 export function tagFromDraft(base: ProgramTag, text: string): ProgramTag {
   const hits = scanMovements(text);
-  const movements = unique(hits.map((hit) => hit.slug)).slice(0, 3);
+  const movements = unique(hits.map((hit) => hit.slug)).slice(0, 8);
   const pattern = hits.find((hit) => hit.pattern !== "none")?.pattern ?? base.pattern;
   const elements = unique(hits.map((hit) => hit.element));
   return {
     ...base,
     movements: movements.length ? movements : base.movements,
     pattern,
-    mono: hits.some((hit) => hit.slug === "run") ? "run" : base.mono,
+    mono: movementMono(hits) === "none" ? base.mono : movementMono(hits),
     elements: elements.length ? elements : base.elements,
   };
 }
@@ -467,9 +517,9 @@ function focusFor(candidate: Candidate, bias: string | undefined): string {
 
 function domainLine(candidate: Candidate): string {
   if (candidate.shape === "heavy_only") return "Time domain: a few heavy sets. No metcon clock.";
-  if (candidate.domain === "short") return "Time domain: short, about 4-9 minutes.";
-  if (candidate.domain === "long") return "Time domain: long, about 16-25 minutes.";
-  return "Time domain: medium, about 8-15 minutes.";
+  if (candidate.domain === "short") return "Time domain: short work, about 8-16 minutes total across scored pieces.";
+  if (candidate.domain === "long") return "Time domain: long, about 22-30 minutes.";
+  return "Time domain: medium, about 16-25 minutes.";
 }
 
 function patternLine(pattern: Pattern): string {
@@ -557,7 +607,7 @@ export function planDay(input: {
   }
 
   const chosen = pick(pool, random);
-  const bannedMovements = yesterday?.movements.slice(0, 3) ?? [];
+  const bannedMovements = unique(input.recent.slice(0, 3).flatMap((tag) => tag.movements)).slice(0, 10);
   const bans = [
     chosen.load !== "heavy" ? "a heavy max-out" : "",
     chosen.mono !== "run" ? "running" : "",
