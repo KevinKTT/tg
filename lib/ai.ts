@@ -610,8 +610,6 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
 
   const members = listAthletes();
   const clarify = intent === "clarify";
-  const history = programHistory(input.date);
-  const yesterday = history.recent[0];
   const focus = clarify ? (day.focus && day.focus !== "rest" ? day.focus : "mixed") : intent;
   const picked = clarify ? formatById(day.format) : pickFormat(focus, capabilities(items), []);
   const format: FormatDef = picked ?? {
@@ -634,9 +632,9 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
   const check: ProgramCheck | undefined = clarify
     ? undefined
     : {
-        load: intent === "heavy" && yesterday?.load !== "heavy" ? "heavy" : "moderate",
-        allowRun: !(yesterday && (yesterday.mono === "run" || yesterday.movements.includes("run"))),
-        allowHeavy: yesterday?.load !== "heavy",
+        load: intent === "heavy" ? "heavy" : "moderate",
+        allowRun: true,
+        allowHeavy: true,
       };
   const messages: { role: "system" | "user"; content: string }[] = [
     {
