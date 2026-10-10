@@ -479,10 +479,6 @@ function expand(recipe: Recipe, caps: Set<string>): Candidate[] {
   return candidates;
 }
 
-function isRunDay(tag: ProgramTag | undefined): boolean {
-  return tag?.mono === "run" || Boolean(tag?.movements.includes("run"));
-}
-
 function biasOk(candidate: Candidate, bias: string | undefined): boolean {
   if (!bias || bias === "auto" || bias === "mixed") {
     if (bias === "mixed") return ["couplet", "triplet", "chipper", "ladder"].includes(candidate.shape);
@@ -559,12 +555,7 @@ export function planDay(input: {
   const yesterday = input.recent[0];
   const hard = RECIPES.filter((recipe) => gearOk(recipe, input.caps))
     .flatMap((recipe) => expand(recipe, input.caps))
-    .filter((candidate) => {
-      if (yesterday?.load === "heavy" && candidate.load === "heavy") return false;
-      if (isRunDay(yesterday) && candidate.mono === "run") return false;
-      if (candidate.mono === "run" && !input.caps.has("running")) return false;
-      return true;
-    });
+    .filter((candidate) => candidate.mono !== "run" || input.caps.has("running"));
 
   let pool = hard;
   const filters: ((candidate: Candidate) => boolean)[] = [(candidate) => biasOk(candidate, input.bias)];

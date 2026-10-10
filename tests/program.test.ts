@@ -17,21 +17,19 @@ function tag(partial: Partial<ProgramTag> & Pick<ProgramTag, "load" | "pattern" 
   };
 }
 
-test("planDay never stacks a heavy day", () => {
+test("planDay may stack a heavy day", () => {
   const recent = [tag({ load: "heavy", pattern: "squat", mono: "none", shape: "heavy_only", format: "heavy", movements: ["back_squat"] })];
   for (let index = 0; index < 40; index += 1) {
     const plan = planDay({ caps: gear, recent, week: recent, bias: "heavy", random: () => index / 40 });
-    assert.notEqual(plan.tag.load, "heavy");
-    assert.notEqual(plan.tag.format, "heavy");
+    assert.equal(plan.tag.load, "heavy");
+    assert.equal(plan.focus, "heavy");
   }
 });
 
-test("planDay never stacks a running day", () => {
+test("planDay may stack a running day", () => {
   const recent = [tag({ load: "light", pattern: "none", mono: "run", shape: "intervals", format: "interval", elements: ["M"], movements: ["run"] })];
-  for (let index = 0; index < 40; index += 1) {
-    const plan = planDay({ caps: gear, recent, week: recent, random: () => index / 40 });
-    assert.notEqual(plan.tag.mono, "run");
-  }
+  const plans = Array.from({ length: 40 }, (_, index) => planDay({ caps: gear, recent, week: recent, random: () => index / 40 }));
+  assert.ok(plans.some((plan) => plan.tag.mono === "run"));
 });
 
 test("planDay may repeat yesterday's pattern", () => {
@@ -42,11 +40,11 @@ test("planDay may repeat yesterday's pattern", () => {
   }
 });
 
-test("an illegal heavy bias is overridden", () => {
+test("a heavy bias after a heavy day still programs heavy", () => {
   const recent = [tag({ load: "heavy", pattern: "hinge", mono: "none", shape: "heavy_only", format: "heavy" })];
   const plan = planDay({ caps: gear, recent, week: recent, bias: "heavy", random: () => 0 });
-  assert.notEqual(plan.focus, "heavy");
-  assert.notEqual(plan.tag.load, "heavy");
+  assert.equal(plan.focus, "heavy");
+  assert.equal(plan.tag.load, "heavy");
 });
 
 test("no load gear never programs a heavy day", () => {

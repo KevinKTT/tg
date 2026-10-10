@@ -100,7 +100,7 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
         <p className="kicker">Build the day</p>
         <h2>Program the day</h2>
       </div>
-      <p className="muted">One shared workout. The coach varies the day so heavy days and running days do not stack. Sunday is rest.</p>
+      <p className="muted">One shared workout. Sunday is rest.</p>
       {error ? <p className="error">{error}</p> : null}
       {status ? <p className="muted">{status}</p> : null}
       <label className="row">
