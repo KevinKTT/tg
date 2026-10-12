@@ -182,7 +182,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "One scored couplet for time, about 12-16 minutes. Two movements. No separate strength piece. No running. Rx starts fast but requires broken sets.",
+    brief: "One scored couplet for time, about 15-20 minutes. Two movements. No separate strength piece. No running. Rx starts fast but requires broken sets.",
   },
   {
     shape: "couplet",
@@ -502,10 +502,14 @@ function focusFor(candidate: Candidate, bias: string | undefined): string {
 }
 
 function domainLine(candidate: Candidate): string {
-  if (candidate.shape === "heavy_only") return "Time domain: a few heavy sets. No metcon clock.";
-  if (candidate.domain === "short") return "Time domain: short work, about 8-16 minutes total across scored pieces.";
-  if (candidate.domain === "long") return "Time domain: long, about 22-30 minutes.";
-  return "Time domain: medium, about 16-25 minutes.";
+  if (candidate.shape === "heavy_only") return "Metcon time domain: none. A few heavy sets, no metcon clock.";
+  if (candidate.domain === "short") return "Metcon time domain: short, about 10-16 minutes of scored work.";
+  if (candidate.domain === "long") return "Metcon time domain: long, about 22-30 minutes of scored work.";
+  return "Metcon time domain: medium, about 16-25 minutes of scored work.";
+}
+
+function sessionLine(): string {
+  return "Session: build one complete class of about 45 minutes (40-50 total). Budget roughly 8-12 warm-up, 5-10 workout prep, 22-30 scored work, and 3-7 cool-down; the section estimates must add to 40-50. Er on the side of more work and a harder finish, not a short session.";
 }
 
 function patternLine(pattern: Pattern): string {
@@ -563,6 +567,11 @@ export function planDay(input: {
     const next = pool.filter(filter);
     if (next.length) pool = next;
   }
+  const weekPatterns = input.week.map((tag) => tag.pattern);
+  if (weekPatterns.length) {
+    const fresh = pool.filter((candidate) => !weekPatterns.includes(candidate.pattern));
+    if (fresh.length) pool = fresh;
+  }
   if (!pool.length) {
     pool = [
       {
@@ -582,6 +591,7 @@ export function planDay(input: {
   const format = formatById(chosen.format);
   const brief = [
     chosen.brief,
+    `- ${sessionLine()}`,
     `- ${patternLine(chosen.pattern)}`,
     `- ${monoLine(chosen.mono)}`,
     `- ${loadLine(chosen.load)}`,

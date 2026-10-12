@@ -51,6 +51,13 @@ test("each scheme logs the matching score and never invents a cap", () => {
   assert.equal(visibleCap("5 rounds for time, cap 12", "rounds", "metcon", 720), 720);
 });
 
+test("a part's own scheme wins over the day format", () => {
+  assert.equal(pieceScheme("3 rounds for time", "interval", "metcon")?.scoreType, "time");
+  assert.equal(pieceScheme("5 rounds of 3:00 on / 1:00 off", "interval", "metcon")?.scoreType, "done");
+  assert.equal(pieceScheme("", "interval", "metcon")?.scoreType, "done");
+  assert.equal(pieceScheme("AMRAP 12", "interval", "metcon")?.scoreType, "rounds_reps");
+});
+
 test("a scheme with a count picks the day format", () => {
   assert.equal(formatFromScheme("AMRAP 12"), "amrap");
   assert.equal(formatFromScheme("5 rounds for time"), "rounds");

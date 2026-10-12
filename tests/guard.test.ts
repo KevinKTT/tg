@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guardWorkout, schemeViolations, sessionDurationViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
+import { guardWorkout, reviewWorkout, schemeViolations, scalingFindings, sessionDurationViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
 
 const dumbbells: GuardItem[] = [
   { slug: "db_20lb", name: "20 lb", category: "dumbbell", owned: true, loadValue: 20, unit: "lb" },
@@ -149,4 +149,39 @@ test("rejects short sessions and missing section estimates", () => {
     })[0],
     /workout prep/,
   );
+});
+
+test("flags a loads block that is missing a tier", () => {
+  assert.ok(scalingFindings("Equipment: dumbbells\nLoads:\nRx — 25 lb").some((item) => /performance/i.test(item)));
+  assert.deepEqual(scalingFindings("Equipment: dumbbells\nLoads:\nRx — 25 lb\nPerformance — 20 lb\nLifestyle — 15 lb"), []);
+  assert.ok(scalingFindings("no loads here").length > 0);
+});
+
+test("reviewWorkout returns advisories without throwing", () => {
+  const findings = reviewWorkout({
+    parsed: {
+      summary: "Equipment: dumbbells",
+      warmup: "5 jumping jacks",
+      prep: "5 empty squats",
+      cooldown: "hamstring stretch",
+      warmupDurationMin: 6,
+      prepDurationMin: 4,
+      cooldownDurationMin: 4,
+      parts: [
+        {
+          name: "Metcon",
+          kind: "metcon",
+          format: "AMRAP 12",
+          details: "10 dumbbell deadlifts",
+          equipment: ["dumbbell"],
+          scoreType: "rounds_reps",
+          timeCapMin: null,
+          estimatedDurationMin: 10,
+        },
+      ],
+    },
+    items: dumbbells,
+  });
+  assert.ok(findings.some((item) => /Loads/i.test(item)));
+  assert.ok(findings.some((item) => /minutes/.test(item)));
 });

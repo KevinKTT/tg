@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { isFormatError, modeOrder, resolveProvider, type JsonMode, type ProviderConfig } from "./ai-config";
-import { DAY_TRACK, focusLabel, FOCUSES, type Sex } from "./athletes";
+import { DAY_TRACK, focusLabel, FOCUSES } from "./athletes";
 import {
   getDay,
   listAthletes,
@@ -19,7 +19,8 @@ import {
 import { startOfWeek } from "./dates";
 import { env, loadEnv } from "./env";
 import { formatById, formatFromScheme, pickFormat, pieceScheme, type FormatDef } from "./formats";
-import { capabilities } from "./guard";
+import { capabilities, reviewWorkout, type ProgramCheck } from "./guard";
+import { computeLoadPlan, dayLoadKind, loadPlanPrompt, type LoadPlan } from "./load-plan";
 import { movementMenu, movementMenuPrompt } from "./movement-library";
 import {
   assignmentPrompt,
@@ -152,22 +153,6 @@ function prText(members: AthleteRow[]) {
     .join("\n\n");
 }
 
-export function loadBrief(members: { initials: string; sex: Sex }[]): string {
-  if (members.length === 0) {
-    return "Rx — 25 lb\nPerformance — 20 lb\nLifestyle — 15 lb";
-  }
-  const both = members.some((member) => member.sex === "m") && members.some((member) => member.sex === "f");
-  const named = (weight: (member: { sex: Sex }) => string) =>
-    members.map((member) => `${member.initials} ${weight(member)}`).join(" / ");
-  const lines = both
-    ? `Rx — ${named((member) => (member.sex === "f" ? "20 lb" : "25 lb"))}\nPerformance — ${named((member) => (member.sex === "f" ? "15 lb" : "20 lb"))}\nLifestyle — ${named((member) => (member.sex === "f" ? "10 lb" : "15 lb"))}`
-    : `Rx — ${named(() => "25 lb")}\nPerformance — ${named(() => "20 lb")}\nLifestyle — ${named(() => "15 lb")}`;
-  const rule = both
-    ? "Always name every member on every load line. Male and female are different versions: male gets the heavier owned step, female the next lighter, unless that member's PR says otherwise. If owned gear cannot split, still write both initials. Never write a bare weight. The numbers above are format only."
-    : "Always name every member on every load line, even when the weight matches. Never write a bare weight.";
-  return `${lines}\n${rule}`;
-}
-
 function focusBrief(focus: string) {
   switch (focus) {
     case "strength":
@@ -188,15 +173,15 @@ function focusBrief(focus: string) {
 
 function shapeBrief(focus: string, format: FormatDef) {
   if (format.id === "heavy") {
-    return "Day shape: one 20-25 minute heavy strength piece only. No conditioning piece.";
+    return "Day shape: one 22-28 minute heavy strength piece only. No conditioning piece.";
   }
   if (format.id === "skill_metcon") {
-    return "Day shape: an 8-10 minute skill piece (kind skill) first, then a 12-16 minute metcon (kind metcon).";
+    return "Day shape: an 8-10 minute skill piece (kind skill) first, then a 14-18 minute metcon (kind metcon).";
   }
   if (focus === "strength" || focus === "heavy") {
-    return "Day shape: a 12-18 minute strength piece (kind strength) first, then an 8-12 minute metcon (kind metcon) in today's format.";
+    return "Day shape: a 14-18 minute strength piece (kind strength) first, then a 10-14 minute metcon (kind metcon) in today's format.";
   }
-  return "Day shape: one main piece in today's format.";
+  return "Day shape: one main piece in today's format, sized so the scored work totals 22-30 minutes.";
 }
 
 function systemPrompt(members: AthleteRow[]) {
@@ -205,9 +190,10 @@ function systemPrompt(members: AthleteRow[]) {
 
 PROGRAMMING STANDARD
 - Write a realistic CrossFit class, not a random exercise circuit.
-- The complete session is 40-50 minutes, including warm-up, workout prep, every workout piece, transitions, and cool-down.
-- Give every section an integer estimated duration. Budget 8-12 minutes for warm-up, 5-10 for prep, 18-30 total for workout pieces, and 3-7 for cool-down. The estimates must add to 40-50 minutes. Include transitions in the neighboring section.
-- Normal Rx is challenging but sustainable: moderate sets usually break, sprint pace is difficult to hold, and athletes commonly finish near the cap. Do not train to failure or max out every day.
+- Build one complete class of about 45 minutes, 40-50 total, including warm-up, workout prep, every workout piece, transitions, and cool-down.
+- Give every section an integer estimated duration. Budget 8-12 minutes for warm-up, 5-10 for prep, 22-30 total for scored workout pieces, and 3-7 for cool-down. The estimates must add to 40-50 minutes. Include transitions in the neighboring section.
+- Er toward a longer, harder session: athletes should have real work to do and commonly finish near the cap. Do not return a short workout.
+- Normal Rx is challenging but sustainable: moderate sets usually break and sprint pace is difficult to hold. Do not train to failure or max out every day.
 - Vary movement combinations, rep structures, planes, unilateral work, and workout feel. Do not default to air squats, burpees, push-ups, thrusters, or basic dumbbell work unless selected for today's assignment.
 - Follow the supplied movement library. For its supported equipment, use exact displayed movement names and its matched preparation. Movements using other owned equipment are still allowed.
 
@@ -215,14 +201,15 @@ WHITEBOARD STYLE
 One glance. Movement lines, doses, and loads only. No coaching paragraphs or technique cues.
 
 Name: a fun name tied to the work. Not generic.
-Stimulus: the time domain only. Example: "about 8-12 min".
+Stimulus: the time domain only. Example: "about 45 min".
 
-Lines start with "- ", then reps, then the movement. No cues. No weights on the line.
-Same movement and reps for every scale: one line, no label. Never label a scale that matches Rx. Never write "(Rx) / (Performance) / (Lifestyle)" on one line.
-A scale that changes the movement or reps: the Rx line, then only the scales that differ.
-Loads live in "summary" only. "Equipment:" then the pieces used. Then "Loads:" and one line per scale:
-${loadBrief(members)}
-Heavy-day Rx is 85-95% of that member's PR, or the heaviest owned implement for a male member and the next step down for a female member. Conditioning Rx is 70-80% of that member's PR, or the upper half of owned implements for a male member and one step lighter for a female member. Performance is about 75% of that person's Rx. Lifestyle is about 55%, fewer reps, or the library's easier movement. Never invent a weight or vest poundage. Never write a bare weight. Never Rx the lightest owned implement for the male when a heavier one exists. Write "weighted vest".
+Each scored movement is one line: "- <reps> <movement>". Immediately below it, always write all three versions, Rx first, one per line:
+- Rx: <weight, plus reps if they change>
+- Performance: <weight, plus reps if they change>
+- Lifestyle: <weight, plus reps if they change>
+For a loaded movement each version is the weight (and reps only when they differ). For a bodyweight or gymnastics movement each version is the reps or the easier movement. Never omit a version; if two versions match, write the same value twice. Do not put weights inside the movement line itself.
+Loads also go in "summary": "Equipment:" then the pieces used, then "Loads:" with one line per version, naming every member, e.g. "Rx — KT 25 lb / HT 20 lb".
+Use only the computed loads supplied in the prompt. Never invent a weight or a vest poundage. Never Rx the lightest owned implement when a heavier one exists.
 Owned gear only. Bodyweight is always allowed. If a classic piece needs missing gear, substitute.
 
 Class order: warmup, prep, parts, cooldown.
@@ -241,10 +228,13 @@ function userPrompt(input: {
   members: AthleteRow[];
   assignment: Assignment;
   library: string;
+  loadPlan: LoadPlan;
 }) {
   return `Program one CrossFit workout for ${input.date}. Write it as a whiteboard: short lines, no coaching notes.
 
 ${assignmentPrompt(input.assignment)}
+
+${loadPlanPrompt(input.loadPlan)}
 
 ${input.library}
 
@@ -326,6 +316,22 @@ function programHistory(date: string) {
   };
 }
 
+function checkFor(tag: ProgramTag): ProgramCheck {
+  return {
+    load: tag.load,
+    allowRun: tag.mono === "run",
+    allowHeavy: tag.load === "heavy",
+  };
+}
+
+function planMembers(members: AthleteRow[]) {
+  return members.map((member) => ({ slug: member.slug, initials: member.initials, sex: member.sex }));
+}
+
+function recentMovementIds(recent: ProgramTag[], days = 7): string[] {
+  return [...new Set(recent.slice(0, days).flatMap((tag) => tag.movements))];
+}
+
 function describeSchemaError(error: unknown): string {
   if (error instanceof z.ZodError) {
     const issues = error.issues.map((issue) => {
@@ -346,15 +352,62 @@ async function draftDay(input: {
   focus: string;
   formatId: string;
   program?: ProgramTag;
+  check?: ProgramCheck;
   sourceText: string;
   items: EquipmentRow[];
   messages: { role: "system" | "user"; content: string }[];
   temperature?: number;
   invalid: (error: string) => string;
+  repair: (findings: string[]) => string;
 }) {
   const config = resolveProvider(env);
+  const maxAttempts = 4;
   let lastError = "Could not generate a workout.";
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  let savedTitle: string | null = null;
+
+  const save = (parsed: z.infer<typeof daySchema>) => {
+    const written = parsed.parts.map((part) => `${part.name}\n${part.details}`).join("\n");
+    const nextFormat = clarifyFormat(input.sourceText, input.formatId, parsed.parts);
+    const tag = tagFromDraft(
+      input.program ?? inferProgram({ focus: input.focus, format: nextFormat, text: written, stimulus: parsed.stimulus }),
+      written,
+    );
+    saveGeneratedDay({
+      date: input.date,
+      title: parsed.title,
+      stimulus: parsed.stimulus,
+      source: "programmed",
+      sourceText: input.sourceText,
+      focus: input.focus,
+      format: nextFormat,
+      program: JSON.stringify(tag),
+      snapshot: ownedSnapshot(input.items),
+      track: {
+        summary: parsed.summary,
+        warmup: parsed.warmup,
+        warmupDurationMin: parsed.warmupDurationMin,
+        prep: parsed.prep,
+        prepDurationMin: parsed.prepDurationMin,
+        cooldown: parsed.cooldown,
+        cooldownDurationMin: parsed.cooldownDurationMin,
+        parts: parsed.parts.map((part) => {
+          const scheme = pieceScheme(part.format, nextFormat, part.kind);
+          return {
+            name: part.name,
+            kind: part.kind,
+            format: part.format,
+            details: part.details,
+            timeCapMin: scheme && !scheme.allowCap ? null : part.timeCapMin,
+            estimatedDurationMin: part.estimatedDurationMin,
+            scoreType: scheme?.scoreType ?? part.scoreType,
+            repsPerRound: part.repsPerRound,
+          };
+        }),
+      },
+    });
+  };
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     let content = "";
     try {
       content = await completeWithFallback(input.messages, config, input.temperature);
@@ -364,46 +417,26 @@ async function draftDay(input: {
     }
     try {
       const parsed = daySchema.parse(extractJson(content));
-      const written = parsed.parts.map((part) => `${part.name}\n${part.details}`).join("\n");
-      const nextFormat = clarifyFormat(input.sourceText, input.formatId, parsed.parts);
-      const tag = tagFromDraft(
-        input.program ?? inferProgram({ focus: input.focus, format: nextFormat, text: written, stimulus: parsed.stimulus }),
-        written,
-      );
-      saveGeneratedDay({
-        date: input.date,
-        title: parsed.title,
-        stimulus: parsed.stimulus,
-        source: "programmed",
-        sourceText: input.sourceText,
-        focus: input.focus,
-        format: nextFormat,
-        program: JSON.stringify(tag),
-        snapshot: ownedSnapshot(input.items),
-        track: {
+      save(parsed);
+      savedTitle = parsed.title;
+      const findings = reviewWorkout({
+        parsed: {
           summary: parsed.summary,
           warmup: parsed.warmup,
-          warmupDurationMin: parsed.warmupDurationMin,
           prep: parsed.prep,
-          prepDurationMin: parsed.prepDurationMin,
           cooldown: parsed.cooldown,
+          warmupDurationMin: parsed.warmupDurationMin,
+          prepDurationMin: parsed.prepDurationMin,
           cooldownDurationMin: parsed.cooldownDurationMin,
-          parts: parsed.parts.map((part) => {
-            const scheme = pieceScheme(part.format, nextFormat, part.kind);
-            return {
-              name: part.name,
-              kind: part.kind,
-              format: part.format,
-              details: part.details,
-              timeCapMin: scheme && !scheme.allowCap ? null : part.timeCapMin,
-              estimatedDurationMin: part.estimatedDurationMin,
-              scoreType: scheme?.scoreType ?? part.scoreType,
-              repsPerRound: part.repsPerRound,
-            };
-          }),
+          parts: parsed.parts.map((part) => ({ ...part, kind: part.kind })),
         },
+        items: input.items,
+        check: input.check,
       });
-      return { title: parsed.title };
+      if (!findings.length || attempt === maxAttempts - 1) {
+        return { title: parsed.title };
+      }
+      input.messages.push({ role: "user", content: input.repair(findings) });
     } catch (error) {
       const readable = describeSchemaError(error);
       lastError =
@@ -413,6 +446,7 @@ async function draftDay(input: {
       input.messages.push({ role: "user", content: input.invalid(readable) });
     }
   }
+  if (savedTitle) return { title: savedTitle };
   throw new Error(lastError);
 }
 
@@ -480,6 +514,7 @@ function rewritePrompt(input: {
   items: EquipmentRow[];
   members: AthleteRow[];
   library: string;
+  loadPlan: LoadPlan;
   note?: string;
 }) {
   const clarify = input.intent === "clarify";
@@ -497,6 +532,8 @@ CURRENT WORKOUT:
 ${input.source}
 
 ${formatBlock}
+
+${loadPlanPrompt(input.loadPlan)}
 
 ${input.library}
 
@@ -525,22 +562,33 @@ export async function generateDay(input: { date: string; focus?: string }) {
     items,
     pattern: assignment.tag.pattern,
     mono: assignment.tag.mono,
+    recentIds: recentMovementIds(history.recent),
   });
   const library = movementMenuPrompt(menu);
+  const loadPlan = computeLoadPlan({
+    items,
+    members: planMembers(members),
+    prs: listPrs(),
+    load: assignment.tag.load,
+    movements: [],
+  });
   const messages: { role: "system" | "user"; content: string }[] = [
     { role: "system", content: systemPrompt(members) },
-    { role: "user", content: userPrompt({ date: input.date, items, members, assignment, library }) },
+    { role: "user", content: userPrompt({ date: input.date, items, members, assignment, library, loadPlan }) },
   ];
   return draftDay({
     date: input.date,
     focus: assignment.focus,
     formatId: assignment.tag.format,
     program: assignment.tag,
+    check: checkFor(assignment.tag),
     sourceText: "",
     items,
     messages,
     invalid: (error) =>
       `That response was invalid (${error}). Return one JSON object for a complete 40-50 minute session. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. One movement per line. No paragraphs.`,
+    repair: (findings) =>
+      `The draft is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. Return the full corrected JSON object.`,
   });
 }
 
@@ -576,22 +624,32 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
       mono: sourceProgram.mono,
     }),
   );
+  const loadPlan = computeLoadPlan({
+    items,
+    members: planMembers(members),
+    prs: listPrs(),
+    load: dayLoadKind(focus, day.format),
+    movements: sourceProgram.movements.map((slug) => ({ slug, name: slug.replace(/_/g, " ") })),
+  });
   const messages: { role: "system" | "user"; content: string }[] = [
     {
       role: "system",
       content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. You may keep this workout's movements. Follow the rewrite instructions over the naming rules. On a clarify, the coach note wins over the current scheme.`,
     },
-    { role: "user", content: rewritePrompt({ date: input.date, intent, source, focus, format, items, members, library, note }) },
+    { role: "user", content: rewritePrompt({ date: input.date, intent, source, focus, format, items, members, library, loadPlan, note }) },
   ];
   return draftDay({
     date: input.date,
     focus,
     formatId: clarify ? day.format : format.id,
+    check: clarify ? undefined : { load: intent === "heavy" ? "heavy" : "moderate", allowRun: true, allowHeavy: true },
     sourceText: `rewrite:${intent}`,
     items,
     messages,
     temperature: clarify ? 0.3 : 0.6,
     invalid: (error) =>
       `That response was invalid (${error}). Return one JSON object. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. ${rewriteTask(intent, note)}`,
+    repair: (findings) =>
+      `The rewrite is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. ${rewriteTask(intent, note)} Return the full corrected JSON object.`,
   });
 }

@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { editDay, editPart, removeDay, removeScore, saveScore } from "@/lib/actions";
 import { DAY_TRACK, focusLabel, type Sex } from "@/lib/athletes";
-import { parseBoard, parseSummary, type BoardLine } from "@/lib/board";
+import { parseBoard, parseSummary, type BoardLine, type ScaleLine } from "@/lib/board";
 import { clockWorkout } from "@/lib/clock";
 import { formatLabel, pieceScheme, visibleCap } from "@/lib/formats";
+import { computeLoadPlan, dayLoadKind, ensureLoadLines, type MovementScales } from "@/lib/load-plan";
+import { scanMovements } from "@/lib/program";
 import { findPercents } from "@/lib/resolve";
 import { formatLoad, formatTime, higherIsBetter } from "@/lib/scoring";
 import { closestLoad, formatPercentLoad, percentOf, type Plate } from "@/lib/scaling";
@@ -38,10 +40,24 @@ export function WorkoutCard({
   movements: MovementRow[];
   equipment: EquipmentRow[];
 }) {
-  const { athlete, current, unit } = useAthlete();
+  const { athlete, current, unit, members } = useAthlete();
   const { register } = useClock();
   const person = current;
   const track = day.tracks.find((item) => item.track === DAY_TRACK) ?? day.tracks[0];
+  const plan = useMemo(() => {
+    if (day.status === "rest" || !track) return null;
+    const text = track.parts.map((part) => part.body).join("\n");
+    const detected = scanMovements(text).map((hit) => ({ slug: hit.slug, name: hit.slug.replace(/_/g, " ") }));
+    return computeLoadPlan({
+      items: equipment,
+      members,
+      prs,
+      load: dayLoadKind(day.focus, day.format),
+      movements: detected,
+      unit,
+      representative: person?.slug,
+    });
+  }, [day, track, equipment, members, prs, unit, person]);
   const spec = useMemo(() => {
     if (!athlete || day.status === "rest" || !track) return null;
     return clockWorkout(
@@ -78,6 +94,8 @@ export function WorkoutCard({
   const hits = findPercents(text);
   const kicker = [formatLabel(day.format), day.focus ? focusLabel(day.focus) : day.source].filter(Boolean).join(" · ");
   const summary = parseSummary(track.summary);
+  const loadLines = ensureLoadLines(summary.loads, plan?.lines ?? []);
+  const scaleMap = new Map<string, ScaleLine[]>((plan?.byMovement ?? []).map((movement: MovementScales) => [movement.slug, movement.scales]));
   const heroes = track.parts.filter((part) => HERO.has(part.kind));
   const lastHero = heroes[heroes.length - 1];
   const estimatedTotal = track.parts.reduce((total, part) => total + (part.estimatedDurationMin ?? 0), 0);
@@ -98,11 +116,12 @@ export function WorkoutCard({
             date={day.date}
             dayFormat={day.format}
             showName={heroes.length > 1}
-            loads={part.id === lastHero?.id ? summary.loads : undefined}
+            loads={part.id === lastHero?.id ? loadLines : undefined}
             initials={person.initials}
+            fallbackScales={scaleMap}
           />
         ))}
-        {!lastHero ? <Loads loads={summary.loads} initials={person.initials} /> : null}
+        {!lastHero ? <Loads loads={loadLines} initials={person.initials} /> : null}
         {hits.length ? (
           <LoadCallout hits={hits} athlete={person.slug} sex={person.sex} unit={unit} prs={prs} movements={movements} equipment={equipment} />
         ) : null}
@@ -186,6 +205,7 @@ function Piece({
   showName,
   loads,
   initials,
+  fallbackScales,
 }: {
   part: PartView;
   date: string;
@@ -193,9 +213,18 @@ function Piece({
   showName: boolean;
   loads?: { label: string; value: string }[];
   initials?: string;
+  fallbackScales: Map<string, ScaleLine[]>;
 }) {
   const hero = HERO.has(part.kind);
-  const lines = parseBoard(part.body);
+  const lines = parseBoard(part.body).map((line) => {
+    if (line.type !== "move") return line;
+    const slug = scanMovements(line.name)[0]?.slug;
+    const fallback = slug ? fallbackScales.get(slug) : undefined;
+    if (!fallback?.length) return line;
+    const labels = new Set(line.scales.map((scale) => scale.label.toLowerCase()));
+    const missing = fallback.filter((scale) => !labels.has(scale.label.toLowerCase()));
+    return missing.length ? { ...line, scales: [...line.scales, ...missing] } : line;
+  });
   const label = KIND[part.kind] || part.kind;
   const [done, setDone] = useState<number[]>([]);
 

@@ -91,5 +91,15 @@ test("assignment prompt is tags, not a workout", () => {
   const prompt = assignmentPrompt(plan);
   assert.match(prompt, /back squat/);
   assert.match(prompt, /tags only/);
+  assert.match(prompt, /45 minutes/);
   assert.doesNotMatch(prompt, /21-15-9|Warm-up|5x5/);
+});
+
+test("planDay prefers patterns that are not already in the week", () => {
+  const week = [
+    tag({ load: "moderate", pattern: "squat", mono: "none", shape: "couplet" }),
+    tag({ load: "moderate", pattern: "squat", mono: "none", shape: "triplet" }),
+  ];
+  const plans = Array.from({ length: 30 }, (_, index) => planDay({ caps: gear, recent: week, week, random: () => index / 30 }));
+  assert.ok(plans.some((plan) => plan.tag.pattern !== "squat"));
 });

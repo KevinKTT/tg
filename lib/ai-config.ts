@@ -16,7 +16,7 @@ export type EnvReader = (name: string) => string;
 
 export const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 export const DEFAULT_MODEL = "gpt-4o-mini";
-export const DEFAULT_MAX_OUTPUT_TOKENS = 6000;
+export const DEFAULT_MAX_OUTPUT_TOKENS = 8000;
 export const FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1";
 
 function parseJsonMode(value: string): JsonMode {
