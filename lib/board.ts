@@ -30,7 +30,7 @@ export type BoardSummary = {
 const SCALE = "Rx|Performance|Lifestyle";
 const SCALE_LINE = new RegExp(`^(${SCALE})\\s*[:—–-]\\s*(.+)$`, "i");
 const SLASH_PART = new RegExp(`^(.+?)\\s*\\((${SCALE})\\)\\s*$`, "i");
-const MINUTE = /^Minute\s+(\d+)\s*:\s*(.+)$/i;
+const LABEL = /^(Minute|Station|Round)\s+(\d+)\s*[:.)-]?\s*(.+)$/i;
 const REPS =
   /^(\d+\s*[x×]\s*\d+|\d+(?:\s*[-/]\s*\d+)+|\d+(?:\.\d+)?\s*(?:sec|secs|seconds?|min|mins|minutes?|cal|cals|calories?)(?:\s*\/\s*[a-z]+|\s+each(?:\s+side)?)?|\d+(?:\.\d+)?\s*(?:km|mi|ft|yd|m)\b|\d+)\s+(.+)$/i;
 
@@ -132,23 +132,23 @@ export function parseBoard(body: string): BoardLine[] {
       continue;
     }
 
-    const minute = line.match(MINUTE);
-    const payload = stripCue(minute ? minute[2] : line);
+    const label = line.match(LABEL);
+    const payload = stripCue(label ? label[3] : line);
     if (!payload) continue;
 
     const slash = parseSlash(payload);
     if (slash) {
-      lines.push(fromScales(slash, minute?.[1]));
+      lines.push(fromScales(slash, label?.[2]));
       continue;
     }
 
-    if (!minute && isNote(payload)) {
+    if (!label && isNote(payload)) {
       lines.push({ type: "note", text: payload });
       continue;
     }
 
-    if (minute) {
-      lines.push({ type: "move", reps: minute[1], name: payload, scales: [] });
+    if (label) {
+      lines.push({ type: "move", reps: label[2], name: payload, scales: [] });
       continue;
     }
 

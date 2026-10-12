@@ -63,6 +63,20 @@ test("keeps distance and per-side units with the dose", () => {
   assert.equal(pose.name, "Sphinx Pose");
 });
 
+test("treats Station and Round prefixes as labels", () => {
+  const [station] = parseBoard("- Station 1: 20 Jump Rope Bell");
+  assert.equal(station.type, "move");
+  if (station.type !== "move") return;
+  assert.equal(station.reps, "1");
+  assert.equal(station.name, "20 Jump Rope Bell");
+
+  const [round] = parseBoard("- Round 2: 15 burpees");
+  assert.equal(round.type, "move");
+  if (round.type !== "move") return;
+  assert.equal(round.reps, "2");
+  assert.equal(round.name, "15 burpees");
+});
+
 test("treats rest instructions as notes", () => {
   const [line] = parseBoard("- Rest 1 min between rounds. Score total time including rest.");
   assert.deepEqual(line, { type: "note", text: "Rest 1 min between rounds. Score total time including rest." });

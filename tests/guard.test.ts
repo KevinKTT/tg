@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guardWorkout, reviewWorkout, schemeViolations, scalingFindings, sessionDurationViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
+import { coherenceFindings, guardWorkout, reviewWorkout, schemeViolations, scalingFindings, sessionDurationViolations, type GuardItem, type ProgramCheck } from "../lib/guard";
 
 const dumbbells: GuardItem[] = [
   { slug: "db_20lb", name: "20 lb", category: "dumbbell", owned: true, loadValue: 20, unit: "lb" },
@@ -155,6 +155,30 @@ test("flags a loads block that is missing a tier", () => {
   assert.ok(scalingFindings("Equipment: dumbbells\nLoads:\nRx — 25 lb").some((item) => /performance/i.test(item)));
   assert.deepEqual(scalingFindings("Equipment: dumbbells\nLoads:\nRx — 25 lb\nPerformance — 20 lb\nLifestyle — 15 lb"), []);
   assert.ok(scalingFindings("no loads here").length > 0);
+});
+
+test("coherence flags an incoherent interval and a mismatched score", () => {
+  const problems = coherenceFindings([
+    { name: "Intervals", kind: "metcon", format: "4 rounds: 2:00 on / 1:00 off", details: "20 jump rope\n40 ft carry", scoreType: "done", timeCapMin: null },
+  ]);
+  assert.ok(problems.some((item) => /fixed reps inside a timed interval/i.test(item)));
+  const mismatch = coherenceFindings([
+    { name: "Metcon", kind: "metcon", format: "AMRAP 12", details: "10 burpees", scoreType: "time", timeCapMin: null },
+  ]);
+  assert.ok(mismatch.some((item) => /AMRAP/i.test(item)));
+});
+
+test("coherence flags two metcons and load-scored strength without heavy gear", () => {
+  const problems = coherenceFindings(
+    [
+      { name: "A", kind: "metcon", format: "AMRAP 10", details: "x", scoreType: "rounds_reps", timeCapMin: null },
+      { name: "B", kind: "metcon", format: "AMRAP 10", details: "x", scoreType: "rounds_reps", timeCapMin: null },
+      { name: "Lift", kind: "strength", format: "5x5", details: "press", scoreType: "load", timeCapMin: null },
+    ],
+    new Set(["bodyweight"]),
+  );
+  assert.ok(problems.some((item) => /more than one scored metcon/i.test(item)));
+  assert.ok(problems.some((item) => /no heavy implement/i.test(item)));
 });
 
 test("reviewWorkout returns advisories without throwing", () => {

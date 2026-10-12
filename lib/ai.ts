@@ -173,15 +173,15 @@ function focusBrief(focus: string) {
 
 function shapeBrief(focus: string, format: FormatDef) {
   if (format.id === "heavy") {
-    return "Day shape: one 22-28 minute heavy strength piece only. No conditioning piece.";
+    return "Day shape: one 25-35 minute heavy strength piece only. No conditioning piece.";
   }
   if (format.id === "skill_metcon") {
-    return "Day shape: an 8-10 minute skill piece (kind skill) first, then a 14-18 minute metcon (kind metcon).";
+    return "Day shape: an 8-10 minute skill piece (kind skill) first, then an 18-25 minute metcon (kind metcon).";
   }
   if (focus === "strength" || focus === "heavy") {
-    return "Day shape: a 14-18 minute strength piece (kind strength) first, then a 10-14 minute metcon (kind metcon) in today's format.";
+    return "Day shape: a 14-18 minute strength piece (kind strength) first, then a 12-16 minute metcon (kind metcon) in today's format.";
   }
-  return "Day shape: one main piece in today's format, sized so the scored work totals 22-30 minutes.";
+  return "Day shape: one main piece in today's format, sized so the scored work totals 25-40 minutes.";
 }
 
 function systemPrompt(members: AthleteRow[]) {
@@ -190,33 +190,50 @@ function systemPrompt(members: AthleteRow[]) {
 
 PROGRAMMING STANDARD
 - Write a realistic CrossFit class, not a random exercise circuit.
-- Build one complete class of about 45 minutes, 40-50 total, including warm-up, workout prep, every workout piece, transitions, and cool-down.
-- Give every section an integer estimated duration. Budget 8-12 minutes for warm-up, 5-10 for prep, 22-30 total for scored workout pieces, and 3-7 for cool-down. The estimates must add to 40-50 minutes. Include transitions in the neighboring section.
-- Er toward a longer, harder session: athletes should have real work to do and commonly finish near the cap. Do not return a short workout.
+- Build one complete class of 45-60 minutes (about 50), including warm-up, workout prep, every workout piece, transitions, and cool-down.
+- Give every section an integer estimated duration. Budget 8-12 minutes for warm-up, 5-10 for prep, 25-40 total for scored workout pieces, and 3-7 for cool-down. The estimates must add to 45-60 minutes. A longer session is better than a short one.
+- Er toward more work: athletes should have real work to do and commonly finish near the cap.
 - Normal Rx is challenging but sustainable: moderate sets usually break and sprint pace is difficult to hold. Do not train to failure or max out every day.
 - Vary movement combinations, rep structures, planes, unilateral work, and workout feel. Do not default to air squats, burpees, push-ups, thrusters, or basic dumbbell work unless selected for today's assignment.
 - Follow the supplied movement library. For its supported equipment, use exact displayed movement names and its matched preparation. Movements using other owned equipment are still allowed.
+
+FORMAT PLAYBOOK (write each scored piece as one clear scheme a human can read and run)
+- For Time: fixed work to finish as fast as possible. "5 rounds for time: 12 X, 9 Y, 6 Z" or "21-15-9 X / Y". Score: time.
+- AMRAP: as many rounds and reps as possible in a fixed window. "AMRAP 15: 10 X, 15 Y, 20 Z". Score: rounds + reps.
+- EMOM: a set dose at the top of each minute. "EMOM 12: Min 1: 10 X; Min 2: 12 Y; Min 3: rest". Some minutes may be max reps. Score: done (a checkmark).
+- Intervals: repeated work and rest where every work window states its task. Use one repeated effort, "8 rounds: 30 sec max single-unders / 30 sec rest", or a rotation where each window is an AMRAP, "4 rounds: 2:00 AMRAP / 1:00 rest" then list the station tasks. Never list fixed reps for a timed window unless the window is an AMRAP. Never say "rotate stations" without an AMRAP inside each window. Score: done, or reps for a max-effort window.
+- Chipper: once through, in order. "For time: 50 X, 40 Y, 30 Z, 20 A, 10 B". Score: time.
+- Ladder: ascending or descending reps. "For time: 1-2-3-4-5 X and Y". Score: time.
+- Strength: rep work with owned load, e.g. "4x8 dumbbell floor press". Only use "build to a heavy 3" or a max when a barbell or a heavy implement is owned; otherwise keep it rep-based. Score: load only for a true max, otherwise done.
+- Benchmark: a named classic, Rx preserved. Score: time or rounds + reps.
+- Calories (only with a rower or bike): "1:00 max cal row". Score: reps (calories).
 
 WHITEBOARD STYLE
 One glance. Movement lines, doses, and loads only. No coaching paragraphs or technique cues.
 
 Name: a fun name tied to the work. Not generic.
-Stimulus: the time domain only. Example: "about 45 min".
+Stimulus: the time domain only. Example: "about 50 min".
 
 Each scored movement is one line: "- <reps> <movement>". Immediately below it, always write all three versions, Rx first, one per line:
 - Rx: <weight, plus reps if they change>
 - Performance: <weight, plus reps if they change>
 - Lifestyle: <weight, plus reps if they change>
 For a loaded movement each version is the weight (and reps only when they differ). For a bodyweight or gymnastics movement each version is the reps or the easier movement. Never omit a version; if two versions match, write the same value twice. Do not put weights inside the movement line itself.
-Loads also go in "summary": "Equipment:" then the pieces used, then "Loads:" with one line per version, naming every member, e.g. "Rx — KT 25 lb / HT 20 lb".
+When a movement uses an external load, also put the three versions in "summary": "Equipment:" then the pieces used, then "Loads:" with one line per version, naming every member, e.g. "Rx — KT 25 lb / HT 20 lb". On a bodyweight or jump-rope-only day, omit the Loads block.
 Use only the computed loads supplied in the prompt. Never invent a weight or a vest poundage. Never Rx the lightest owned implement when a heavier one exists.
 Owned gear only. Bodyweight is always allowed. If a classic piece needs missing gear, substitute.
 
+COHERENCE
+- Title the day after its main piece.
+- Write exactly the scored pieces the assignment lists. If it says one scored piece, return one; do not add a strength piece or a second metcon to a conditioning day.
+- The scheme and details must agree: a timed piece says what to do in the time; an EMOM lists the reps per minute; an AMRAP says "as many rounds and reps as possible".
+- Warm-up, prep, and cool-down never carry a scheme, a clock, or scale versions.
+
 Class order: warmup, prep, parts, cooldown.
-Warm-up is 6-8 lines: one general raise, 1-2 activation drills, and 2-3 dynamic mobility drills, with useful doses. Prep is 3-5 lines that rehearse and ramp the exact workout movements. Cool-down is 3-5 matched mobility/stretch/breathing lines. Never put the workout's scheme, AMRAP, EMOM, round count, or cap in these sections.
+Warm-up is 6-8 lines: one general raise, 1-2 activation drills, and 2-3 dynamic mobility drills, with useful doses. Prep is 3-5 lines that rehearse and ramp the exact workout movements. Cool-down is 3-5 matched mobility/stretch/breathing lines.
 Each scored part "format" is the full scheme with its number: "5 rounds for time", "AMRAP 12", "EMOM 12", "21-15-9". The label alone is invalid. Do not restate the scheme in details.
-EMOM and intervals are scoreType done with timeCapMin null. AMRAP is rounds_reps, no cap. For time is time. A cap only if the scheme says cap. Heavy is load. Skill is none.
-Follow the assignment. Do not add a piece it does not ask for. Do not reuse a banned movement.
+EMOM and intervals are scoreType done with timeCapMin null (reps for a max-effort window). AMRAP is rounds_reps, no cap. For time is time. A cap only if the scheme says cap. Strength is load only for a true max, otherwise done. Skill is none.
+Do not reuse a banned movement.
 
 Return one JSON object with title, stimulus, summary, warmup, warmupDurationMin, prep, prepDurationMin, parts, cooldown, and cooldownDurationMin.
 Each part has name, kind (strength, metcon, or skill), format, details, timeCapMin, estimatedDurationMin, scoreType, repsPerRound, and equipment.`;
@@ -363,7 +380,7 @@ async function draftDay(input: {
   const config = resolveProvider(env);
   const maxAttempts = 4;
   let lastError = "Could not generate a workout.";
-  let savedTitle: string | null = null;
+  let best: { parsed: z.infer<typeof daySchema>; score: number } | null = null;
 
   const save = (parsed: z.infer<typeof daySchema>) => {
     const written = parsed.parts.map((part) => `${part.name}\n${part.details}`).join("\n");
@@ -417,8 +434,6 @@ async function draftDay(input: {
     }
     try {
       const parsed = daySchema.parse(extractJson(content));
-      save(parsed);
-      savedTitle = parsed.title;
       const findings = reviewWorkout({
         parsed: {
           summary: parsed.summary,
@@ -433,9 +448,19 @@ async function draftDay(input: {
         items: input.items,
         check: input.check,
       });
-      if (!findings.length || attempt === maxAttempts - 1) {
+      if (!findings.length) {
+        save(parsed);
         return { title: parsed.title };
       }
+      const total =
+        parsed.warmupDurationMin +
+        parsed.prepDurationMin +
+        parsed.cooldownDurationMin +
+        parsed.parts.reduce((sum, part) => sum + part.estimatedDurationMin, 0);
+      const inRange = total >= 45 && total <= 60;
+      const score = (inRange ? 0 : 1000) + findings.length;
+      if (!best || score < best.score) best = { parsed, score };
+      if (attempt === maxAttempts - 1) break;
       input.messages.push({ role: "user", content: input.repair(findings) });
     } catch (error) {
       const readable = describeSchemaError(error);
@@ -446,7 +471,10 @@ async function draftDay(input: {
       input.messages.push({ role: "user", content: input.invalid(readable) });
     }
   }
-  if (savedTitle) return { title: savedTitle };
+  if (best) {
+    save(best.parsed);
+    return { title: best.parsed.title };
+  }
   throw new Error(lastError);
 }
 
@@ -565,13 +593,9 @@ export async function generateDay(input: { date: string; focus?: string }) {
     recentIds: recentMovementIds(history.recent),
   });
   const library = movementMenuPrompt(menu);
-  const loadPlan = computeLoadPlan({
-    items,
-    members: planMembers(members),
-    prs: listPrs(),
-    load: assignment.tag.load,
-    movements: [],
-  });
+  const loadPlan = assignment.tag.elements.includes("W")
+    ? computeLoadPlan({ items, members: planMembers(members), prs: listPrs(), load: assignment.tag.load, movements: [] })
+    : { lines: [], byMovement: [], hasLoads: false };
   const messages: { role: "system" | "user"; content: string }[] = [
     { role: "system", content: systemPrompt(members) },
     { role: "user", content: userPrompt({ date: input.date, items, members, assignment, library, loadPlan }) },
@@ -586,9 +610,9 @@ export async function generateDay(input: { date: string; focus?: string }) {
     items,
     messages,
     invalid: (error) =>
-      `That response was invalid (${error}). Return one JSON object for a complete 40-50 minute session. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. One movement per line. No paragraphs.`,
+      `That response was invalid (${error}). Return one JSON object for a complete 45-60 minute session. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. One movement per line. No paragraphs.`,
     repair: (findings) =>
-      `The draft is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. Return the full corrected JSON object.`,
+      `The draft is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. The section estimates must add to 45-60 minutes and the scored work must be 24-40 minutes. Return the full corrected JSON object.`,
   });
 }
 
@@ -624,13 +648,15 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
       mono: sourceProgram.mono,
     }),
   );
-  const loadPlan = computeLoadPlan({
-    items,
-    members: planMembers(members),
-    prs: listPrs(),
-    load: dayLoadKind(focus, day.format),
-    movements: sourceProgram.movements.map((slug) => ({ slug, name: slug.replace(/_/g, " ") })),
-  });
+  const loadPlan = sourceProgram.elements.includes("W")
+    ? computeLoadPlan({
+        items,
+        members: planMembers(members),
+        prs: listPrs(),
+        load: dayLoadKind(focus, day.format),
+        movements: sourceProgram.movements.map((slug) => ({ slug, name: slug.replace(/_/g, " ") })),
+      })
+    : { lines: [], byMovement: [], hasLoads: false };
   const messages: { role: "system" | "user"; content: string }[] = [
     {
       role: "system",
@@ -650,6 +676,6 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
     invalid: (error) =>
       `That response was invalid (${error}). Return one JSON object. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. ${rewriteTask(intent, note)}`,
     repair: (findings) =>
-      `The rewrite is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. ${rewriteTask(intent, note)} Return the full corrected JSON object.`,
+      `The rewrite is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. The section estimates must add to 45-60 minutes and the scored work must be 24-40 minutes. ${rewriteTask(intent, note)} Return the full corrected JSON object.`,
   });
 }

@@ -103,8 +103,9 @@ export type PieceScheme = {
 
 const EMOM_TEXT = /\be\d*\s*mom\b|\bemom\b|every minute/i;
 const AMRAP_TEXT = /\bamrap\b/i;
-const INTERVAL_TEXT = /\bon\b\s*\/\s*.+\boff\b|\bintervals?\b|\btabata\b/i;
-const MAX_REPS = /\bmax(?:imum)?\s+reps?\b/i;
+const INTERVAL_TEXT = /\bon\b\s*\/\s*.+\boff\b|\bwork\b\s*\/\s*.+\brest\b|\bintervals?\b|\btabata\b/i;
+const MAX_EFFORT = /\bmax(?:imum)?\s+(?:reps?|cal(?:ories)?)\b/i;
+const MAX_STRENGTH = /\b(build to|heavy|1\s?rm|one[- ]rep max|max|@\s*\d+\s*%|\d+\s*%)/i;
 const CAP_TEXT = /\bcap\b/i;
 const TIMED_DAYS = new Set(["for_time", "rounds", "chipper", "ladder", "benchmark", "skill_metcon"]);
 
@@ -121,21 +122,22 @@ export function pieceScheme(format: string, dayFormat: string, kind: string): Pi
     return { scoreType: "rounds_reps", allowCap: false };
   }
   if (INTERVAL_TEXT.test(own)) {
-    return { scoreType: MAX_REPS.test(own) ? "reps" : "done", allowCap: false };
+    return { scoreType: MAX_EFFORT.test(own) ? "reps" : "done", allowCap: false };
   }
   if (kind === "strength" && (format.trim() || day === "heavy")) {
-    return { scoreType: "load", allowCap: false };
+    const load = day === "heavy" || MAX_STRENGTH.test(own);
+    return { scoreType: load ? "load" : "done", allowCap: false };
   }
   if (day === "heavy" && kind !== "metcon") {
     return { scoreType: "load", allowCap: false };
   }
-  if (/\bfor time\b|\bchipper\b|\b\d+\s*rounds?\b/i.test(own)) {
+  if (/\bfor time\b|\bchipper\b/i.test(own)) {
     return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
   }
   if (kind === "metcon") {
     if (day === "emom") return { scoreType: "done", allowCap: false };
     if (day === "amrap") return { scoreType: "rounds_reps", allowCap: false };
-    if (day === "interval") return { scoreType: "done", allowCap: false };
+    if (day === "interval") return { scoreType: MAX_EFFORT.test(own) ? "reps" : "done", allowCap: false };
     if (format.trim() || TIMED_DAYS.has(day)) return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
   }
   return null;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assignmentPrompt, inferProgram, planDay, tagFromDraft, type ProgramTag } from "../lib/program";
 
-const gear = new Set(["dumbbell", "kettlebell", "running", "jump_rope", "barbell", "plates"]);
+const gear = new Set(["dumbbell", "kettlebell", "running", "jump_rope", "barbell", "plates", "heavier_load"]);
 
 function tag(partial: Partial<ProgramTag> & Pick<ProgramTag, "load" | "pattern" | "mono" | "shape">): ProgramTag {
   return {
@@ -57,6 +57,15 @@ test("no load gear never programs a heavy day", () => {
   }
 });
 
+test("light dumbbells never program a load-scored heavy day", () => {
+  const caps = new Set(["bodyweight", "dumbbell", "jump_rope"]);
+  for (let index = 0; index < 30; index += 1) {
+    const plan = planDay({ caps, recent: [], week: [], bias: "heavy", random: () => index / 30 });
+    assert.notEqual(plan.tag.load, "heavy");
+    assert.notEqual(plan.tag.format, "heavy");
+  }
+});
+
 test("inferProgram reads a run and a squat without needing the whiteboard later", () => {
   const inferred = inferProgram({
     focus: "mixed",
@@ -91,7 +100,7 @@ test("assignment prompt is tags, not a workout", () => {
   const prompt = assignmentPrompt(plan);
   assert.match(prompt, /back squat/);
   assert.match(prompt, /tags only/);
-  assert.match(prompt, /45 minutes/);
+  assert.match(prompt, /45-60 minutes/);
   assert.doesNotMatch(prompt, /21-15-9|Warm-up|5x5/);
 });
 

@@ -74,7 +74,10 @@ export function capabilities(items: GuardItem[]): Set<string> {
     if (item.slug.startsWith("slam_ball")) caps.add("slam_ball");
     if (item.slug.startsWith("box_")) caps.add("box");
     if (item.category === "plates") caps.add("plates");
+    const pounds = item.loadValue == null ? 0 : item.unit === "kg" ? item.loadValue * 2.2046226218 : item.loadValue;
+    if ((item.category === "dumbbell" || item.category === "kettlebell") && pounds >= 35) caps.add("heavier_load");
   }
+  if (caps.has("barbell")) caps.add("heavier_load");
   return caps;
 }
 
@@ -131,6 +134,7 @@ export type SchemePart = {
   name: string;
   kind: string;
   format: string;
+  details?: string;
   scoreType: string;
   timeCapMin: number | null;
 };
@@ -203,15 +207,16 @@ export function sessionDurationViolations(input: {
     problems.push("cool-down estimate must be 3-7 minutes");
   }
   const work = input.parts.reduce((sum, part) => sum + (part.estimatedDurationMin ?? 0), 0);
-  if (work < 18 || work > 30) problems.push("workout pieces must total 18-30 minutes");
+  if (work < 24 || work > 40) problems.push("workout pieces must total 24-40 minutes");
   const total = sections.reduce((sum, section) => sum + (section.value ?? 0), 0);
-  if (total < 40 || total > 50) {
-    problems.push(`estimated session duration is ${total} minutes; make the complete session 40-50 minutes, centered on about 45`);
+  if (total < 45 || total > 60) {
+    problems.push(`estimated session duration is ${total} minutes; make the complete session 45-60 minutes, centered on about 50`);
   }
   return problems;
 }
 
-export function scalingFindings(summary: string): string[] {
+export function scalingFindings(summary: string, usesLoad = true): string[] {
+  if (!usesLoad) return [];
   const block = summary.match(/Loads:\s*([\s\S]*)/i)?.[1] ?? "";
   if (!block.trim()) {
     return ["the summary has no Loads: block; add one line each for Rx, Performance, and Lifestyle"];
@@ -219,6 +224,13 @@ export function scalingFindings(summary: string): string[] {
   const lower = block.toLowerCase();
   const missing = (["rx", "performance", "lifestyle"] as const).filter((tier) => !new RegExp(`\\b${tier}\\b`, "i").test(lower));
   return missing.length ? [`the Loads: block is missing ${missing.join(", ")}`] : [];
+}
+
+const LOAD_WORD = /\b(dumbbells?|kettlebells?|barbells?|weight(?:ed)?\s+vests?|wall\s?balls?|medicine\s+balls?|med\s?balls?|sandbags?|plates?|farmers?|goblet|thrusters?|snatches?|cleans?|deadlifts?|presses?|jerks?)\b/i;
+
+export function usesExternalLoad(input: { summary: string; parts: { name: string; format: string; details: string; equipment: string[] }[] }): boolean {
+  const text = [input.summary, ...input.parts.map((part) => `${part.name} ${part.format} ${part.details} ${part.equipment.join(" ")}`)].join("\n");
+  return LOAD_WORD.test(text);
 }
 
 export type ReviewPart = {
@@ -231,6 +243,46 @@ export type ReviewPart = {
   timeCapMin: number | null;
   estimatedDurationMin: number | null;
 };
+
+const INTERVAL_WINDOW = /\bon\b\s*\/\s*.+\boff\b|\btabata\b/i;
+const FIXED_DOSE = /(?:^|\n)\s*\d+\s+[a-z]/i;
+const ALLOWS_AMRAP = /\bamrap\b|as many|\bmax(?:imum)?\b/i;
+
+export function coherenceFindings(parts: SchemePart[], caps?: Set<string>): string[] {
+  const problems: string[] = [];
+  const metcons = parts.filter((part) => part.kind === "metcon" && part.scoreType !== "none");
+  if (metcons.length > 1) {
+    problems.push("there is more than one scored metcon; combine them into one coherent piece");
+  }
+  for (const part of metcons) {
+    const scheme = part.format.toLowerCase();
+    const body = (part.details ?? "").toLowerCase();
+    const both = `${scheme} ${body}`;
+    if (/\bamrap\b/.test(scheme) && part.scoreType !== "rounds_reps") {
+      problems.push(`${part.name} is an AMRAP but is not scored by rounds + reps`);
+    }
+    if (/\be\d*\s*mom\b|\bemom\b|every minute/.test(scheme) && part.scoreType !== "done") {
+      problems.push(`${part.name} is an EMOM but is not scored as done`);
+    }
+    if (INTERVAL_WINDOW.test(scheme) && part.scoreType !== "done" && part.scoreType !== "reps") {
+      problems.push(`${part.name} is an interval but is not scored as done or reps`);
+    }
+    if (/\bfor time\b|\bchipper\b|\bladder\b/.test(scheme) && part.scoreType !== "time") {
+      problems.push(`${part.name} is for time but is not scored by time`);
+    }
+    if (INTERVAL_WINDOW.test(scheme) && FIXED_DOSE.test(body) && !ALLOWS_AMRAP.test(both)) {
+      problems.push(`${part.name} lists fixed reps inside a timed interval; make each work window an AMRAP or state the task`);
+    }
+  }
+  if (caps && !caps.has("heavier_load")) {
+    for (const part of parts) {
+      if (part.kind === "strength" && part.scoreType === "load") {
+        problems.push(`${part.name} is scored by load, but no heavy implement is owned; use rep-based strength scored as done`);
+      }
+    }
+  }
+  return problems;
+}
 
 export type ReviewWorkout = {
   summary: string;
@@ -245,6 +297,7 @@ export type ReviewWorkout = {
 
 export function reviewWorkout(input: { parsed: ReviewWorkout; items: GuardItem[]; check?: ProgramCheck }): string[] {
   const parsed = input.parsed;
+  const caps = capabilities(input.items);
   const parts = parsed.parts.map((part) => ({
     name: part.name,
     kind: part.kind,
@@ -277,7 +330,8 @@ export function reviewWorkout(input: { parsed: ReviewWorkout; items: GuardItem[]
         cooldownDurationMin: parsed.cooldownDurationMin,
         parts,
       }),
-      ...scalingFindings(parsed.summary),
+      ...scalingFindings(parsed.summary, usesExternalLoad({ summary: parsed.summary, parts })),
+      ...coherenceFindings(parts, caps),
     ]),
   ];
 }
