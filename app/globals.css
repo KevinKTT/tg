@@ -433,7 +433,7 @@ button {
 
 .move {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: 0.7rem;
   row-gap: 0.15rem;
   align-items: baseline;
@@ -459,14 +459,18 @@ button {
   font-size: 1.42rem;
   font-weight: 600;
   line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .move-reps {
   justify-self: end;
+  max-width: 9ch;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--color-amber);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
-  white-space: nowrap;
 }
 
 .move[data-done="true"] .move-reps,
@@ -479,6 +483,8 @@ button {
 
 .scale-line {
   grid-column: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-muted);
   font-size: 1rem;
   line-height: 1.25;
@@ -512,7 +518,7 @@ button {
 
 .load-row {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.7rem;
   align-items: baseline;
 }
@@ -530,6 +536,8 @@ button {
   font-size: 1.15rem;
   font-weight: 600;
   line-height: 1.25;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .load-people {
@@ -790,6 +798,50 @@ button {
 details summary {
   cursor: pointer;
   color: var(--color-muted);
+}
+
+@media (max-width: 430px) {
+  .shell {
+    width: calc(100% - 1.5rem);
+  }
+
+  .board {
+    padding: 1rem 0.85rem 1.15rem;
+  }
+
+  .board h2 {
+    font-size: 1.5rem;
+  }
+
+  .board-scheme {
+    font-size: 1.35rem;
+  }
+
+  .move {
+    column-gap: 0.55rem;
+  }
+
+  .move-reps,
+  .move-name {
+    font-size: 1.2rem;
+  }
+
+  .move-reps {
+    max-width: 8ch;
+  }
+
+  .scale-line {
+    font-size: 0.92rem;
+  }
+
+  .load-value,
+  .load-person {
+    font-size: 1.05rem;
+  }
+
+  .clock-time {
+    font-size: 2.3rem;
+  }
 }
 
 @media (min-width: 800px) {
