@@ -252,7 +252,7 @@ export function computeLoadPlan(input: {
 
 export function loadPlanPrompt(plan: LoadPlan): string {
   if (!plan.hasLoads) {
-    return "COMPUTED LOADS: no owned external load fits this day. Prescribe bodyweight and rep-based versions for Rx, Performance, and Lifestyle.";
+    return "COMPUTED LOADS: no external load today. Prescribe bodyweight and rep-based versions for Rx, Performance, and Lifestyle, and do not write a Loads block.";
   }
   const block = plan.lines.map((line) => `- ${line.label}: ${line.value}`).join("\n");
   const perMovement = plan.byMovement

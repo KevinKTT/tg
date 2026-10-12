@@ -58,6 +58,17 @@ test("a part's own scheme wins over the day format", () => {
   assert.equal(pieceScheme("AMRAP 12", "interval", "metcon")?.scoreType, "rounds_reps");
 });
 
+test("rep-based strength is done, a true max is load", () => {
+  assert.equal(pieceScheme("4x8 dumbbell floor press", "rounds", "strength")?.scoreType, "done");
+  assert.equal(pieceScheme("Build to a heavy 3", "heavy", "strength")?.scoreType, "load");
+  assert.equal(pieceScheme("5x5 @ 80%", "rounds", "strength")?.scoreType, "load");
+});
+
+test("a max-effort interval scores reps", () => {
+  assert.equal(pieceScheme("4 rounds: 2:00 max cal row / 1:00 rest", "interval", "metcon")?.scoreType, "reps");
+  assert.equal(pieceScheme("8 rounds: 30 sec max reps / 30 sec rest", "interval", "metcon")?.scoreType, "reps");
+});
+
 test("a scheme with a count picks the day format", () => {
   assert.equal(formatFromScheme("AMRAP 12"), "amrap");
   assert.equal(formatFromScheme("5 rounds for time"), "rounds");

@@ -160,7 +160,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "none",
     needs: "load",
-    brief: "A 12-16 minute hard strength piece first, sets of 5 or 3, then an 8-12 minute metcon that is not the same pattern as the lift. Two scored pieces. No running.",
+    brief: "A 14-18 minute strength piece first, sets of 6-10 reps, then a 10-14 minute metcon that is not the same pattern as the lift. Two scored pieces. No running.",
   },
   {
     shape: "strength_metcon",
@@ -254,7 +254,7 @@ const RECIPES: Recipe[] = [
     domain: "medium",
     pattern: "vary",
     mono: "none",
-    brief: "One alternating gymnastics EMOM, 18-24 minutes. Rotate 2-4 distinct stations. No heavy load, running, or separate strength piece.",
+    brief: "One alternating gymnastics EMOM, 20-30 minutes. Each minute lists a dose for one of 2-4 movements; a rest minute is allowed. No heavy load, running, or separate strength piece.",
   },
   {
     shape: "ladder",
@@ -298,7 +298,7 @@ const RECIPES: Recipe[] = [
     pattern: "vary",
     mono: "vary",
     needs: "load",
-    brief: "Mixed-modal intervals for 20-26 minutes including rest. Use 3 distinct stations and repeat hard, sustainable efforts instead of writing an AMRAP.",
+    brief: "Mixed-modal intervals, 25-35 minutes including rest. Every work window has one clear task: either one repeated effort, or a rotation where each window is an AMRAP and the stations are listed as tasks. Never list fixed reps for a timed window and never say rotate stations without an AMRAP inside each window.",
   },
 ];
 
@@ -433,7 +433,9 @@ export function tagFromDraft(base: ProgramTag, text: string): ProgramTag {
 function gearOk(recipe: Recipe, caps: Set<string>): boolean {
   if (recipe.needs === "barbell") return caps.has("barbell");
   if (recipe.needs === "load") {
-    return caps.has("barbell") || caps.has("dumbbell") || caps.has("kettlebell") || caps.has("plates");
+    if (!(caps.has("barbell") || caps.has("dumbbell") || caps.has("kettlebell") || caps.has("plates"))) return false;
+    if (recipe.load === "heavy" && !caps.has("heavier_load")) return false;
+    return true;
   }
   return true;
 }
@@ -503,13 +505,21 @@ function focusFor(candidate: Candidate, bias: string | undefined): string {
 
 function domainLine(candidate: Candidate): string {
   if (candidate.shape === "heavy_only") return "Metcon time domain: none. A few heavy sets, no metcon clock.";
-  if (candidate.domain === "short") return "Metcon time domain: short, about 10-16 minutes of scored work.";
-  if (candidate.domain === "long") return "Metcon time domain: long, about 22-30 minutes of scored work.";
-  return "Metcon time domain: medium, about 16-25 minutes of scored work.";
+  if (candidate.domain === "short") return "Metcon time domain: short, about 12-18 minutes of scored work.";
+  if (candidate.domain === "long") return "Metcon time domain: long, about 28-40 minutes of scored work.";
+  return "Metcon time domain: medium, about 18-28 minutes of scored work.";
 }
 
 function sessionLine(): string {
-  return "Session: build one complete class of about 45 minutes (40-50 total). Budget roughly 8-12 warm-up, 5-10 workout prep, 22-30 scored work, and 3-7 cool-down; the section estimates must add to 40-50. Er on the side of more work and a harder finish, not a short session.";
+  return "Session: build one complete class of 45-60 minutes (about 50). Budget roughly 8-12 warm-up, 5-10 workout prep, 25-40 scored work, and 3-7 cool-down; the section estimates must add to 45-60. A longer session is better than a short one.";
+}
+
+function piecesLine(shape: Shape): string {
+  if (shape === "heavy_only") return "Pieces: exactly one scored piece, the heavy lift. No metcon.";
+  if (shape === "strength_metcon") return "Pieces: exactly two scored pieces, a strength piece first and then a metcon.";
+  if (shape === "benchmark") return "Pieces: one scored benchmark. A short primer before it is not scored.";
+  if (shape === "gymnastics") return "Pieces: a skill piece (not scored), then one scored metcon.";
+  return "Pieces: exactly one scored piece. Do not add a strength piece or a second metcon.";
 }
 
 function patternLine(pattern: Pattern): string {
@@ -592,6 +602,7 @@ export function planDay(input: {
   const brief = [
     chosen.brief,
     `- ${sessionLine()}`,
+    `- ${piecesLine(chosen.shape)}`,
     `- ${patternLine(chosen.pattern)}`,
     `- ${monoLine(chosen.mono)}`,
     `- ${loadLine(chosen.load)}`,

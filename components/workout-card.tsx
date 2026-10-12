@@ -94,7 +94,7 @@ export function WorkoutCard({
   const hits = findPercents(text);
   const kicker = [formatLabel(day.format), day.focus ? focusLabel(day.focus) : day.source].filter(Boolean).join(" · ");
   const summary = parseSummary(track.summary);
-  const loadLines = ensureLoadLines(summary.loads, plan?.lines ?? []);
+  const loadLines = plan?.hasLoads ? ensureLoadLines(summary.loads, plan.lines) : summary.loads;
   const scaleMap = new Map<string, ScaleLine[]>((plan?.byMovement ?? []).map((movement: MovementScales) => [movement.slug, movement.scales]));
   const heroes = track.parts.filter((part) => HERO.has(part.kind));
   const lastHero = heroes[heroes.length - 1];
@@ -217,7 +217,7 @@ function Piece({
 }) {
   const hero = HERO.has(part.kind);
   const lines = parseBoard(part.body).map((line) => {
-    if (line.type !== "move") return line;
+    if (!hero || line.type !== "move") return line;
     const slug = scanMovements(line.name)[0]?.slug;
     const fallback = slug ? fallbackScales.get(slug) : undefined;
     if (!fallback?.length) return line;
