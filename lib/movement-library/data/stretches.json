@@ -2002,5 +2002,290 @@
     "typical_hold": "5 slow breaths x 2-3",
     "short_description": "Lie on your back with hips and knees at 90 degrees and feet on a wall, tuck the pelvis slightly, and take slow full exhales.",
     "source_url": "https://my.clevelandclinic.org/health/articles/9445-diaphragmatic-breathing"
+  },
+  {
+    "id": "st-wall-shoulder-flexion",
+    "name": "Wall Shoulder Flexion Stretch",
+    "aliases": [
+      "wall lean",
+      "wall prayer stretch",
+      "standing wall shoulder opener"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "shoulders",
+      "lats",
+      "thoracic spine"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "locomotion"
+    ],
+    "typical_hold": "30-45 sec",
+    "short_description": "Stand an arm's length from a wall, place both hands on it at shoulder height or higher, and hinge at the hips so the chest sinks between straight arms.",
+    "source_url": "https://theprehabguys.com/vimeo-video/shoulder-flexion-stretch-wall-support/"
+  },
+  {
+    "id": "st-wall-wrist-flexor",
+    "name": "Wall Wrist Flexor Stretch",
+    "aliases": [
+      "palm-to-wall wrist stretch",
+      "wall forearm flexor stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "wrist flexors",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "locomotion"
+    ],
+    "typical_hold": "20-30 sec/side",
+    "short_description": "Place the palm flat on a wall with the fingers pointing down and the elbow straight, then gently press the palm into the wall.",
+    "source_url": "https://www.g4physio.co.uk/blog/common-stretches-advice/wrist-flexor-muscle-group-stretch/"
+  },
+  {
+    "id": "st-kneeling-back-of-hand-wrist",
+    "name": "Kneeling Back-of-Hand Wrist Stretch",
+    "aliases": [
+      "palms-up wrist stretch",
+      "rear-facing palms-up wrist stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "wrist extensors",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "core/midline"
+    ],
+    "typical_hold": "3 x 10-20 sec",
+    "short_description": "On hands and knees, place the backs of the hands on the floor with fingers toward the knees and elbow pits forward, then ease the weight back.",
+    "source_url": "https://gmb.io/wrists/"
+  },
+  {
+    "id": "st-wrist-cars",
+    "name": "Wrist CARs",
+    "aliases": [
+      "wrist controlled articular rotations",
+      "slow wrist circles"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "wrist flexors",
+      "wrist extensors",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "carry"
+    ],
+    "typical_hold": "3-5 slow circles/direction/side",
+    "short_description": "With the forearm still, move the wrist through its largest controlled circle (side, flexion, side, extension) slowly in both directions.",
+    "source_url": "https://theprehabguys.com/vimeo-video/wrist-cars/"
+  },
+  {
+    "id": "st-roller-snow-angel",
+    "name": "Foam Roller Snow Angels",
+    "aliases": [
+      "roller chest opener",
+      "supine roller snow angels"
+    ],
+    "type": "mobility",
+    "equipment": [
+      "foam_roller"
+    ],
+    "target_areas": [
+      "chest",
+      "shoulders",
+      "thoracic spine"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push"
+    ],
+    "typical_hold": "6-8 slow reps",
+    "short_description": "Lie lengthwise on a foam roller with knees bent, open the arms to the sides with elbows bent, and slowly slide them overhead and back, keeping them low.",
+    "source_url": "https://www.acefitness.org/resources/pros/expert-articles/5412/how-to-increase-upper-body-stability-and-mobility/"
+  },
+  {
+    "id": "st-peanut-t-spine",
+    "name": "Peanut Thoracic Mobilization",
+    "aliases": [
+      "double lacrosse ball T-spine",
+      "peanut T-spine crunch"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "massage_ball"
+    ],
+    "target_areas": [
+      "thoracic spine",
+      "upper back"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "full-body/olympic-style"
+    ],
+    "typical_hold": "5-10 reps at 2-3 levels",
+    "short_description": "Lie on two taped balls set either side of the mid-back spine with arms crossed, do small crunches and extensions over them, then shift up a level.",
+    "source_url": "https://squatuniversity.com/2018/08/25/how-to-improve-thoracic-spine-mobility/"
+  },
+  {
+    "id": "st-banded-overhead-distraction",
+    "name": "Banded Overhead Shoulder Distraction",
+    "aliases": [
+      "banded shoulder distraction",
+      "banded overhead mobilization"
+    ],
+    "type": "mobility",
+    "equipment": [
+      "band"
+    ],
+    "target_areas": [
+      "shoulders",
+      "lats",
+      "rotator cuff"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull"
+    ],
+    "typical_hold": "60 sec/side",
+    "short_description": "Loop a band anchored high or low around the wrist, step away to create tension, and ease the straight arm into overhead positions while breathing slowly.",
+    "source_url": "https://library.theprehabguys.com/vimeo-video/banded-shoulder-mobility-warmup/"
+  },
+  {
+    "id": "st-thoracic-bridge",
+    "name": "Thoracic Bridge",
+    "aliases": [
+      "back bridge",
+      "wheel (gymnastics bridge)"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "thoracic spine",
+      "shoulders",
+      "chest",
+      "hip flexors"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "core/midline"
+    ],
+    "typical_hold": "3-5 x 10-20 sec",
+    "short_description": "Lying with hands flat by the ears and feet flat, push the hips up and press the elbows straight, aiming the arch into the upper back rather than the low back.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/thoracic-bridge"
+  },
+  {
+    "id": "st-supine-neck-rotation",
+    "name": "Supine Neck Rotations",
+    "aliases": [
+      "lying neck rotation stretch",
+      "supported cervical rotation"
+    ],
+    "type": "mobility",
+    "equipment": [],
+    "target_areas": [
+      "neck"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "carry"
+    ],
+    "typical_hold": "5-8 slow reps/side",
+    "short_description": "Lie on your back with the head supported and slowly turn to look over one shoulder to a comfortable end range, then the other, keeping the shoulders relaxed.",
+    "source_url": "https://library.theprehabguys.com/vimeo-video/supine-neck-rotations/"
+  },
+  {
+    "id": "st-scm-stretch",
+    "name": "Sternocleidomastoid Stretch",
+    "aliases": [
+      "SCM stretch",
+      "front neck stretch"
+    ],
+    "type": "static_stretch",
+    "equipment": [],
+    "target_areas": [
+      "neck",
+      "front of neck"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "carry"
+    ],
+    "typical_hold": "20-30 sec/side",
+    "short_description": "Sitting tall, tilt the head away from the side to stretch, then turn the chin and eyes up toward the ceiling; tuck the chin slightly if the back of the neck pinches.",
+    "source_url": "https://b3pt.com/scm-stretch/"
+  },
+  {
+    "id": "st-suboccipital-release",
+    "name": "Suboccipital Release",
+    "aliases": [
+      "base-of-skull ball release",
+      "tennis ball suboccipital release"
+    ],
+    "type": "foam_roll_or_soft_tissue",
+    "equipment": [
+      "massage_ball"
+    ],
+    "target_areas": [
+      "neck",
+      "suboccipitals"
+    ],
+    "pairs_with_patterns": [
+      "vertical push"
+    ],
+    "typical_hold": "1-3 min",
+    "short_description": "Lie on your back with two balls in a sock under the base of the skull, one each side of the spine, relax, and make tiny nods to let the area soften.",
+    "source_url": "https://uk.physitrack.com/home-exercise-video/suboccipital-release-with-tennis-balls"
+  },
+  {
+    "id": "st-constructive-rest",
+    "name": "Constructive Rest",
+    "aliases": [
+      "hook-lying rest",
+      "Alexander constructive rest"
+    ],
+    "type": "breathing/downregulation",
+    "equipment": [],
+    "target_areas": [
+      "nervous system",
+      "diaphragm",
+      "neck"
+    ],
+    "pairs_with_patterns": [
+      "squat",
+      "hinge",
+      "lunge",
+      "horizontal push",
+      "vertical push",
+      "horizontal pull",
+      "vertical pull",
+      "carry",
+      "core/midline",
+      "jump",
+      "locomotion",
+      "full-body/olympic-style",
+      "rotation"
+    ],
+    "typical_hold": "5-10 min",
+    "short_description": "Lie on your back with knees bent, feet flat, and a thin support under the head, let the arms rest on the belly, and breathe easily; after inversions, roll to the side before sitting up.",
+    "source_url": "https://alexandertechnique.com/constructiverest/"
   }
 ]

@@ -2057,5 +2057,442 @@
     "typical_dose": "2 x 20-30 sec",
     "short_description": "Hold moderate dumbbells at the sides standing tall to prime grip and bracing.",
     "source_url": "https://www.crossfit.com/essentials/the-farmer-carry"
+  },
+  {
+    "id": "wu-finger-pulses",
+    "name": "Finger Pulses",
+    "aliases": [
+      "finger lifts",
+      "palm lifts"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "wrists",
+      "forearms",
+      "fingers"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "core/midline",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "With palms flat and fingers spread wide, peel the palms off the floor while the fingers stay pressed down, then lower; builds finger strength for handstand balance.",
+    "source_url": "https://gmb.io/wrists/"
+  },
+  {
+    "id": "wu-wrist-pulses",
+    "name": "Wrist Pulses (Forward, Backward, Palms-Up)",
+    "aliases": [
+      "wrist rocks in three positions",
+      "quadruped wrist pulses"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "wrists",
+      "forearms"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "core/midline",
+      "locomotion"
+    ],
+    "typical_dose": "5 pulses + 10-20 sec hold per position",
+    "short_description": "On hands and knees, rock gently over the hands with fingers forward, then fingers toward the knees, then backs of the hands down, pausing on the last pulse of each.",
+    "source_url": "https://gmb.io/wrists/"
+  },
+  {
+    "id": "wu-elbow-rotations",
+    "name": "Elbow Rotations",
+    "aliases": [
+      "elbow pit rotations",
+      "elbow screws"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "elbows",
+      "forearms",
+      "wrists"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "With hands flat on the floor, rotate the elbow pits forward and back without moving the hands, prepping the locked-arm position used in handstands.",
+    "source_url": "https://gmb.io/wrists/"
+  },
+  {
+    "id": "wu-plank-circles",
+    "name": "Plank Circles",
+    "aliases": [
+      "hand-loaded circles",
+      "quadruped wrist circles"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "wrists",
+      "shoulders",
+      "core"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push",
+      "core/midline"
+    ],
+    "typical_dose": "5 circles each direction",
+    "short_description": "On hands and knees (or in a plank), circle the shoulders around the planted hands to load the wrists from every angle; move the knees back to make it harder.",
+    "source_url": "https://gmb.io/wrists/"
+  },
+  {
+    "id": "wu-shoulder-cars",
+    "name": "Shoulder CARs",
+    "aliases": [
+      "shoulder controlled articular rotations",
+      "slow arm circles"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "rotator cuff",
+      "thoracic spine"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "full-body/olympic-style"
+    ],
+    "typical_dose": "3-5 slow circles/direction/side",
+    "short_description": "Standing tall with the trunk braced, raise one straight arm forward and overhead, rotate the palm out, and continue behind and down in the biggest slow circle you can control.",
+    "source_url": "https://theexercisedoc.com/the-shoulder-car-exercise/"
+  },
+  {
+    "id": "wu-serratus-wall-slide",
+    "name": "Serratus Wall Slide",
+    "aliases": [
+      "wall slide",
+      "forearm wall slide"
+    ],
+    "type": "activation",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "serratus anterior",
+      "shoulders",
+      "shoulder blades"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal push"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "Facing a wall with forearms on it at shoulder height, press gently into the wall and slide the arms up into a V, letting the shoulder blades rotate up, then return.",
+    "source_url": "https://carmelphysicaltherapy.com/exercises/shoulder-wall-slide/"
+  },
+  {
+    "id": "wu-wall-angel",
+    "name": "Wall Angels",
+    "aliases": [
+      "wall snow angels",
+      "back-to-wall angels"
+    ],
+    "type": "dynamic_mobility",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "shoulders",
+      "thoracic spine",
+      "upper back"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "vertical pull",
+      "horizontal push"
+    ],
+    "typical_dose": "2 x 8-10",
+    "short_description": "With the head, upper back, and pelvis against a wall and ribs down, slide the arms from a W up to a V overhead and back while keeping contact.",
+    "source_url": "https://www.healthline.com/health/fitness/wall-angels"
+  },
+  {
+    "id": "wu-banded-i-to-shrug",
+    "name": "Banded I to Shrug",
+    "aliases": [
+      "band overhead shrug",
+      "banded I-shrug"
+    ],
+    "type": "activation",
+    "equipment": [
+      "band"
+    ],
+    "target_areas": [
+      "upper traps",
+      "serratus anterior",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "vertical push"
+    ],
+    "typical_dose": "2 x 10-15",
+    "short_description": "Hold a light band overhead with straight arms in an I (biceps by the ears), keep light tension on it, and shrug the shoulders up toward the ears and back down.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-walking-rx-plan"
+  },
+  {
+    "id": "wu-overhead-band-pull-apart",
+    "name": "Overhead Band Pull-Apart",
+    "aliases": [
+      "overhead pull-apart",
+      "band overhead reach pull-apart"
+    ],
+    "type": "activation",
+    "equipment": [
+      "band"
+    ],
+    "target_areas": [
+      "rear deltoids",
+      "rhomboids",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "horizontal pull"
+    ],
+    "typical_dose": "2 x 10-12",
+    "short_description": "Hold a light band overhead with straight arms and pull it apart as the arms lower behind the head toward shoulder height, then return overhead with ribs down.",
+    "source_url": "https://theprehabguys.com/vimeo-video/overhead-pull-apart-band/"
+  },
+  {
+    "id": "wu-box-pike-shrug",
+    "name": "Box Pike Shrug",
+    "aliases": [
+      "box handstand shrug",
+      "elevated pike shrug"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "box"
+    ],
+    "target_areas": [
+      "upper traps",
+      "serratus anterior",
+      "shoulders"
+    ],
+    "pairs_with_patterns": [
+      "vertical push"
+    ],
+    "typical_dose": "2 x 8-10",
+    "short_description": "In a feet-on-box pike with hips over the shoulders and elbows locked, shrug the shoulders toward the ears and let them sink back, rehearsing an active handstand.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-push-up-rx-plan"
+  },
+  {
+    "id": "wu-box-pike-shoulder-tap",
+    "name": "Box Pike Shoulder Taps (warm-up)",
+    "aliases": [
+      "easy handstand shoulder taps",
+      "elevated pike taps"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "box"
+    ],
+    "target_areas": [
+      "shoulders",
+      "core",
+      "wrists"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 6/side",
+    "short_description": "From a feet-on-box pike, lift one hand slightly or tap the opposite shoulder and replace it without the hips swaying; an easy stand-in for wall shoulder taps.",
+    "source_url": "https://www.strongfirst.com/journey-handstand-push-part-2/"
+  },
+  {
+    "id": "wu-wall-shoulder-flexion-press",
+    "name": "Chest-to-Wall Shoulder Flexion Press",
+    "aliases": [
+      "handstand shoulder flexion press",
+      "wall handstand shoulder opener"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "shoulders",
+      "lats",
+      "upper traps"
+    ],
+    "pairs_with_patterns": [
+      "vertical push"
+    ],
+    "typical_dose": "2 x 5-8",
+    "short_description": "In a chest-to-wall handstand with arms locked and shoulders shrugged, move only the shoulders to press the chest toward the wall and back, opening shoulder flexion.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/handstand-shoulder-flexion-press"
+  },
+  {
+    "id": "wu-wall-line-work",
+    "name": "Wall Line Work",
+    "aliases": [
+      "chest-to-wall line drill",
+      "handstand line drill"
+    ],
+    "type": "movement_prep",
+    "equipment": [
+      "wall"
+    ],
+    "target_areas": [
+      "shoulders",
+      "core",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_dose": "3 x 15-20 sec",
+    "short_description": "Walk up to a short chest-to-wall handstand and spend each set on one line cue: shoulders to ears, ribs down, glutes squeezed, legs together; walk down before form breaks.",
+    "source_url": "https://gmb.io/handstand/"
+  },
+  {
+    "id": "wu-hollow-rock",
+    "name": "Hollow Rock (warm-up)",
+    "aliases": [
+      "hollow body rock"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "core",
+      "hip flexors",
+      "anterior core"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 10-15",
+    "short_description": "Hold the hollow shape with low back pressed down and arms by the ears, and rock from the shoulder blades to the hips by bracing, not by flicking the legs.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/hollow-body-rock"
+  },
+  {
+    "id": "wu-arch-hollow-roll",
+    "name": "Arch-Hollow Roll",
+    "aliases": [
+      "hollow to arch roll",
+      "log roll hollow-arch"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "core",
+      "obliques",
+      "erector spinae",
+      "glutes"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 4-6 each direction",
+    "short_description": "Lying in a hollow hold, roll to the side and over onto the stomach into an arch, then keep rolling back into the hollow, keeping both shapes tight.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/arch-hollow-roll"
+  },
+  {
+    "id": "wu-seated-pike-pulse",
+    "name": "Seated Pike Pulses",
+    "aliases": [
+      "pike compression lifts",
+      "seated leg lifts"
+    ],
+    "type": "activation",
+    "equipment": [],
+    "target_areas": [
+      "hip flexors",
+      "core",
+      "quadriceps"
+    ],
+    "pairs_with_patterns": [
+      "core/midline",
+      "vertical push"
+    ],
+    "typical_dose": "2 x 10",
+    "short_description": "Sit in a straight-leg pike with hands on the floor beside the knees and lift the heels off the floor with locked knees; move the hands back if needed.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/seated-pike-pulse"
+  },
+  {
+    "id": "wu-donkey-kicks",
+    "name": "Donkey Kicks (Handstand Hops)",
+    "aliases": [
+      "handstand hops",
+      "bunny hops to hands"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "core",
+      "wrists"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 6-8",
+    "short_description": "From a squat with hands planted shoulder-width and elbows locked, hop the hips over the shoulders and land the feet softly back near the start.",
+    "source_url": "https://howtolearngymnastics.com/how-to-learn-donkey-kicks"
+  },
+  {
+    "id": "wu-mini-kick-ups",
+    "name": "Mini Kick-Ups",
+    "aliases": [
+      "small kick-ups",
+      "half kick-ups"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "wrists",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_dose": "2 x 5/leg",
+    "short_description": "Practice low, controlled kick-ups that get both feet briefly off the floor without going all the way vertical, landing one foot at a time.",
+    "source_url": "https://wodprep.com/blog/guide-handstand-walks-drills/"
+  },
+  {
+    "id": "wu-cartwheel-bail",
+    "name": "Cartwheel Bail Practice",
+    "aliases": [
+      "handstand bail out",
+      "pirouette bail"
+    ],
+    "type": "movement_prep",
+    "equipment": [],
+    "target_areas": [
+      "shoulders",
+      "wrists",
+      "hips"
+    ],
+    "pairs_with_patterns": [
+      "vertical push",
+      "locomotion"
+    ],
+    "typical_dose": "3-5/side",
+    "short_description": "From low half-cartwheels and then from small kick-ups, turn one hand out, rotate the hips, and step the feet down to the side so you can exit an overbalanced handstand safely.",
+    "source_url": "https://learn.handstandpro.app/en/handstand-bail-out-fear-of-falling/"
   }
 ]

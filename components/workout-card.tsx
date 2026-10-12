@@ -92,12 +92,15 @@ export function WorkoutCard({
         {summary.equipment.length ? <p className="board-gear">{summary.equipment.join(" · ")}</p> : null}
 
         {track.parts.map((part) => (
-          <div key={part.id}>
-            <Piece part={part} date={day.date} dayFormat={day.format} showName={heroes.length > 1} />
-            {part.id === lastHero?.id ? (
-              <Loads loads={summary.loads} initials={person.initials} />
-            ) : null}
-          </div>
+          <Piece
+            key={part.id}
+            part={part}
+            date={day.date}
+            dayFormat={day.format}
+            showName={heroes.length > 1}
+            loads={part.id === lastHero?.id ? summary.loads : undefined}
+            initials={person.initials}
+          />
         ))}
         {!lastHero ? <Loads loads={summary.loads} initials={person.initials} /> : null}
         {hits.length ? (
@@ -176,7 +179,21 @@ function readChecks(date: string, partId: number) {
   }
 }
 
-function Piece({ part, date, dayFormat, showName }: { part: PartView; date: string; dayFormat: string; showName: boolean }) {
+function Piece({
+  part,
+  date,
+  dayFormat,
+  showName,
+  loads,
+  initials,
+}: {
+  part: PartView;
+  date: string;
+  dayFormat: string;
+  showName: boolean;
+  loads?: { label: string; value: string }[];
+  initials?: string;
+}) {
   const hero = HERO.has(part.kind);
   const lines = parseBoard(part.body);
   const label = KIND[part.kind] || part.kind;
@@ -218,6 +235,7 @@ function Piece({ part, date, dayFormat, showName }: { part: PartView; date: stri
         <p className="board-scheme">~{part.estimatedDurationMin} min</p>
       ) : null}
       {lines.length ? <BoardLines lines={lines} done={done} onToggle={toggle} /> : part.body ? <p className="pre">{part.body}</p> : null}
+      {loads?.length ? <Loads loads={loads} initials={initials ?? ""} /> : null}
     </div>
   );
 }
@@ -269,13 +287,17 @@ function Loads({ loads, initials }: { loads: { label: string; value: string }[];
 }
 
 function LoadValue({ value, initials }: { value: string; initials: string }) {
-  const parts = value.split(/(\s*\/\s*)/);
+  const parts = value
+    .split(/\s*\/\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return <span className="load-value">{value}</span>;
   return (
-    <span className="load-value">
-      {parts.map((part, index) => {
-        const mine = Boolean(initials) && new RegExp(`^${initials.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(part.trim());
+    <span className="load-people">
+      {parts.map((part) => {
+        const mine = Boolean(initials) && new RegExp(`^${initials.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(part);
         return (
-          <span key={index} data-mine={mine ? "true" : undefined}>
+          <span className="load-person" key={part} data-mine={mine ? "true" : undefined}>
             {part}
           </span>
         );

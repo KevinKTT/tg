@@ -43,6 +43,26 @@ test("strips coaching cues and lays out an EMOM minute", () => {
   assert.equal(line.name, "30 single-unders");
 });
 
+test("keeps distance and per-side units with the dose", () => {
+  const walk = parseBoard("- 80 m Weighted Vest Walk")[0];
+  assert.equal(walk.type, "move");
+  if (walk.type !== "move") return;
+  assert.equal(walk.reps, "80 m");
+  assert.equal(walk.name, "Weighted Vest Walk");
+
+  const stretch = parseBoard("- 30 sec/side Levator Scapulae Stretch")[0];
+  assert.equal(stretch.type, "move");
+  if (stretch.type !== "move") return;
+  assert.equal(stretch.reps, "30 sec/side");
+  assert.equal(stretch.name, "Levator Scapulae Stretch");
+
+  const pose = parseBoard("- 60 sec Sphinx Pose")[0];
+  assert.equal(pose.type, "move");
+  if (pose.type !== "move") return;
+  assert.equal(pose.reps, "60 sec");
+  assert.equal(pose.name, "Sphinx Pose");
+});
+
 test("treats rest instructions as notes", () => {
   const [line] = parseBoard("- Rest 1 min between rounds. Score total time including rest.");
   assert.deepEqual(line, { type: "note", text: "Rest 1 min between rounds. Score total time including rest." });
