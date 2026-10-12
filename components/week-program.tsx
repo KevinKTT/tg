@@ -85,7 +85,7 @@ export function WeekProgram({ anchor }: { anchor: string }) {
           </span>
           <select
             className="select"
-            style={{ width: "11rem" }}
+            style={{ width: "min(11rem, 55%)", minWidth: 0, flex: "0 1 auto" }}
             value={focuses[index]}
             onChange={(event) => {
               const next = [...focuses];
