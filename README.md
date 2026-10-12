@@ -6,6 +6,8 @@ No accounts. Add your members, then pick who's lifting when you log a score or a
 
 Workout generation supplements the standard CrossFit equipment catalog with the curated garage movement, warm-up, and cooldown data in `lib/movement-library/data`. The source guide and original archive are retained in `docs/movement-library`.
 
+Each day is programmed toward one complete ~45 minute class (warm-up, prep, work, cool-down). Every scored movement is written with Rx, Performance, and Lifestyle versions, and the loads come from the equipment you own and the PRs you have logged. The generator reviews each draft and asks the model to fix weak spots (short sessions, missing scale versions, unowned gear), but it always saves the best readable workout instead of failing on a programming rule.
+
 ## Local
 
 ```bash
@@ -25,7 +27,7 @@ Workout generation talks to any **OpenAI-compatible Chat Completions** endpoint,
 | `AI_API_KEY` | — | Your provider key. `FIREWORKS_API_KEY` is also accepted as an alias. |
 | `AI_BASE_URL` | `https://api.openai.com/v1` | The provider's OpenAI-compatible base URL. |
 | `AI_MODEL` | `gpt-4o-mini` | The model name as that provider expects it. |
-| `AI_MAX_OUTPUT_TOKENS` | `6000` | Completion budget, including reasoning tokens on reasoning-capable models. |
+| `AI_MAX_OUTPUT_TOKENS` | `8000` | Completion budget, including reasoning tokens on reasoning-capable models. |
 | `AI_JSON_MODE` | `schema` | `schema`, `object`, or `none`. The app degrades automatically if the provider rejects `json_schema`. |
 | `AI_REASONING_EFFORT` | unset | Sent only when set. Auto-set to `none` for a Fireworks base URL. |
 

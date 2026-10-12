@@ -163,17 +163,28 @@ export function parseSummary(summary: string): BoardSummary {
   const loads: LoadRow[] = [];
   const equipMatch = summary.match(/Equipment:\s*([^\n]+)/i);
   if (equipMatch) {
-    for (const piece of equipMatch[1].split(",")) {
+    const raw = equipMatch[1].split(/\bLoads\s*:/i)[0];
+    for (const piece of raw.split(",")) {
       const name = cleanEquipment(piece);
       if (name) equipment.push(name);
     }
   }
 
   const loadsBlock = summary.match(/Loads:\s*([\s\S]*)/i)?.[1] ?? "";
-  for (const chunk of loadsBlock.split(/\n|·/)) {
-    const match = chunk.trim().match(new RegExp(`^(${SCALE}|[A-Z]{1,4})\\s*[:—–-]\\s*(.+)$`));
-    if (!match) continue;
-    loads.push({ label: canonicalScale(match[1]), value: match[2].trim() });
+  const tier = /(?:^|[\s·,;.])((?:Rx|RX|rx|Performance|performance|Lifestyle|lifestyle)|[A-Z]{1,4})\s*[:—–-]\s*/g;
+  const found: { label: string; start: number; end: number }[] = [];
+  for (const match of loadsBlock.matchAll(tier)) {
+    const index = match.index ?? 0;
+    const offset = match[0].length - match[0].replace(/^[\s·,;.]+/, "").length;
+    found.push({ label: canonicalScale(match[1]), start: index + offset, end: index + match[0].length });
+  }
+  for (let position = 0; position < found.length; position += 1) {
+    const stop = position + 1 < found.length ? found[position + 1].start : loadsBlock.length;
+    const value = loadsBlock
+      .slice(found[position].end, stop)
+      .replace(/[\s·,;.]+$/g, "")
+      .trim();
+    if (value) loads.push({ label: found[position].label, value });
   }
   return { equipment, loads };
 }

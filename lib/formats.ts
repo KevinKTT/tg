@@ -114,13 +114,13 @@ export function pieceScheme(format: string, dayFormat: string, kind: string): Pi
   }
   const own = format.toLowerCase();
   const day = dayFormat.toLowerCase();
-  if (EMOM_TEXT.test(own) || (kind === "metcon" && (day === "emom" || EMOM_TEXT.test(day)))) {
+  if (EMOM_TEXT.test(own)) {
     return { scoreType: "done", allowCap: false };
   }
-  if (AMRAP_TEXT.test(own) || (kind === "metcon" && day === "amrap")) {
+  if (AMRAP_TEXT.test(own)) {
     return { scoreType: "rounds_reps", allowCap: false };
   }
-  if (INTERVAL_TEXT.test(own) || (kind === "metcon" && day === "interval")) {
+  if (INTERVAL_TEXT.test(own)) {
     return { scoreType: MAX_REPS.test(own) ? "reps" : "done", allowCap: false };
   }
   if (kind === "strength" && (format.trim() || day === "heavy")) {
@@ -129,11 +129,14 @@ export function pieceScheme(format: string, dayFormat: string, kind: string): Pi
   if (day === "heavy" && kind !== "metcon") {
     return { scoreType: "load", allowCap: false };
   }
-  if (kind === "metcon" && (format.trim() || TIMED_DAYS.has(day))) {
+  if (/\bfor time\b|\bchipper\b|\b\d+\s*rounds?\b/i.test(own)) {
     return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
   }
-  if (/\bfor time\b|\bchipper\b/i.test(own)) {
-    return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
+  if (kind === "metcon") {
+    if (day === "emom") return { scoreType: "done", allowCap: false };
+    if (day === "amrap") return { scoreType: "rounds_reps", allowCap: false };
+    if (day === "interval") return { scoreType: "done", allowCap: false };
+    if (format.trim() || TIMED_DAYS.has(day)) return { scoreType: "time", allowCap: CAP_TEXT.test(own) };
   }
   return null;
 }

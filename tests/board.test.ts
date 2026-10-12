@@ -85,3 +85,15 @@ test("parses loads written on their own lines", () => {
   assert.equal(summary.loads.length, 3);
   assert.equal(summary.loads[2].value, "15 lb");
 });
+
+test("parses loads smashed onto one line without polluting equipment", () => {
+  const summary = parseSummary(
+    "Equipment: dumbbells, jump rope, plyo box. Loads: Rx — KT 25 lb / HT 20 lb. Performance — KT 20 lb / HT 15 lb. Lifestyle — KT 15 lb / HT 15 lb.",
+  );
+  assert.deepEqual(summary.equipment, ["dumbbells", "jump rope", "plyo box"]);
+  assert.deepEqual(
+    summary.loads.map((row) => row.label),
+    ["Rx", "Performance", "Lifestyle"],
+  );
+  assert.equal(summary.loads[0].value, "KT 25 lb / HT 20 lb");
+});

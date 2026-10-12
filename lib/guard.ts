@@ -206,9 +206,80 @@ export function sessionDurationViolations(input: {
   if (work < 18 || work > 30) problems.push("workout pieces must total 18-30 minutes");
   const total = sections.reduce((sum, section) => sum + (section.value ?? 0), 0);
   if (total < 40 || total > 50) {
-    problems.push(`estimated session duration is ${total} minutes; make the complete session 40-50 minutes`);
+    problems.push(`estimated session duration is ${total} minutes; make the complete session 40-50 minutes, centered on about 45`);
   }
   return problems;
+}
+
+export function scalingFindings(summary: string): string[] {
+  const block = summary.match(/Loads:\s*([\s\S]*)/i)?.[1] ?? "";
+  if (!block.trim()) {
+    return ["the summary has no Loads: block; add one line each for Rx, Performance, and Lifestyle"];
+  }
+  const lower = block.toLowerCase();
+  const missing = (["rx", "performance", "lifestyle"] as const).filter((tier) => !new RegExp(`\\b${tier}\\b`, "i").test(lower));
+  return missing.length ? [`the Loads: block is missing ${missing.join(", ")}`] : [];
+}
+
+export type ReviewPart = {
+  name: string;
+  kind: string;
+  format: string;
+  details: string;
+  equipment: string[];
+  scoreType: string;
+  timeCapMin: number | null;
+  estimatedDurationMin: number | null;
+};
+
+export type ReviewWorkout = {
+  summary: string;
+  warmup: string;
+  prep?: string;
+  cooldown: string;
+  warmupDurationMin: number | null;
+  prepDurationMin: number | null;
+  cooldownDurationMin: number | null;
+  parts: ReviewPart[];
+};
+
+export function reviewWorkout(input: { parsed: ReviewWorkout; items: GuardItem[]; check?: ProgramCheck }): string[] {
+  const parsed = input.parsed;
+  const parts = parsed.parts.map((part) => ({
+    name: part.name,
+    kind: part.kind,
+    format: part.format,
+    details: part.details,
+    equipment: part.equipment,
+    scoreType: part.scoreType,
+    timeCapMin: part.timeCapMin,
+    estimatedDurationMin: part.estimatedDurationMin,
+  }));
+  return [
+    ...new Set([
+      ...guardWorkout(
+        {
+          day: {
+            summary: parsed.summary,
+            warmup: parsed.warmup,
+            prep: parsed.prep,
+            cooldown: parsed.cooldown,
+            parts,
+          },
+        },
+        input.items,
+        input.check,
+      ),
+      ...schemeViolations({ warmup: parsed.warmup, prep: parsed.prep, cooldown: parsed.cooldown, parts }),
+      ...sessionDurationViolations({
+        warmupDurationMin: parsed.warmupDurationMin,
+        prepDurationMin: parsed.prepDurationMin,
+        cooldownDurationMin: parsed.cooldownDurationMin,
+        parts,
+      }),
+      ...scalingFindings(parsed.summary),
+    ]),
+  ];
 }
 
 export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardItem[], check?: ProgramCheck): string[] {

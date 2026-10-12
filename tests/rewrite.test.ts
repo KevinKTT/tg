@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBrief, rewriteIntent, rewriteTask } from "../lib/ai";
+import { rewriteIntent, rewriteTask } from "../lib/ai";
+import type { EquipmentRow } from "../lib/db";
+import { computeLoadPlan } from "../lib/load-plan";
 
 test("clarify keeps the workout and only cleans the board", () => {
   const task = rewriteTask("clarify");
@@ -17,14 +19,32 @@ test("a clarify note can change the scheme", () => {
 });
 
 test("load lines always name the male and female versions", () => {
-  const brief = loadBrief([
-    { initials: "KT", sex: "m" },
-    { initials: "HT", sex: "f" },
-  ]);
-  assert.match(brief, /KT 25 lb \/ HT 20 lb/);
-  assert.match(brief, /Always name every member/);
-  assert.match(brief, /Male and female are different versions/);
-  assert.doesNotMatch(brief, /Only name initials when loads differ/);
+  const dumbbells: EquipmentRow[] = [15, 20, 25, 30].map((weight) => ({
+    slug: `db_${weight}lb`,
+    name: `${weight} lb`,
+    category: "dumbbell",
+    kind: "implement",
+    loadValue: weight,
+    unit: "lb",
+    quantity: 2,
+    owned: true,
+    custom: false,
+    sort: 0,
+  }));
+  const plan = computeLoadPlan({
+    items: dumbbells,
+    members: [
+      { slug: "kt", initials: "KT", sex: "m" },
+      { slug: "ht", initials: "HT", sex: "f" },
+    ],
+    prs: [],
+    load: "moderate",
+    movements: [{ slug: "db-deadlift", name: "Dumbbell Deadlift" }],
+  });
+  assert.equal(plan.lines.length, 3);
+  const rx = plan.lines.find((line) => line.label === "Rx");
+  assert.ok(rx);
+  assert.match(rx.value, /KT 25 lb \/ HT 20 lb/);
 });
 
 test("a focus rewrite restyles this session", () => {
