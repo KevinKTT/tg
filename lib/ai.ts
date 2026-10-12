@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { isFormatError, modeOrder, resolveProvider, type JsonMode, type ProviderConfig } from "./ai-config";
-import { DAY_TRACK, focusLabel, FOCUSES } from "./athletes";
+import { DAY_TRACK, focusLabel, FOCUSES, type Sex } from "./athletes";
 import {
   getDay,
   listAthletes,
@@ -152,13 +152,20 @@ function prText(members: AthleteRow[]) {
     .join("\n\n");
 }
 
-function loadExample(members: AthleteRow[]): string {
-  const shared = "Rx — 90% of the lift\nPerformance — 70%\nLifestyle — 50%";
-  const fallback =
-    "If no PR exists, name the heaviest owned implement for Rx, a mid implement for Performance, and a light one for Lifestyle. Never use the lightest implement for Rx when a heavier one is owned.";
-  if (members.length < 2) return `${shared}\n${fallback}`;
-  const [first, second] = members;
-  return `${shared}\n${fallback}\nOnly name initials when loads differ: Rx — ${first.initials} 90% / ${second.initials} 75%`;
+export function loadBrief(members: { initials: string; sex: Sex }[]): string {
+  if (members.length === 0) {
+    return "Rx — 25 lb\nPerformance — 20 lb\nLifestyle — 15 lb";
+  }
+  const both = members.some((member) => member.sex === "m") && members.some((member) => member.sex === "f");
+  const named = (weight: (member: { sex: Sex }) => string) =>
+    members.map((member) => `${member.initials} ${weight(member)}`).join(" / ");
+  const lines = both
+    ? `Rx — ${named((member) => (member.sex === "f" ? "20 lb" : "25 lb"))}\nPerformance — ${named((member) => (member.sex === "f" ? "15 lb" : "20 lb"))}\nLifestyle — ${named((member) => (member.sex === "f" ? "10 lb" : "15 lb"))}`
+    : `Rx — ${named(() => "25 lb")}\nPerformance — ${named(() => "20 lb")}\nLifestyle — ${named(() => "15 lb")}`;
+  const rule = both
+    ? "Always name every member on every load line. Male and female are different versions: male gets the heavier owned step, female the next lighter, unless that member's PR says otherwise. If owned gear cannot split, still write both initials. Never write a bare weight. The numbers above are format only."
+    : "Always name every member on every load line, even when the weight matches. Never write a bare weight.";
+  return `${lines}\n${rule}`;
 }
 
 function focusBrief(focus: string) {
@@ -214,8 +221,8 @@ Lines start with "- ", then reps, then the movement. No cues. No weights on the 
 Same movement and reps for every scale: one line, no label. Never label a scale that matches Rx. Never write "(Rx) / (Performance) / (Lifestyle)" on one line.
 A scale that changes the movement or reps: the Rx line, then only the scales that differ.
 Loads live in "summary" only. "Equipment:" then the pieces used. Then "Loads:" and one line per scale:
-${loadExample(members)}
-Heavy-day Rx is 85-95% of a PR or the heaviest owned implement. Conditioning Rx is generally 70-80% of a PR or the upper half of owned implements. Performance is about 75% of Rx. Lifestyle is about 55%, fewer reps, or the library's easier movement. Never invent a weight or vest poundage. Never Rx the lightest owned implement when a heavier one exists. Write "weighted vest".
+${loadBrief(members)}
+Heavy-day Rx is 85-95% of that member's PR, or the heaviest owned implement for a male member and the next step down for a female member. Conditioning Rx is 70-80% of that member's PR, or the upper half of owned implements for a male member and one step lighter for a female member. Performance is about 75% of that person's Rx. Lifestyle is about 55%, fewer reps, or the library's easier movement. Never invent a weight or vest poundage. Never write a bare weight. Never Rx the lightest owned implement for the male when a heavier one exists. Write "weighted vest".
 Owned gear only. Bodyweight is always allowed. If a classic piece needs missing gear, substitute.
 
 Class order: warmup, prep, parts, cooldown.
@@ -355,6 +362,7 @@ async function draftDay(input: {
   check?: ProgramCheck;
   sourceText: string;
   items: EquipmentRow[];
+  members?: { initials: string }[];
   messages: { role: "system" | "user"; content: string }[];
   temperature?: number;
   rejected: (violations: string[]) => string;
@@ -389,6 +397,7 @@ async function draftDay(input: {
           },
           input.items,
           input.check,
+          input.members,
         ),
         ...schemeViolations({
           warmup: parsed.warmup,
@@ -588,6 +597,7 @@ export async function generateDay(input: { date: string; focus?: string }) {
     check: checkFor(assignment.tag),
     sourceText: "",
     items,
+    members,
     messages,
     rejected: (violations) => prompt(violations),
     invalid: (error) =>
@@ -650,6 +660,7 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
     check,
     sourceText: `rewrite:${intent}`,
     items,
+    members: clarify ? undefined : members,
     messages,
     temperature: clarify ? 0.3 : 0.6,
     rejected: (violations) => prompt(violations),

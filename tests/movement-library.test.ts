@@ -41,6 +41,27 @@ test("run variants require Outdoor Run to be owned", () => {
   assert.ok(eligibleMovements(running).some((movement) => movement.id === "run"));
 });
 
+test("wall space is always available and deficit gear maps from owned plates or parallettes", () => {
+  assert.ok(libraryEquipment([]).has("wall"));
+  assert.ok(!libraryEquipment([]).has("abmat"));
+  assert.ok(!libraryEquipment([]).has("plates_or_parallettes"));
+  assert.ok(libraryEquipment([item({ slug: "abmat", category: "rig" })]).has("abmat"));
+  assert.ok(libraryEquipment([item({ slug: "parallettes", category: "rig" })]).has("plates_or_parallettes"));
+  assert.ok(libraryEquipment([item({ slug: "plate_45lb", category: "plates", quantity: 2 })]).has("plates_or_parallettes"));
+  assert.ok(eligibleMovements([]).some((movement) => movement.id === "kneeling-box-pike-push-up") === false);
+  assert.ok(eligibleMovements([item({ slug: "box_20", category: "rig" })]).some((movement) => movement.id === "kneeling-box-pike-push-up"));
+  assert.ok(eligibleMovements([]).some((movement) => movement.id === "handstand-hold"));
+  assert.ok(
+    !eligibleMovements([item({ slug: "box_20", category: "rig" })]).some((movement) => movement.id === "box-deficit-pike-push-up"),
+  );
+  assert.ok(
+    eligibleMovements([
+      item({ slug: "box_20", category: "rig" }),
+      item({ slug: "plate_45lb", category: "plates", quantity: 2 }),
+    ]).some((movement) => movement.id === "box-deficit-pike-push-up"),
+  );
+});
+
 test("movement menu follows the assigned pattern and recent bans", () => {
   const equipment = [item({ slug: "db_35lb", category: "dumbbell", quantity: 2 })];
   const menu = movementMenu({

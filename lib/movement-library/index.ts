@@ -116,7 +116,14 @@ export function libraryEquipment(items: LibraryInventoryItem[]): Set<string> {
   if (slugs.has("pvc")) equipment.add("band_or_pvc");
   if (slugs.has("foam_roller")) equipment.add("foam_roller");
   if (slugs.has("lacrosse_ball")) equipment.add("massage_ball");
-  if (slugs.has("wall_target")) equipment.add("wall");
+  if (slugs.has("abmat")) equipment.add("abmat");
+  if (
+    slugs.has("parallettes") ||
+    items.some((item) => item.owned && item.quantity >= 2 && (item.category === "plates" || item.slug.startsWith("plate_")))
+  ) {
+    equipment.add("plates_or_parallettes");
+  }
+  equipment.add("wall");
   return equipment;
 }
 

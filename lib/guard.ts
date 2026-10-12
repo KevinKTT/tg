@@ -41,7 +41,7 @@ const KEYWORDS: { pattern: RegExp; cap: string; label: string }[] = [
   { pattern: /\b(rope climbs?|climbing rope)\b/i, cap: "climb_rope", label: "climbing rope" },
   { pattern: /\bring muscle-?ups?\b/i, cap: "rings", label: "rings" },
   { pattern: /\brings\b/i, cap: "rings", label: "rings" },
-  { pattern: /\b(pull-?ups?|chest-to-bar|chest to bar|toes-to-bar|toes to bar|kipping|bar muscle-?ups?)\b/i, cap: "pullup_bar", label: "pull-up bar" },
+  { pattern: /\b(pull-?ups?|chest-to-bar|chest to bar|toes-to-bar|toes to bar|kipping(?!\s+handstand)|bar muscle-?ups?)\b/i, cap: "pullup_bar", label: "pull-up bar" },
   { pattern: /\b(double-?unders?|single-?unders?|jump ropes?)\b/i, cap: "jump_rope", label: "jump rope" },
   { pattern: /\b(?:weighted\s+vests?|weight\s+vests?|vests?)\b/i, cap: "weight_vest", label: "weight vest" },
   { pattern: /\bkettlebells?\b|\bkbs?\b/i, cap: "kettlebell", label: "kettlebell" },
@@ -211,7 +211,36 @@ export function sessionDurationViolations(input: {
   return problems;
 }
 
-export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardItem[], check?: ProgramCheck): string[] {
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function memberLoadViolations(summary: string, details: string, members: { initials: string }[]): string[] {
+  const named = members.filter((member) => member.initials.trim());
+  if (!named.length) return [];
+  const block = summary.match(/Loads:\s*([\s\S]*)/i)?.[1];
+  const loaded = /\b(dumbbells?|dbs?|kettlebells?|kbs?|barbells?|\d+\s*(?:lb|kg))\b/i.test(`${summary}\n${details}`);
+  if (!block?.trim()) return loaded ? ["is missing a load line for every member"] : [];
+  const lines = block
+    .split(/\n|·/)
+    .map((line) => line.trim())
+    .filter((line) => /[A-Za-z0-9]/.test(line));
+  return [
+    ...new Set(
+      lines.flatMap((line) => {
+        const missing = named.filter((member) => !new RegExp(`\\b${escapeRegExp(member.initials)}\\b`, "i").test(line));
+        return missing.length ? [`load line is missing ${missing.map((member) => member.initials).join(" and ")}`] : [];
+      }),
+    ),
+  ];
+}
+
+export function guardWorkout(
+  tracks: Record<string, GuardTrack>,
+  items: GuardItem[],
+  check?: ProgramCheck,
+  members?: { initials: string }[],
+): string[] {
   const caps = capabilities(items);
   const violations: string[] = [];
   for (const [track, body] of Object.entries(tracks)) {
@@ -242,6 +271,12 @@ export function guardWorkout(tracks: Record<string, GuardTrack>, items: GuardIte
       if (check.load === "heavy") {
         const loadViolation = heavyRxViolation(body.summary ?? "", items);
         if (loadViolation) violations.push(`${track} ${loadViolation}`);
+      }
+    }
+    if (members?.length) {
+      const details = body.parts.map((part) => part.details).join("\n");
+      for (const problem of memberLoadViolations(body.summary ?? "", details, members)) {
+        violations.push(`${track} ${problem}`);
       }
     }
     const loads = [

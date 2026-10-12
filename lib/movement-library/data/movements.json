@@ -4560,6 +4560,7 @@
         "push-up"
       ],
       "harder": [
+        "box-pike-push-up",
         "wall-handstand-push-up"
       ]
     },
@@ -4594,10 +4595,15 @@
     "typical_unit": "reps",
     "scaling_options": {
       "easier": [
-        "pike-push-up"
+        "pike-push-up",
+        "box-pike-push-up",
+        "handstand-push-up-negative",
+        "partial-range-handstand-push-up"
       ],
       "harder": [
-        "kipping-handstand-push-up"
+        "kipping-handstand-push-up",
+        "deficit-handstand-push-up",
+        "wall-facing-handstand-push-up"
       ]
     },
     "impact": "low",
@@ -4630,10 +4636,12 @@
     "typical_unit": "reps",
     "scaling_options": {
       "easier": [
-        "wall-handstand-push-up"
+        "wall-handstand-push-up",
+        "headstand-kip-drill"
       ],
       "harder": [
-        "handstand-walk"
+        "handstand-walk",
+        "deficit-handstand-push-up"
       ]
     },
     "impact": "low",
@@ -4665,10 +4673,14 @@
     "typical_unit": "reps",
     "scaling_options": {
       "easier": [
-        "pike-push-up"
+        "pike-push-up",
+        "partial-wall-walk",
+        "box-pike-hold"
       ],
       "harder": [
-        "handstand-hold"
+        "handstand-hold",
+        "wall-walk-top-hold",
+        "lateral-wall-walk"
       ]
     },
     "impact": "low",
@@ -4701,10 +4713,15 @@
     "typical_unit": "time",
     "scaling_options": {
       "easier": [
-        "wall-walk"
+        "wall-walk",
+        "box-pike-hold",
+        "l-handstand"
       ],
       "harder": [
-        "handstand-walk"
+        "handstand-walk",
+        "wall-facing-handstand-shoulder-tap",
+        "chest-to-wall-toe-pull",
+        "freestanding-handstand-hold"
       ]
     },
     "impact": "low",
@@ -4735,10 +4752,14 @@
     "typical_unit": "distance",
     "scaling_options": {
       "easier": [
-        "handstand-hold"
+        "handstand-hold",
+        "freestanding-handstand-shoulder-tap",
+        "handstand-walk-to-wall",
+        "lateral-wall-walk"
       ],
       "harder": [
-        "kipping-handstand-push-up"
+        "kipping-handstand-push-up",
+        "handstand-pirouette"
       ]
     },
     "impact": "low",
@@ -8612,5 +8633,1500 @@
     "impact": "low",
     "short_description": "Bear crawl forward and back wearing a weighted vest, keeping the knees an inch off the ground and the back flat.",
     "source_url": "https://www.acefitness.org/resources/everyone/exercise-library/150/bear-crawl/"
+  },
+  {
+    "id": "kneeling-box-pike-push-up",
+    "name": "Kneeling Box Pike Push-Up",
+    "aliases": [
+      "knees-on-box pike push-up",
+      "box HSPU (knees)"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "pike-push-up"
+      ],
+      "harder": [
+        "box-pike-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With the knees on a box or bench and hips stacked over the shoulders, lower the head to a tripod in front of the hands and press back up.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-push-up-rx-plan"
+  },
+  {
+    "id": "box-pike-push-up",
+    "name": "Box Pike Push-Up",
+    "aliases": [
+      "feet-on-box pike push-up",
+      "box handstand push-up",
+      "box HSPU",
+      "elevated pike push-up"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "kneeling-box-pike-push-up",
+        "pike-push-up"
+      ],
+      "harder": [
+        "single-leg-box-pike-push-up",
+        "box-deficit-pike-push-up",
+        "wall-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With the toes on a box or bench and hips stacked over the shoulders, lower the head to a tripod just in front of the hands and press to lockout; a higher box means more load.",
+    "source_url": "https://www.crossfit.com/essentials/hspu-and-you-master-the-movement"
+  },
+  {
+    "id": "single-leg-box-pike-push-up",
+    "name": "Single-Leg Box Pike Push-Up",
+    "aliases": [
+      "one-leg box HSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-push-up"
+      ],
+      "harder": [
+        "wall-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Perform a box pike push-up with one leg lifted off the box and pointed to the ceiling, stacking more bodyweight over the hands; alternate legs between sets.",
+    "source_url": "https://www.crossfit.com/essentials/hspu-and-you-master-the-movement"
+  },
+  {
+    "id": "box-deficit-pike-push-up",
+    "name": "Box Deficit Pike Push-Up",
+    "aliases": [
+      "box deficit HSPU",
+      "deficit box HSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box",
+      "plates_or_parallettes"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-push-up"
+      ],
+      "harder": [
+        "wall-handstand-push-up",
+        "deficit-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Do a box pike push-up with the hands on stable plates or parallettes so the head travels below hand level for extra range.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-push-up-rx-plan"
+  },
+  {
+    "id": "box-pike-hold",
+    "name": "Box Pike Hold",
+    "aliases": [
+      "elevated stacked pike hold",
+      "box handstand hold",
+      "pike handstand on box"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "plank-to-pike",
+        "bear-to-pike"
+      ],
+      "harder": [
+        "l-handstand",
+        "box-pike-shoulder-tap",
+        "handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With feet on a box, walk the hands in until the hips stack over the shoulders and hold with locked elbows, active shoulders, and eyes toward the box.",
+    "source_url": "https://www.strongfirst.com/journey-handstand-push-part-2/"
+  },
+  {
+    "id": "box-pike-shoulder-tap",
+    "name": "Box Pike Shoulder Taps",
+    "aliases": [
+      "elevated stacked pike shoulder taps",
+      "box handstand shoulder taps"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-hold"
+      ],
+      "harder": [
+        "wall-facing-handstand-shoulder-tap"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a box pike hold, shift weight to one hand, lift the other to tap the opposite shoulder, and replace it without the hips swaying; alternate.",
+    "source_url": "https://www.strongfirst.com/journey-handstand-push-part-2/"
+  },
+  {
+    "id": "box-pike-to-hollow-walk",
+    "name": "Box Pike-to-Hollow Walk",
+    "aliases": [
+      "box pike to hollow walks",
+      "pike-to-hollow walk"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "core/midline",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "triceps"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "plank-to-pike"
+      ],
+      "harder": [
+        "wall-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With feet on a box, walk the hands in to a stacked pike, then walk them back out to a long hollow plank and repeat, keeping the elbows locked.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-walking-rx-plan"
+  },
+  {
+    "id": "l-handstand",
+    "name": "L-Handstand (Wall)",
+    "aliases": [
+      "L-shape handstand",
+      "wall pike handstand",
+      "L-stand"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "box-pike-hold"
+      ],
+      "harder": [
+        "handstand-hold",
+        "kick-up-to-wall"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Sit facing away from a wall to measure leg length, place the hands there, walk the feet up the wall to hip height, and hold an L with hips over shoulders.",
+    "source_url": "https://us.humankinetics.com/blogs/active-at-home/l-shaped-handstand-for-shoulder-arm-and-core-strength"
+  },
+  {
+    "id": "handstand-push-up-negative",
+    "name": "Handstand Push-Up Negative",
+    "aliases": [
+      "HSPU negative",
+      "eccentric HSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-push-up"
+      ],
+      "harder": [
+        "partial-range-handstand-push-up",
+        "wall-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Kick up to the wall and lower under control for 3-5 seconds until the head reaches a pad, then come down and reset rather than pressing.",
+    "source_url": "https://wodprep.com/blog/strict-handstand-push-up-progression/"
+  },
+  {
+    "id": "partial-range-handstand-push-up",
+    "name": "Reduced-Range Handstand Push-Up",
+    "aliases": [
+      "partial ROM HSPU",
+      "AbMat HSPU",
+      "stacked-mat HSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall",
+      "abmat"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "handstand-push-up-negative"
+      ],
+      "harder": [
+        "wall-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Do strict handstand push-ups to a stack of AbMats or folded mats under the head, removing height as strength improves.",
+    "source_url": "https://wodprep.com/blog/strict-handstand-push-up-progression/"
+  },
+  {
+    "id": "wall-facing-handstand-push-up",
+    "name": "Wall-Facing Handstand Push-Up",
+    "aliases": [
+      "chest-to-wall HSPU",
+      "wall-facing HSPU",
+      "chest-facing HSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "wall-handstand-push-up",
+        "handstand-hold"
+      ],
+      "harder": [
+        "freestanding-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Wall walk up to a chest-to-wall handstand, lower the head to a tripod in front of the hands, and press back up in a hollow line; dismount by walking down.",
+    "source_url": "https://wodprep.com/blog/chest-to-wall-handstand-push-up/"
+  },
+  {
+    "id": "deficit-handstand-push-up",
+    "name": "Deficit Handstand Push-Up",
+    "aliases": [
+      "deficit HSPU",
+      "parallette HSPU",
+      "elevated HSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall",
+      "plates_or_parallettes"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "wall-handstand-push-up"
+      ],
+      "harder": [
+        "freestanding-handstand-push-up",
+        "wall-facing-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With the hands on stable plates or parallettes, perform a strict wall handstand push-up so the head drops below hand level.",
+    "source_url": "https://wodprep.com/blog/handstand-push-ups-ultimate-guide/"
+  },
+  {
+    "id": "freestanding-handstand-push-up",
+    "name": "Freestanding Handstand Push-Up",
+    "aliases": [
+      "freestanding HSPU",
+      "FSHSPU"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core",
+      "forearms"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "deficit-handstand-push-up",
+        "freestanding-handstand-hold"
+      ],
+      "harder": [
+        "handstand-press-negative"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Kick up to a freestanding handstand, lower to a tripod with the shoulders slightly ahead of the hands, and press back to a balanced handstand.",
+    "source_url": "https://www.crossfit.com/essentials/the-freestanding-handstand-push-up"
+  },
+  {
+    "id": "headstand-kip-drill",
+    "name": "Headstand Kip Drill",
+    "aliases": [
+      "tripod kip",
+      "headstand knee tuck to extension",
+      "HSPU kip drill"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "hip flexors",
+      "glutes",
+      "core",
+      "deltoids"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "tripod-headstand"
+      ],
+      "harder": [
+        "kipping-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a tripod headstand with the hips on the wall, lower the knees toward the chest, then drive the hips and feet back up the wall to full extension without pressing.",
+    "source_url": "https://trainingthinktank.com/the-complete-guide-to-handstand-push-ups/"
+  },
+  {
+    "id": "handstand-press-negative",
+    "name": "Handstand Press Negative",
+    "aliases": [
+      "eccentric press to handstand",
+      "press-to-handstand negative"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "upper traps",
+      "core",
+      "hip flexors"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "freestanding-handstand-hold",
+        "handstand-hold"
+      ],
+      "harder": [
+        "freestanding-handstand-push-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a handstand, lower the legs as slowly as possible (bent, tucked, or piked) so the feet land softly near the hands; the wall can serve as a safety net.",
+    "source_url": "https://www.crossfit.com/essentials/presses-to-handstands"
+  },
+  {
+    "id": "partial-wall-walk",
+    "name": "Partial Wall Walk",
+    "aliases": [
+      "half wall walk",
+      "45-degree wall walk"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-hold"
+      ],
+      "harder": [
+        "wall-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a push-up with feet at the wall, walk the feet up and hands in only to a challenging but safe angle (e.g. 45 degrees), pause, and walk back down.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-push-up-rx-plan"
+  },
+  {
+    "id": "wall-walk-top-hold",
+    "name": "Wall Walk with Top Hold",
+    "aliases": [
+      "wall walk with hold",
+      "wall walk + nose-to-wall hold",
+      "wall climb hold"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "wall-walk"
+      ],
+      "harder": [
+        "wall-facing-handstand-shoulder-tap",
+        "chest-to-wall-toe-pull"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Wall walk all the way to a nose-and-toes-to-wall handstand, hold 5-10 seconds in a hollow line, then walk back down under control; repeat for reps.",
+    "source_url": "https://wodprep.com/blog/progression-handstand-walk/"
+  },
+  {
+    "id": "back-to-wall-handstand-hold",
+    "name": "Back-to-Wall Handstand Hold",
+    "aliases": [
+      "back-to-wall handstand",
+      "kick-up wall handstand"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "kick-up-to-wall",
+        "box-pike-hold"
+      ],
+      "harder": [
+        "back-to-wall-heel-pull",
+        "freestanding-handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Kick up with the back to the wall and hold with heels lightly touching, arms locked, ribs down, and glutes squeezed so the back does not banana.",
+    "source_url": "https://gmb.io/freestanding-handstand/"
+  },
+  {
+    "id": "kick-up-to-wall",
+    "name": "Kick-Up to Wall",
+    "aliases": [
+      "wall kick-up",
+      "handstand kick-up (wall)"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "upper traps",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-hold",
+        "l-handstand"
+      ],
+      "harder": [
+        "back-to-wall-handstand-hold",
+        "handstand-kick-up"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Facing a wall, lunge, place the hands a few inches from it, and kick one leg up so the heel touches the wall softly, followed by the other leg; step down and repeat.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-push-up-rx-plan"
+  },
+  {
+    "id": "handstand-kick-up",
+    "name": "Freestanding Handstand Kick-Up",
+    "aliases": [
+      "kick-up practice",
+      "handstand kick-up",
+      "split-leg kick-up"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "kick-up-to-wall",
+        "handstand-scissor-balance"
+      ],
+      "harder": [
+        "freestanding-handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In open space, lunge and kick up with a split-leg entry aiming to find balance without a wall; step or cartwheel out when it tips.",
+    "source_url": "https://gmb.io/freestanding-handstand/"
+  },
+  {
+    "id": "freestanding-handstand-hold",
+    "name": "Freestanding Handstand Hold",
+    "aliases": [
+      "freestanding handstand",
+      "free handstand",
+      "handstand balance"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "chest-to-wall-toe-pull",
+        "back-to-wall-heel-pull",
+        "handstand-hold"
+      ],
+      "harder": [
+        "handstand-walk",
+        "freestanding-handstand-shoulder-tap"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Kick up to a handstand away from the wall with wrists, shoulders, hips, and ankles stacked, balancing through finger and heel-of-hand pressure.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/free-handstand"
+  },
+  {
+    "id": "handstand-scissor-balance",
+    "name": "Handstand Scissor Balance",
+    "aliases": [
+      "scissor drill",
+      "handstand scissor drill",
+      "partial wall handstand"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "handstand-hold"
+      ],
+      "harder": [
+        "chest-to-wall-toe-pull",
+        "freestanding-handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a wall handstand, pull one foot off the wall and over the hips, then bring the other to meet it and balance briefly before returning the feet to the wall.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-walking-rx-plan"
+  },
+  {
+    "id": "chest-to-wall-toe-pull",
+    "name": "Chest-to-Wall Toe Pulls",
+    "aliases": [
+      "toe pulls",
+      "wall toe pulls"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "handstand-scissor-balance",
+        "handstand-hold"
+      ],
+      "harder": [
+        "freestanding-handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a wall-facing handstand with light toe contact, press into the fingers so both feet float off the wall, balance briefly, and return softly.",
+    "source_url": "https://calisthenics.com/exercise/chest-to-wall-handstand-toe-pulls/"
+  },
+  {
+    "id": "back-to-wall-heel-pull",
+    "name": "Back-to-Wall Heel Pulls",
+    "aliases": [
+      "heel pulls",
+      "wall heel pulls"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "back-to-wall-handstand-hold"
+      ],
+      "harder": [
+        "freestanding-handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a back-to-wall handstand, press through the fingers so the heels leave the wall, hold a brief free balance, and drift back softly.",
+    "source_url": "https://calisthenics.com/exercise/back-to-wall-handstand-heel-pulls/"
+  },
+  {
+    "id": "handstand-shrug",
+    "name": "Handstand Shrug",
+    "aliases": [
+      "wall handstand shrug",
+      "HS shrug"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "upper traps",
+      "serratus anterior",
+      "deltoids"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "box-pike-hold"
+      ],
+      "harder": [
+        "wall-facing-handstand-shoulder-tap"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a wall handstand with locked elbows, let the shoulders sink slightly toward the floor, then shrug them back up toward the ears to push tall.",
+    "source_url": "https://www.crossfit.com/essentials/crossfit-handstand-walking-rx-plan"
+  },
+  {
+    "id": "wall-facing-handstand-weight-shift",
+    "name": "Wall-Facing Handstand Weight Shifts",
+    "aliases": [
+      "chest-to-wall weight shifts",
+      "handstand hand lifts"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "handstand-hold"
+      ],
+      "harder": [
+        "wall-facing-handstand-shoulder-tap"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a chest-to-wall handstand, shift weight side to side until one hand gets light, then lift it just off the floor and replace it; alternate.",
+    "source_url": "https://calisthenics.com/exercise/chest-to-wall-handstand-weight-shifts/"
+  },
+  {
+    "id": "wall-facing-handstand-shoulder-tap",
+    "name": "Wall-Facing Handstand Shoulder Taps",
+    "aliases": [
+      "chest-to-wall shoulder taps",
+      "handstand shoulder taps",
+      "handstand wall run"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "wall-facing-handstand-weight-shift",
+        "box-pike-shoulder-tap"
+      ],
+      "harder": [
+        "handstand-hip-tap",
+        "lateral-wall-walk",
+        "handstand-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a nose-to-wall handstand, shift onto one arm, tap that side's shoulder with the free hand, and replace it smoothly; alternate for reps.",
+    "source_url": "https://wodprep.com/blog/progression-handstand-walk/"
+  },
+  {
+    "id": "handstand-hip-tap",
+    "name": "Wall-Facing Handstand Hip Taps",
+    "aliases": [
+      "handstand hip taps"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "wall-facing-handstand-shoulder-tap"
+      ],
+      "harder": [
+        "freestanding-handstand-shoulder-tap"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a wall-facing handstand, shift fully onto one hand and reach the other down to touch the hip before replacing it; a longer single-arm support than a shoulder tap.",
+    "source_url": "https://wodprep.com/blog/guide-handstand-walks-drills/"
+  },
+  {
+    "id": "lateral-wall-walk",
+    "name": "Lateral Handstand Walk at the Wall",
+    "aliases": [
+      "lateral wall walk",
+      "wall-facing side walk"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "distance",
+    "scaling_options": {
+      "easier": [
+        "wall-facing-handstand-shoulder-tap"
+      ],
+      "harder": [
+        "handstand-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a chest-to-wall handstand, take small side steps with the hands while the feet slide along the wall; travel both directions before walking down.",
+    "source_url": "https://calisthenics.com/exercise/lateral-handstand-walk-at-the-wall/"
+  },
+  {
+    "id": "handstand-walk-to-wall",
+    "name": "Handstand Walk to Wall",
+    "aliases": [
+      "walking into the wall",
+      "wall walk-ins"
+    ],
+    "category": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "distance",
+    "scaling_options": {
+      "easier": [
+        "wall-facing-handstand-shoulder-tap",
+        "freestanding-handstand-hold"
+      ],
+      "harder": [
+        "handstand-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Kick up a few hand-lengths from a wall and take small hand steps toward it so the wall catches any overbalance; increase the starting distance over time.",
+    "source_url": "https://wodprep.com/blog/guide-handstand-walks-drills/"
+  },
+  {
+    "id": "freestanding-handstand-weight-shift",
+    "name": "Freestanding Handstand Weight Shifts",
+    "aliases": [
+      "freestanding hand lifts"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "freestanding-handstand-hold",
+        "wall-facing-handstand-weight-shift"
+      ],
+      "harder": [
+        "freestanding-handstand-shoulder-tap"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a freestanding handstand, shift the weight side to side and briefly lighten or lift one hand while keeping the line stacked.",
+    "source_url": "https://wodprep.com/blog/progression-handstand-walk/"
+  },
+  {
+    "id": "freestanding-handstand-shoulder-tap",
+    "name": "Freestanding Handstand Shoulder Taps",
+    "aliases": [
+      "free handstand shoulder taps"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "high",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "freestanding-handstand-weight-shift",
+        "handstand-hip-tap"
+      ],
+      "harder": [
+        "handstand-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Balance a freestanding handstand, shift onto one arm, tap the shoulder, and replace the hand without falling out; alternate.",
+    "source_url": "https://wodprep.com/blog/progression-handstand-walk/"
+  },
+  {
+    "id": "handstand-pirouette",
+    "name": "Handstand Pirouette",
+    "aliases": [
+      "handstand turn",
+      "pirouette"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "locomotion",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "forearms",
+      "wrists"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "advanced",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "freestanding-handstand-weight-shift",
+        "handstand-walk"
+      ],
+      "harder": [
+        "handstand-press-negative"
+      ]
+    },
+    "impact": "low",
+    "short_description": "In a freestanding handstand, shift onto one hand and step the other around in quarter turns until the body has rotated 180-360 degrees.",
+    "source_url": "https://www.crossfit.com/essentials/pirouettes"
+  },
+  {
+    "id": "tripod-knee-balance",
+    "name": "Tripod (Knee-Supported Headstand Balance)",
+    "aliases": [
+      "tripod",
+      "knees-on-arms tripod",
+      "tuck tripod"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "core",
+      "shoulder stabilizers"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "low",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "bear-to-pike"
+      ],
+      "harder": [
+        "tripod-headstand",
+        "frog-stand"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Place the crown of the head about a foot ahead of the hands in a triangle, rest one knee then the other on the backs of the upper arms, and hold.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/tripod-2"
+  },
+  {
+    "id": "tripod-headstand",
+    "name": "Tripod Headstand",
+    "aliases": [
+      "headstand",
+      "tripod head stand"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "core",
+      "shoulder stabilizers"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "tripod-knee-balance"
+      ],
+      "harder": [
+        "headstand-kip-drill",
+        "handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With the crown of the head and both palms forming a triangle and elbows over the wrists, tuck the knees up and extend the legs overhead, pressing actively through the hands.",
+    "source_url": "https://calisthenics.com/exercise/headstand/"
+  },
+  {
+    "id": "forearm-headstand",
+    "name": "Forearm Headstand",
+    "aliases": [
+      "supported headstand",
+      "Salamba Sirsasana",
+      "forearm stand (head down)"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "vertical push",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "shoulder stabilizers",
+      "forearms"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "tripod-knee-balance"
+      ],
+      "harder": [
+        "handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With fingers interlaced and forearms on the floor, place the crown of the head against the palms, walk the feet in, and lift the legs overhead while pressing through the forearms.",
+    "source_url": "https://www.yogajournal.com/poses/supported-headstand/"
+  },
+  {
+    "id": "frog-stand",
+    "name": "Frog Stand",
+    "aliases": [
+      "bent-arm frog stand",
+      "gymnastics frog"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "core/midline",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "forearms",
+      "core"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "low",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "tripod-knee-balance"
+      ],
+      "harder": [
+        "crow-stand"
+      ]
+    },
+    "impact": "low",
+    "short_description": "Squat, place the hands flat with fingers turned slightly out, rest the knees on the backs of the slightly bent arms, and lean forward until the feet lift.",
+    "source_url": "https://www.gymnasticbodies.com/exercises/frog-stand"
+  },
+  {
+    "id": "crow-stand",
+    "name": "Crow Stand",
+    "aliases": [
+      "crow pose",
+      "bakasana",
+      "crow"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "core/midline",
+    "primary_muscles": [
+      "deltoids",
+      "triceps",
+      "forearms",
+      "core",
+      "hip flexors"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "intermediate",
+    "intensity": "moderate",
+    "typical_unit": "time",
+    "scaling_options": {
+      "easier": [
+        "frog-stand"
+      ],
+      "harder": [
+        "freestanding-handstand-hold"
+      ]
+    },
+    "impact": "low",
+    "short_description": "With the knees placed high on the backs of the upper arms and elbows bent, lean the shoulders forward until both feet float, keeping the head off the floor.",
+    "source_url": "https://calisthenics.com/exercise/crow-stand/"
+  },
+  {
+    "id": "plank-to-pike",
+    "name": "Plank to Pike",
+    "aliases": [
+      "plank pike",
+      "pike-up"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "core/midline",
+    "primary_muscles": [
+      "rectus abdominis",
+      "deltoids",
+      "hip flexors"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "plank"
+      ],
+      "harder": [
+        "box-pike-hold",
+        "box-pike-to-hollow-walk"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a high plank, press the floor away and lift the hips up and back into an inverted V, then lower back to plank with control.",
+    "source_url": "https://theworkoutmag.com/training/plank-to-pike-form-guide-progressions"
+  },
+  {
+    "id": "bear-to-pike",
+    "name": "Bear Plank to Pike",
+    "aliases": [
+      "bear to pike",
+      "bear-to-downdog"
+    ],
+    "category": "bodyweight",
+    "equipment": [],
+    "dumbbell_count": 0,
+    "modality": "gymnastics",
+    "movement_pattern": "core/midline",
+    "primary_muscles": [
+      "deltoids",
+      "core",
+      "hamstrings"
+    ],
+    "unilateral": false,
+    "vest_compatible": false,
+    "skill_level": "beginner",
+    "intensity": "moderate",
+    "typical_unit": "reps",
+    "scaling_options": {
+      "easier": [
+        "bear-hold"
+      ],
+      "harder": [
+        "box-pike-hold",
+        "plank-to-pike"
+      ]
+    },
+    "impact": "low",
+    "short_description": "From a bear plank with knees hovering, straighten the legs to push the hips up into a pike with ears between the arms, then return to the bear.",
+    "source_url": "https://courtneymedicalgroupaz.com/2022/04/12/exercise-of-the-week-bear-plank-to-pike/"
   }
 ]

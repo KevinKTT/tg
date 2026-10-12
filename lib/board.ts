@@ -32,7 +32,7 @@ const SCALE_LINE = new RegExp(`^(${SCALE})\\s*[:—–-]\\s*(.+)$`, "i");
 const SLASH_PART = new RegExp(`^(.+?)\\s*\\((${SCALE})\\)\\s*$`, "i");
 const MINUTE = /^Minute\s+(\d+)\s*:\s*(.+)$/i;
 const REPS =
-  /^(\d+\s*[x×]\s*\d+|\d+(?:\s*[-/]\s*\d+)+|\d+\s*(?:sec|secs|min|mins|cal|cals)|\d+m|\d+)\s+(.+)$/i;
+  /^(\d+\s*[x×]\s*\d+|\d+(?:\s*[-/]\s*\d+)+|\d+(?:\.\d+)?\s*(?:sec|secs|seconds?|min|mins|minutes?|cal|cals|calories?)(?:\s*\/\s*[a-z]+|\s+each(?:\s+side)?)?|\d+(?:\.\d+)?\s*(?:km|mi|ft|yd|m)\b|\d+)\s+(.+)$/i;
 
 function canonicalScale(label: string) {
   const lower = label.toLowerCase();

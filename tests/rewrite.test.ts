@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rewriteIntent, rewriteTask } from "../lib/ai";
+import { loadBrief, rewriteIntent, rewriteTask } from "../lib/ai";
 
 test("clarify keeps the workout and only cleans the board", () => {
   const task = rewriteTask("clarify");
@@ -14,6 +14,17 @@ test("a clarify note can change the scheme", () => {
   assert.match(task, /Make this an AMRAP/);
   assert.match(task, /unless the note changes them/);
   assert.match(task, /update that part's format/);
+});
+
+test("load lines always name the male and female versions", () => {
+  const brief = loadBrief([
+    { initials: "KT", sex: "m" },
+    { initials: "HT", sex: "f" },
+  ]);
+  assert.match(brief, /KT 25 lb \/ HT 20 lb/);
+  assert.match(brief, /Always name every member/);
+  assert.match(brief, /Male and female are different versions/);
+  assert.doesNotMatch(brief, /Only name initials when loads differ/);
 });
 
 test("a focus rewrite restyles this session", () => {

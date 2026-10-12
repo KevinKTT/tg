@@ -63,7 +63,8 @@
       "st-478-breathing",
       "st-cyclic-sighing",
       "st-legs-up-wall",
-      "st-9090-breathing"
+      "st-9090-breathing",
+      "st-constructive-rest"
     ],
     "movement_count": 16
   },
@@ -124,7 +125,8 @@
       "st-crocodile-breathing",
       "st-478-breathing",
       "st-cyclic-sighing",
-      "st-9090-breathing"
+      "st-9090-breathing",
+      "st-constructive-rest"
     ],
     "movement_count": 15
   },
@@ -194,7 +196,8 @@
       "st-diaphragmatic-breathing",
       "st-478-breathing",
       "st-cyclic-sighing",
-      "st-legs-up-wall"
+      "st-legs-up-wall",
+      "st-constructive-rest"
     ],
     "movement_count": 23
   },
@@ -217,7 +220,13 @@
       "wu-wrist-prep",
       "wu-pass-through",
       "wu-push-up-negatives",
-      "wu-burpee-breakdown"
+      "wu-burpee-breakdown",
+      "wu-finger-pulses",
+      "wu-wrist-pulses",
+      "wu-elbow-rotations",
+      "wu-plank-circles",
+      "wu-serratus-wall-slide",
+      "wu-wall-angel"
     ],
     "stretches": [
       "st-chin-tuck",
@@ -238,7 +247,12 @@
       "st-box-breathing",
       "st-diaphragmatic-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-wall-wrist-flexor",
+      "st-kneeling-back-of-hand-wrist",
+      "st-wrist-cars",
+      "st-roller-snow-angel",
+      "st-constructive-rest"
     ],
     "movement_count": 20
   },
@@ -269,7 +283,26 @@
       "wu-tgu-practice",
       "wu-db-halo",
       "wu-push-up-negatives",
-      "wu-pike-shoulder-shrug"
+      "wu-pike-shoulder-shrug",
+      "wu-finger-pulses",
+      "wu-wrist-pulses",
+      "wu-elbow-rotations",
+      "wu-plank-circles",
+      "wu-shoulder-cars",
+      "wu-serratus-wall-slide",
+      "wu-wall-angel",
+      "wu-banded-i-to-shrug",
+      "wu-overhead-band-pull-apart",
+      "wu-box-pike-shrug",
+      "wu-box-pike-shoulder-tap",
+      "wu-wall-shoulder-flexion-press",
+      "wu-wall-line-work",
+      "wu-hollow-rock",
+      "wu-arch-hollow-roll",
+      "wu-seated-pike-pulse",
+      "wu-donkey-kicks",
+      "wu-mini-kick-ups",
+      "wu-cartwheel-bail"
     ],
     "stretches": [
       "st-upper-trap-stretch",
@@ -302,9 +335,21 @@
       "st-box-breathing",
       "st-diaphragmatic-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-wall-shoulder-flexion",
+      "st-wall-wrist-flexor",
+      "st-kneeling-back-of-hand-wrist",
+      "st-wrist-cars",
+      "st-roller-snow-angel",
+      "st-peanut-t-spine",
+      "st-banded-overhead-distraction",
+      "st-thoracic-bridge",
+      "st-supine-neck-rotation",
+      "st-scm-stretch",
+      "st-suboccipital-release",
+      "st-constructive-rest"
     ],
-    "movement_count": 17
+    "movement_count": 43
   },
   "horizontal pull": {
     "warmups": [
@@ -315,7 +360,8 @@
       "wu-arm-swings",
       "wu-thread-the-needle",
       "wu-open-book",
-      "wu-db-single-arm-row-light"
+      "wu-db-single-arm-row-light",
+      "wu-overhead-band-pull-apart"
     ],
     "stretches": [
       "st-levator-scapulae-stretch",
@@ -331,7 +377,8 @@
       "st-box-breathing",
       "st-diaphragmatic-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-constructive-rest"
     ],
     "movement_count": 7
   },
@@ -342,7 +389,9 @@
       "wu-arm-circles",
       "wu-pass-through",
       "wu-db-halo",
-      "wu-db-single-arm-row-light"
+      "wu-db-single-arm-row-light",
+      "wu-shoulder-cars",
+      "wu-wall-angel"
     ],
     "stretches": [
       "st-biceps-stretch",
@@ -354,7 +403,10 @@
       "st-box-breathing",
       "st-diaphragmatic-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-wall-shoulder-flexion",
+      "st-banded-overhead-distraction",
+      "st-constructive-rest"
     ],
     "movement_count": 3
   },
@@ -385,7 +437,11 @@
       "st-diaphragmatic-breathing",
       "st-crocodile-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-wrist-cars",
+      "st-supine-neck-rotation",
+      "st-scm-stretch",
+      "st-constructive-rest"
     ],
     "movement_count": 6
   },
@@ -405,7 +461,13 @@
       "wu-hip-rotations-push-up",
       "wu-wrist-prep",
       "wu-tgu-practice",
-      "wu-db-halo"
+      "wu-db-halo",
+      "wu-finger-pulses",
+      "wu-wrist-pulses",
+      "wu-plank-circles",
+      "wu-hollow-rock",
+      "wu-arch-hollow-roll",
+      "wu-seated-pike-pulse"
     ],
     "stretches": [
       "st-seated-spinal-twist",
@@ -423,9 +485,12 @@
       "st-crocodile-breathing",
       "st-478-breathing",
       "st-cyclic-sighing",
-      "st-9090-breathing"
+      "st-9090-breathing",
+      "st-kneeling-back-of-hand-wrist",
+      "st-thoracic-bridge",
+      "st-constructive-rest"
     ],
-    "movement_count": 31
+    "movement_count": 36
   },
   "jump": {
     "warmups": [
@@ -489,7 +554,8 @@
       "st-diaphragmatic-breathing",
       "st-478-breathing",
       "st-cyclic-sighing",
-      "st-legs-up-wall"
+      "st-legs-up-wall",
+      "st-constructive-rest"
     ],
     "movement_count": 54
   },
@@ -526,7 +592,14 @@
       "wu-pogo-hops",
       "wu-single-leg-hop-stick",
       "wu-run-strides",
-      "wu-vest-walk-easy"
+      "wu-vest-walk-easy",
+      "wu-finger-pulses",
+      "wu-wrist-pulses",
+      "wu-box-pike-shoulder-tap",
+      "wu-wall-line-work",
+      "wu-donkey-kicks",
+      "wu-mini-kick-ups",
+      "wu-cartwheel-bail"
     ],
     "stretches": [
       "st-kneeling-hip-flexor",
@@ -561,9 +634,12 @@
       "st-diaphragmatic-breathing",
       "st-478-breathing",
       "st-cyclic-sighing",
-      "st-legs-up-wall"
+      "st-legs-up-wall",
+      "st-wall-shoulder-flexion",
+      "st-wall-wrist-flexor",
+      "st-constructive-rest"
     ],
-    "movement_count": 23
+    "movement_count": 32
   },
   "full-body/olympic-style": {
     "warmups": [
@@ -588,7 +664,8 @@
       "wu-hip-hinge-drill",
       "wu-tgu-practice",
       "wu-db-halo",
-      "wu-burpee-breakdown"
+      "wu-burpee-breakdown",
+      "wu-shoulder-cars"
     ],
     "stretches": [
       "st-upper-trap-stretch",
@@ -614,7 +691,9 @@
       "st-box-breathing",
       "st-diaphragmatic-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-peanut-t-spine",
+      "st-constructive-rest"
     ],
     "movement_count": 25
   },
@@ -642,7 +721,8 @@
       "st-box-breathing",
       "st-diaphragmatic-breathing",
       "st-478-breathing",
-      "st-cyclic-sighing"
+      "st-cyclic-sighing",
+      "st-constructive-rest"
     ],
     "movement_count": 8
   }

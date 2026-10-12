@@ -46,6 +46,34 @@ test("rejects an unqualified barbell movement that is not owned", () => {
 
 const open: ProgramCheck = { load: "moderate", allowRun: true, allowHeavy: true };
 
+test("allows a kipping handstand push-up without a pull-up bar", () => {
+  const violations = guardWorkout(day("5 kipping handstand push-ups"), dumbbells);
+  assert.ok(!violations.some((item) => /pull-up bar/i.test(item)));
+});
+
+test("still requires a pull-up bar for kipping pull-ups", () => {
+  const violations = guardWorkout(day("5 kipping pull-ups"), dumbbells);
+  assert.ok(violations.some((item) => /pull-up bar/i.test(item)));
+});
+
+test("requires every member on each load line", () => {
+  const members = [{ initials: "KT" }, { initials: "HT" }];
+  const missing = guardWorkout(
+    day("10 dumbbell snatches", "jog", "stretch", "Equipment: dumbbells\nLoads:\nRx — 25 lb"),
+    dumbbells,
+    undefined,
+    members,
+  );
+  assert.ok(missing.some((item) => /missing KT and HT/i.test(item)));
+  const named = guardWorkout(
+    day("10 dumbbell snatches", "jog", "stretch", "Equipment: dumbbells\nLoads:\nRx — KT 25 lb / HT 20 lb"),
+    dumbbells,
+    undefined,
+    members,
+  );
+  assert.ok(!named.some((item) => /missing/i.test(item)));
+});
+
 test("rejects running when the assignment bans it", () => {
   const check: ProgramCheck = { ...open, allowRun: false };
   const violations = guardWorkout(day("4 rounds: 400m run, 15 air squats"), dumbbells, check);
