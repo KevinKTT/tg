@@ -375,6 +375,15 @@ button {
   color: var(--color-faint);
 }
 
+.score-note {
+  margin: 0.15rem 0 0;
+  color: var(--color-faint);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .card {
   background: var(--color-card);
   border: 1px solid var(--color-line);
