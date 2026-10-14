@@ -258,7 +258,7 @@ export function loadPlanPrompt(plan: LoadPlan): string {
   const perMovement = plan.byMovement
     .map((movement) => `- ${movement.name}: ${movement.scales.map((scale) => `${scale.label} ${scale.text}`).join(" / ")}`)
     .join("\n");
-  return `COMPUTED LOADS (derived from owned gear and logged PRs; use these exact numbers, do not invent others):
+  return `COMPUTED LOADS (anchor loads derived from owned gear and logged PRs — the reference effort for a comparable lift, not a movement-blind prescription; Rx may pick a different implement from the owned equipment list when the movement programmed bears more or less than the anchor, with Performance and Lifestyle stepping down from there):
 ${block}${perMovement ? `\nPer movement:\n${perMovement}` : ""}`;
 }
 

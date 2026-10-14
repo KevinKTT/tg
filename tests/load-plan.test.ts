@@ -83,6 +83,21 @@ test("reports no loads when no external load is owned", () => {
   assert.match(loadPlanPrompt(plan), /bodyweight/i);
 });
 
+test("frames computed loads as an anchor, not an exact prescription", () => {
+  const plan = computeLoadPlan({
+    items: dumbbells,
+    members: [{ slug: "kt", initials: "KT", sex: "m" }],
+    prs: [],
+    load: "moderate",
+    movements: [{ slug: "db-deadlift", name: "Dumbbell Deadlift" }],
+  });
+  const prompt = loadPlanPrompt(plan);
+  assert.match(prompt, /anchor/i);
+  assert.match(prompt, /not a movement-blind prescription/i);
+  assert.doesNotMatch(prompt, /use these exact numbers/i);
+  assert.match(prompt, /Rx: KT 30 lb/);
+});
+
 test("maps movement slugs to an implement category", () => {
   assert.equal(implementCategory("db-deadlift"), "dumbbell");
   assert.equal(implementCategory("deadlift"), "barbell");
