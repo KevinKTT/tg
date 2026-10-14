@@ -72,7 +72,7 @@ export const FORMATS: FormatDef[] = [
   },
   {
     id: "skill_metcon",
-    label: "Skill + Metcon",
+    label: "Skill + Workout",
     brief: "A short skill or gymnastics practice, then a brief conditioning piece.",
     focuses: ["gymnastics", "mixed", "strength"],
   },
@@ -92,6 +92,18 @@ export function formatById(id: string): FormatDef | undefined {
 
 export function formatLabel(id: string): string {
   return BY_ID.get(id as FormatId)?.label ?? "";
+}
+
+export function partDisplayName(kind: string, name: string): string {
+  return kind === "metcon" && /^metcon$/i.test(name.trim()) ? "Workout" : name;
+}
+
+export function partKindLabel(kind: string): string {
+  if (kind === "metcon") return "Workout";
+  if (kind === "warmup") return "Warm-up";
+  if (kind === "prep") return "Workout prep";
+  if (kind === "cooldown") return "Cool-down";
+  return kind;
 }
 
 export type ScoreKind = "time" | "reps" | "rounds_reps" | "load" | "done" | "none";

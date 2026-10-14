@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assignmentPrompt, inferProgram, planDay, tagFromDraft, type ProgramTag } from "../lib/program";
+import { assignmentPrompt, inferProgram, planDay, stimulusForDisplay, tagFromDraft, type ProgramTag } from "../lib/program";
 
 const gear = new Set(["dumbbell", "kettlebell", "running", "jump_rope", "barbell", "plates", "heavier_load"]);
 
@@ -77,6 +77,12 @@ test("inferProgram reads a run and a squat without needing the whiteboard later"
   assert.equal(inferred.pattern, "squat");
   assert.ok(inferred.movements.includes("back_squat"));
   assert.ok(inferred.movements.includes("run"));
+});
+
+test("a time-only stimulus is not shown, an effort stimulus is", () => {
+  assert.equal(stimulusForDisplay("about 50 min"), "");
+  assert.equal(stimulusForDisplay("45-60 minutes"), "");
+  assert.equal(stimulusForDisplay("Hard breathing, small fast sets, keep moving"), "Hard breathing, small fast sets, keep moving");
 });
 
 test("tagFromDraft keeps the movements that were actually written", () => {

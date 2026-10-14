@@ -23,8 +23,28 @@ export type ClockPart = {
 export type ClockOption = {
   id: number;
   name: string;
+  kind: string;
+  scoreType: string;
+  format: string;
   plan: ClockPlan;
 };
+
+export function sessionElapsedSec(accumulatedSec: number, runningSince: number | null, nowMs: number): number {
+  const base = Math.max(0, accumulatedSec);
+  if (runningSince == null) return Math.floor(base);
+  return Math.floor(base + Math.max(0, nowMs - runningSince) / 1000);
+}
+
+export function roundTotal(format: string): number | null {
+  const match = format.match(/(\d+)\s+rounds?\b/i);
+  if (!match) return null;
+  const total = Number(match[1]);
+  return total > 0 ? total : null;
+}
+
+export function showsRoundCounter(option: Pick<ClockOption, "scoreType" | "format">): boolean {
+  return option.scoreType === "rounds_reps" || roundTotal(option.format) != null || /\brounds?\s+for\s+time\b/i.test(option.format);
+}
 
 export type ClockWorkout = {
   date: string;
@@ -80,6 +100,9 @@ export function clockWorkout(dayFormat: string, date: string, athlete: string, p
   const options = scored.map((part) => ({
     id: part.id,
     name: part.name,
+    kind: part.kind,
+    scoreType: part.scoreType,
+    format: part.format,
     plan: clockPlan(dayFormat, part),
   }));
   const metcons = scored.filter((part) => part.kind === "metcon");

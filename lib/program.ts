@@ -382,13 +382,6 @@ export function inferProgram(input: { focus: string; format: string; text: strin
   let domain: Domain = "medium";
   if (input.format === "heavy" || input.format === "benchmark") domain = "short";
   else if (input.format === "chipper") domain = "long";
-  else {
-    const range = input.stimulus?.match(/(\d+)\s*[-–]\s*(\d+)/);
-    const one = input.stimulus?.match(/(\d+)/);
-    const minutes = range ? Number(range[2]) : one ? Number(one[1]) : 0;
-    if (minutes && minutes < 8) domain = "short";
-    else if (minutes >= 15) domain = "long";
-  }
 
   let shape: Shape = "couplet";
   if (input.format === "heavy") shape = "heavy_only";
@@ -410,6 +403,14 @@ export function inferProgram(input: { focus: string; format: string; text: strin
     shape,
     format: input.format || "for_time",
   };
+}
+
+const TIME_ONLY_STIMULUS = /^\s*(about\s+|around\s+|~)?\d+(?:\s*[-–]\s*\d+)?\s*(?::\d{2}\s*)?(min|mins|minute|minutes|sec|secs|second|seconds)?\.?\s*$/i;
+
+export function stimulusForDisplay(stimulus: string): string {
+  const text = stimulus.trim();
+  if (!text || TIME_ONLY_STIMULUS.test(text)) return "";
+  return text;
 }
 
 export function tagFromSignal(input: { program: string; focus: string; format: string; text: string; stimulus?: string }): ProgramTag {

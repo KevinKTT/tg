@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { addDays, formatLong, isISODate, todayISO } from "@/lib/dates";
 import { getDay, getScores, listAthletes } from "@/lib/db";
-import { pieceScheme } from "@/lib/formats";
+import { partDisplayName, partKindLabel, pieceScheme } from "@/lib/formats";
+import { stimulusForDisplay } from "@/lib/program";
 import { higherIsBetter } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export default async function BoardPage({
       {day && day.status !== "rest" ? (
         <section className="card">
           <h2>{day.title}</h2>
-          <p className="muted">{day.stimulus}</p>
+          {stimulusForDisplay(day.stimulus) ? <p className="muted">{stimulusForDisplay(day.stimulus)}</p> : null}
         </section>
       ) : null}
       {[...groups.entries()].map(([key, rows]) => {
@@ -60,8 +61,8 @@ export default async function BoardPage({
         const comparable = new Set(rows.map((row) => row.scoreType)).size === 1;
         return (
           <section className="card" key={key}>
-            <p className="kicker">{rows[0].partKind}</p>
-            <h2>{rows[0].partName}</h2>
+            <p className="kicker">{partKindLabel(rows[0].partKind)}</p>
+            <h2>{partDisplayName(rows[0].partKind, rows[0].partName)}</h2>
             {members.map((member) => {
               const score = ranked.find((row) => row.athleteSlug === member.slug);
               const place = score && comparable ? ranked.findIndex((row) => row.id === score.id) + 1 : null;

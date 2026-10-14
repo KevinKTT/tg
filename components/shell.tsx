@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import type { AthleteRow } from "@/lib/db";
 import { AthleteProvider, AthleteSwitch } from "./athlete";
 import { AthleteGate } from "./athlete-gate";
-import { ClockBar, ClockProvider } from "./clock";
+import { ClockProvider, SessionClock } from "./clock";
 
 const LINKS = [
   { href: "/", label: "Today" },
@@ -78,7 +78,7 @@ function Frame({ children, owned }: { children: React.ReactNode; owned: number }
             </nav>
             <AthleteSwitch />
           </header>
-          <ClockBar />
+          <SessionClock />
         </div>
         {owned === 0 && pathname !== "/equipment" ? (
           <Link href="/equipment" className="banner">

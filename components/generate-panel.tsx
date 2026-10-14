@@ -146,7 +146,7 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
           <textarea className="area" name="warmup" placeholder="Warm-up" required />
           <textarea className="area" name="prep" placeholder="Workout prep, optional" />
           <textarea className="area" name="strength" placeholder="Strength, optional" />
-          <textarea className="area" name="metcon" placeholder="Metcon" required />
+          <textarea className="area" name="metcon" placeholder="Workout" required />
           <div className="score-grid">
             <select className="select" name="scoreType" defaultValue="time">
               <option value="time">For time</option>

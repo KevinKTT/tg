@@ -867,7 +867,7 @@ export function saveManualDay(input: {
     });
   }
   parts.push({
-    name: "Metcon",
+    name: "Workout",
     kind: "metcon",
     format: "",
     details: input.metcon.trim(),

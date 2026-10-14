@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { clockFace, clockPlan, clockWorkout, prestartCues, prestartSecond, splitElapsed, type ClockPart } from "../lib/clock";
+import {
+  clockFace,
+  clockPlan,
+  clockWorkout,
+  prestartCues,
+  prestartSecond,
+  roundTotal,
+  sessionElapsedSec,
+  showsRoundCounter,
+  splitElapsed,
+  type ClockPart,
+} from "../lib/clock";
 
 function part(overrides: Partial<ClockPart> = {}): ClockPart {
   return {
@@ -142,6 +153,21 @@ test("prestart counts from 10 and beeps on 3, 2, 1, and go", () => {
   assert.deepEqual(prestartCues(2, 1), ["tick"]);
   assert.deepEqual(prestartCues(1, 0), ["go"]);
   assert.deepEqual(prestartCues(4, 0), ["tick", "tick", "tick", "go"]);
+});
+
+test("session clock accumulates only while running", () => {
+  assert.equal(sessionElapsedSec(90, null, 500_000), 90);
+  assert.equal(sessionElapsedSec(90, 400_000, 500_000), 190);
+  assert.equal(sessionElapsedSec(90, 600_000, 500_000), 90);
+  assert.equal(sessionElapsedSec(-5, null, 500_000), 0);
+});
+
+test("round counter knows its total and when to show", () => {
+  assert.equal(roundTotal("5 rounds for time"), 5);
+  assert.equal(roundTotal("AMRAP 12"), null);
+  assert.equal(showsRoundCounter({ scoreType: "rounds_reps", format: "AMRAP 12" }), true);
+  assert.equal(showsRoundCounter({ scoreType: "time", format: "5 rounds for time" }), true);
+  assert.equal(showsRoundCounter({ scoreType: "time", format: "For Time" }), false);
 });
 
 test("elapsed time splits into the score fields", () => {

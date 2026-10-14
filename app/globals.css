@@ -162,6 +162,63 @@ button {
   white-space: nowrap;
 }
 
+.session-clock-row {
+  padding-bottom: 0.85rem;
+}
+
+.session-clock {
+  padding: 0.45rem 0.8rem;
+  border-radius: 0.9rem;
+}
+
+.session-time {
+  font-size: 1.9rem;
+}
+
+.clock[data-paused="true"] {
+  border-color: var(--color-amber);
+}
+
+.workout-clock-wrap {
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.workout-clock-wrap .clock-row {
+  padding-bottom: 0;
+}
+
+.workout-clock-wrap + .board-piece {
+  border-top: 0;
+  margin-top: 0.6rem;
+  padding-top: 0;
+}
+
+.round-counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.round-label {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.round-label strong {
+  color: var(--color-ink);
+  font-size: 1.2rem;
+}
+
+.round-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .logo {
   font-family: var(--font-mono), monospace;
   font-size: 1.7rem;
@@ -924,5 +981,9 @@ details summary {
 @media (min-width: 800px) {
   .desktop-switch {
     display: flex;
+  }
+
+  .session-clock .session-time {
+    font-size: 2rem;
   }
 }
