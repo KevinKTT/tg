@@ -66,14 +66,18 @@ export default async function BoardPage({
             {members.map((member) => {
               const score = ranked.find((row) => row.athleteSlug === member.slug);
               const place = score && comparable ? ranked.findIndex((row) => row.id === score.id) + 1 : null;
+              const note = score?.notes.trim();
               return (
-                <div className="spread" key={member.slug} style={{ padding: "0.45rem 0" }}>
-                  <span>
-                    {member.name} <span className="faint">{member.initials}</span>
-                  </span>
-                  <strong>
-                    {score ? score.display : "—"} {place && !done && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
-                  </strong>
+                <div key={member.slug} style={{ padding: "0.45rem 0" }}>
+                  <div className="spread">
+                    <span>
+                      {member.name} <span className="faint">{member.initials}</span>
+                    </span>
+                    <strong>
+                      {score ? score.display : "—"} {place && !done && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
+                    </strong>
+                  </div>
+                  {note ? <p className="score-note">{note}</p> : null}
                 </div>
               );
             })}

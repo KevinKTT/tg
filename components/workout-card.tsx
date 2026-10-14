@@ -137,7 +137,15 @@ export function WorkoutCard({
           <section className="card" key={part.id}>
             <p className="kicker">Score</p>
             <h3>{partDisplayName(part.kind, part.name)}</h3>
-            <ScoreForm partId={part.id} scoreType={scoreType} athlete={athlete} unit={unit} existing={mine?.display} existingId={mine?.id} />
+            <ScoreForm
+              partId={part.id}
+              scoreType={scoreType}
+              athlete={athlete}
+              unit={unit}
+              existing={mine?.display}
+              existingId={mine?.id}
+              existingNotes={mine?.notes}
+            />
             {mine && scoreType !== "done" ? (
               <form
                 action={removeScore}
@@ -386,6 +394,7 @@ function ScoreForm({
   unit,
   existing,
   existingId,
+  existingNotes,
 }: {
   partId: number;
   scoreType: string;
@@ -393,6 +402,7 @@ function ScoreForm({
   unit: "lb" | "kg";
   existing?: string;
   existingId?: number;
+  existingNotes?: string;
 }) {
   const [pending, setPending] = useState(false);
 
@@ -449,7 +459,7 @@ function ScoreForm({
       {scoreType === "load" ? (
         <input className="field" name="load" type="number" min="0" step="0.5" placeholder={`Load (${unit})`} required />
       ) : null}
-      <input className="field" name="notes" placeholder="Note, optional" />
+      <input className="field" name="notes" placeholder="Note, optional" defaultValue={existingNotes} />
       <button className="btn btn-primary" type="submit">
         {existing ? `Update ${existing}` : "Log score"}
       </button>
@@ -483,12 +493,16 @@ function DayBoard({ scores, parts, dayFormat }: { scores: ScoreView[]; parts: Pa
             {members.map((member) => {
               const score = ranked.find((row) => row.athleteSlug === member.slug);
               const place = score ? ranked.findIndex((row) => row.id === score.id) + 1 : null;
+              const note = score?.notes.trim();
               return (
-                <div className="spread" key={member.slug}>
-                  <span>{member.initials}</span>
-                  <span>
-                    {score ? score.display : "—"} {place && !done && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
-                  </span>
+                <div key={member.slug}>
+                  <div className="spread">
+                    <span>{member.initials}</span>
+                    <span>
+                      {score ? score.display : "—"} {place && !done && ranked.length > 1 ? <span className="faint">#{place}</span> : null}
+                    </span>
+                  </div>
+                  {note ? <p className="score-note">{note}</p> : null}
                 </div>
               );
             })}
