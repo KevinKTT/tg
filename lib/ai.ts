@@ -212,7 +212,7 @@ WHITEBOARD STYLE
 One glance. Movement lines, doses, and loads only. No coaching paragraphs or technique cues.
 
 Name: a fun name tied to the work. Not generic.
-Stimulus: the time domain only. Example: "about 50 min".
+Stimulus: the intended effort and pacing only, never a time estimate or a number of minutes. Example: "Hard breathing, small fast sets, keep moving".
 
 Each scored movement is one line: "- <reps> <movement>". Immediately below it, always write all three versions, Rx first, one per line:
 - Rx: <weight, plus reps if they change>

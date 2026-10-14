@@ -1,26 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { editDay, editPart, removeDay, removeScore, saveScore } from "@/lib/actions";
 import { DAY_TRACK, focusLabel, type Sex } from "@/lib/athletes";
 import { parseBoard, parseSummary, type BoardLine, type ScaleLine } from "@/lib/board";
 import { clockWorkout } from "@/lib/clock";
-import { formatLabel, pieceScheme, visibleCap } from "@/lib/formats";
+import { formatLabel, partDisplayName, pieceScheme, visibleCap } from "@/lib/formats";
 import { computeLoadPlan, dayLoadKind, ensureLoadLines, type MovementScales } from "@/lib/load-plan";
-import { scanMovements } from "@/lib/program";
+import { scanMovements, stimulusForDisplay } from "@/lib/program";
 import { findPercents } from "@/lib/resolve";
 import { formatLoad, formatTime, higherIsBetter } from "@/lib/scoring";
 import { closestLoad, formatPercentLoad, percentOf, type Plate } from "@/lib/scaling";
 import type { DayView, EquipmentRow, MovementRow, PartView, PrRow, ScoreView } from "@/lib/db";
 import { useAthlete } from "./athlete";
-import { useClock } from "./clock";
+import { useClock, WorkoutClock } from "./clock";
 import { RewriteDay } from "./rewrite-day";
 
 const KIND: Record<string, string> = {
   warmup: "Warm-up",
   prep: "Workout prep",
   strength: "Strength",
-  metcon: "Metcon",
+  metcon: "Workout",
   skill: "Skill",
   cooldown: "Cool-down",
 };
@@ -98,28 +98,30 @@ export function WorkoutCard({
   const scaleMap = new Map<string, ScaleLine[]>((plan?.byMovement ?? []).map((movement: MovementScales) => [movement.slug, movement.scales]));
   const heroes = track.parts.filter((part) => HERO.has(part.kind));
   const lastHero = heroes[heroes.length - 1];
-  const estimatedTotal = track.parts.reduce((total, part) => total + (part.estimatedDurationMin ?? 0), 0);
+  const clockPartId = track.parts.find((part) => part.kind === "metcon")?.id ?? spec?.defaultId;
+  const stimulus = stimulusForDisplay(day.stimulus);
 
   return (
     <div className="stack">
       <section className="board">
         <RewriteDay date={day.date} hasScores={scores.length > 0} kicker={kicker} />
         <h2>{day.title}</h2>
-        {day.stimulus ? <p className="board-stimulus">{day.stimulus}</p> : null}
-        {estimatedTotal ? <p className="board-gear">~{estimatedTotal} min total</p> : null}
+        {stimulus ? <p className="board-stimulus">{stimulus}</p> : null}
         {summary.equipment.length ? <p className="board-gear">{summary.equipment.join(" · ")}</p> : null}
 
         {track.parts.map((part) => (
-          <Piece
-            key={part.id}
-            part={part}
-            date={day.date}
-            dayFormat={day.format}
-            showName={heroes.length > 1}
-            loads={part.id === lastHero?.id ? loadLines : undefined}
-            initials={person.initials}
-            fallbackScales={scaleMap}
-          />
+          <Fragment key={part.id}>
+            {part.id === clockPartId && spec ? <WorkoutClock partId={part.id} /> : null}
+            <Piece
+              part={part}
+              date={day.date}
+              dayFormat={day.format}
+              showName={heroes.length > 1}
+              loads={part.id === lastHero?.id ? loadLines : undefined}
+              initials={person.initials}
+              fallbackScales={scaleMap}
+            />
+          </Fragment>
         ))}
         {!lastHero ? <Loads loads={loadLines} initials={person.initials} /> : null}
         {hits.length ? (
@@ -134,7 +136,7 @@ export function WorkoutCard({
         return (
           <section className="card" key={part.id}>
             <p className="kicker">Score</p>
-            <h3>{part.name}</h3>
+            <h3>{partDisplayName(part.kind, part.name)}</h3>
             <ScoreForm partId={part.id} scoreType={scoreType} athlete={athlete} unit={unit} existing={mine?.display} existingId={mine?.id} />
             {mine && scoreType !== "done" ? (
               <form
@@ -169,7 +171,7 @@ export function WorkoutCard({
           {track.parts.map((part) => (
             <form action={editPart} className="stack" key={`edit-${part.id}`}>
               <input type="hidden" name="id" value={part.id} />
-              <span className="muted">Edit {part.name}</span>
+              <span className="muted">Edit {partDisplayName(part.kind, part.name)}</span>
               <input className="field" name="format" defaultValue={part.format} placeholder="Format" />
               <textarea className="area" name="body" defaultValue={part.body} />
               <button className="btn" type="submit">
@@ -226,6 +228,7 @@ function Piece({
     return missing.length ? { ...line, scales: [...line.scales, ...missing] } : line;
   });
   const label = KIND[part.kind] || part.kind;
+  const displayName = partDisplayName(part.kind, part.name);
   const [done, setDone] = useState<number[]>([]);
 
   useEffect(() => {
@@ -249,19 +252,16 @@ function Piece({
   return (
     <div className={hero ? "board-piece board-hero" : "board-piece"}>
       <p className="kicker">{label}</p>
-      {showName && part.name && part.name !== label ? <h3 className="board-piece-name">{part.name}</h3> : null}
+      {showName && displayName && displayName !== label ? <h3 className="board-piece-name">{displayName}</h3> : null}
       {part.format ? (
         <p className="board-scheme">
           {part.format}
           {visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
             <span className="board-cap"> · Cap {formatTime(part.timeCapSec ?? 0)}</span>
           ) : null}
-          {part.estimatedDurationMin ? <span className="board-cap"> · ~{part.estimatedDurationMin} min</span> : null}
         </p>
       ) : visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
         <p className="board-scheme">Cap {formatTime(part.timeCapSec ?? 0)}</p>
-      ) : part.estimatedDurationMin ? (
-        <p className="board-scheme">~{part.estimatedDurationMin} min</p>
       ) : null}
       {lines.length ? <BoardLines lines={lines} done={done} onToggle={toggle} /> : part.body ? <p className="pre">{part.body}</p> : null}
       {loads?.length ? <Loads loads={loads} initials={initials ?? ""} /> : null}
@@ -479,7 +479,7 @@ function DayBoard({ scores, parts, dayFormat }: { scores: ScoreView[]; parts: Pa
         const ranked = done ? rows : [...rows].sort((a, b) => (direction ? a.valueNumeric - b.valueNumeric : b.valueNumeric - a.valueNumeric));
         return (
           <div key={key} style={{ marginTop: "0.7rem" }}>
-            <p className="muted">{rows[0].partName}</p>
+            <p className="muted">{partDisplayName(rows[0].partKind, rows[0].partName)}</p>
             {members.map((member) => {
               const score = ranked.find((row) => row.athleteSlug === member.slug);
               const place = score ? ranked.findIndex((row) => row.id === score.id) + 1 : null;
