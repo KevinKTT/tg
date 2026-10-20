@@ -329,9 +329,16 @@ export function buildFallbackPiece(
       }
     }
     add(first((movement) => allowed.has(movement.modality) && movement.pattern === brief.pattern && movement.modality !== "M" && !isAccessory(movement)));
-    if (brief.modalities.includes("G")) {
-      add(first((movement) => movement.modality === "G" && !usedPatterns.has(movement.pattern) && !isAccessory(movement)));
-    }
+    const usedModalities = () => new Set(selected.map((movement) => movement.modality));
+    add(
+      first(
+        (movement) =>
+          allowed.has(movement.modality) &&
+          !usedModalities().has(movement.modality) &&
+          !usedPatterns.has(movement.pattern) &&
+          !isAccessory(movement),
+      ),
+    );
     const diverse = pool.filter((movement) => allowed.has(movement.modality) && !isAccessory(movement));
     for (const movement of diverse) {
       if (selected.length >= target) break;

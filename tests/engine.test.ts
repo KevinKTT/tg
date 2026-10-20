@@ -157,6 +157,44 @@ test("a full week caps dumbbell-led sessions", () => {
   assert.ok(dumbbellDays <= 3, `dumbbells led ${dumbbellDays} of 6 sessions`);
 });
 
+test("engine intervals are mixed-modal circuits scored by reps", () => {
+  const assignment = planDay({ date: "2027-02-02", focus: "engine", profile: profiles.garage });
+  assert.equal(assignment.shape, "intervals");
+  const brief = assignment.pieces[0];
+  assert.equal(brief.scheme.type, "intervals");
+  if (brief.scheme.type !== "intervals") return;
+  assert.equal(brief.scheme.task, "amrap");
+  assert.equal(scoreTypeForScheme(brief.scheme), "reps");
+  assert.ok(brief.movementCount.min >= 2, "interval circuit should require at least two movements");
+  assert.ok(brief.modalities.includes("M"), "interval circuit should allow a monostructural station");
+  assert.ok(brief.modalities.some((modality) => modality !== "M"), "interval circuit should allow a contrasting station");
+
+  const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, [], () => 0.4));
+  const plan = buildFallbackClass({ assignment, shortlists, items: garage, caps: profiles.garage.caps, random: () => 0.4 });
+  const ids = plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id));
+  const modalities = new Set(ids.map((id) => movementById(id)?.modality));
+  assert.ok(modalities.has("M"), "interval circuit lost its engine station");
+  assert.ok([...modalities].some((modality) => modality !== "M"), "interval circuit is still single-modality");
+});
+
+test("metcons keep at least two modalities when the gym supports them", () => {
+  for (let offset = 0; offset < 21; offset += 1) {
+    const date = `2027-03-${String(1 + offset).padStart(2, "0")}`;
+    const assignment = planDay({ date, profile: profiles.garage });
+    const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, [], () => 0.4));
+    const plan = buildFallbackClass({ assignment, shortlists, items: garage, caps: profiles.garage.caps, random: () => 0.4 });
+    assignment.pieces.forEach((brief, index) => {
+      if (brief.kind !== "metcon" || brief.modalities.length < 2) return;
+      const modalities = new Set(
+        plan.pieces[index].movements
+          .map((item) => movementById(item.id)?.modality)
+          .filter(Boolean),
+      );
+      assert.ok(modalities.size >= 2, `${date} metcon is single-modality: ${[...modalities].join(", ")}`);
+    });
+  }
+});
+
 test("a generated body always renders movement lines", () => {
   const assignment = planDay({ date: "2026-11-02", profile: profiles.garage });
   const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, [], () => 0.4));

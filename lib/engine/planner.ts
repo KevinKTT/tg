@@ -155,9 +155,10 @@ export function planDay(input: {
   const recentDumbbellDays = recent
     .filter((signal) => signal.date >= weekStart)
     .filter((signal) => signal.movements.some((id) => movementById(id)?.load === "dumbbell")).length;
-  const hasOtherLoad = eligibleCatalog(input.profile).some(
-    (movement) => movement.load === "barbell" || movement.load === "kettlebell" || movement.load === "odd",
-  );
+  const hasOtherLoad =
+    input.profile.caps.has("barbell") ||
+    input.profile.kettlebells.length > 0 ||
+    ["wall_ball", "med_ball", "slam_ball", "sandbag", "sled", "farmer_handles"].some((cap) => input.profile.caps.has(cap));
   const avoidDumbbell =
     recentDumbbellDays >= 2 &&
     !hasOtherLoad &&
@@ -269,6 +270,12 @@ function contrastPattern(pattern: MovementPattern): MovementPattern {
   return "squat";
 }
 
+function availableModalities(desired: Modality[], profile: EquipmentProfile): Modality[] {
+  const available = new Set(eligibleCatalog(profile).map((movement) => movement.modality));
+  const filtered = desired.filter((modality) => available.has(modality));
+  return filtered.length ? filtered : [...available];
+}
+
 function buildPieces(input: {
   date: string;
   shape: SessionShape;
@@ -281,6 +288,7 @@ function buildPieces(input: {
 }): PieceBrief[] {
   const { shape, focus, domain, load, pattern, profile, random } = input;
   const hasHeavy = profile.hasHeavyLoad;
+  const modalities = (desired: Modality[]) => availableModalities(desired, profile);
   const strengthScheme = (intent: "moderate" | "heavy"): Scheme =>
     hasHeavy && intent === "heavy" && load === "heavy"
       ? { type: "max_load", repMax: pick([1, 3, 5], random) }
@@ -293,7 +301,7 @@ function buildPieces(input: {
       scheme: strengthScheme(load === "heavy" ? "heavy" : "moderate"),
       pattern,
       load,
-      modalities: ["W"],
+      modalities: modalities(["W"]),
       estimatedDurationMin: 22,
       movementCount: { min: 1, max: hasHeavy && load === "heavy" ? 1 : 2 },
     };
@@ -304,7 +312,7 @@ function buildPieces(input: {
       scheme: { type: "for_time", rounds: between(3, 4, random) },
       pattern: contrastPattern(pattern),
       load: "light",
-      modalities: ["G", "M"],
+      modalities: modalities(["G", "M"]),
       estimatedDurationMin: 9,
       movementCount: { min: 2, max: 2 },
     };
@@ -318,7 +326,7 @@ function buildPieces(input: {
       scheme: strengthScheme(load === "heavy" ? "heavy" : "moderate"),
       pattern,
       load,
-      modalities: ["W"],
+      modalities: modalities(["W"]),
       estimatedDurationMin: 16,
       movementCount: { min: 1, max: 2 },
     };
@@ -331,7 +339,7 @@ function buildPieces(input: {
           : { type: "amrap", minutes: between(10, 14, random) },
       pattern: contrastPattern(pattern),
       load: load === "heavy" ? "moderate" : "moderate",
-      modalities: ["W", "G", "M"],
+      modalities: modalities(["W", "G", "M"]),
       estimatedDurationMin: domain === "short" ? 10 : 12,
       movementCount: { min: 2, max: 3 },
     };
@@ -346,7 +354,7 @@ function buildPieces(input: {
         scheme: { type: "skill", minutes: between(10, 12, random) },
         pattern: pick(["press", "pull", "core", "jump"], random),
         load: "light",
-        modalities: ["G"],
+        modalities: modalities(["G"]),
         estimatedDurationMin: 12,
         movementCount: { min: 1, max: 2 },
         allowSkill: true,
@@ -357,7 +365,7 @@ function buildPieces(input: {
         scheme: { type: "amrap", minutes: between(12, 15, random) },
         pattern: pick(["core", "press", "pull", "jump"], random),
         load: "light",
-        modalities: ["G", "M"],
+        modalities: modalities(["G", "M"]),
         estimatedDurationMin: 14,
         movementCount: { min: 2, max: 3 },
         allowSkill: true,
@@ -367,22 +375,20 @@ function buildPieces(input: {
 
   if (shape === "intervals") {
     const workSec = pick([60, 90, 120], random);
+    const restSec = workSec === 120 ? 60 : 30;
+    const rounds = workSec === 120 ? between(7, 8, random) : workSec === 90 ? between(10, 12, random) : between(13, 15, random);
+    const intervalModalities = modalities(["M", "W", "G"]);
+    const canMix = intervalModalities.length > 1;
     return [
       {
         kind: "metcon",
         name: "Intervals",
-        scheme: {
-          type: "intervals",
-          rounds: between(6, 10, random),
-          workSec,
-          restSec: workSec === 120 ? 60 : 30,
-          task: "fixed",
-        },
+        scheme: { type: "intervals", rounds, workSec, restSec, task: "amrap" },
         pattern: "locomotion",
         load: "light",
-        modalities: ["M", "G"],
-        estimatedDurationMin: between(22, 30, random),
-        movementCount: { min: 1, max: 1 },
+        modalities: intervalModalities,
+        estimatedDurationMin: Math.round((rounds * (workSec + restSec)) / 60),
+        movementCount: { min: canMix ? 2 : 1, max: canMix ? (workSec <= 60 ? 2 : 3) : 1 },
       },
     ];
   }
@@ -395,7 +401,7 @@ function buildPieces(input: {
         scheme: { type: "emom", minutes: between(12, 20, random) },
         pattern,
         load: load === "heavy" ? "moderate" : load,
-        modalities: ["W", "G", "M"],
+        modalities: modalities(["W", "G", "M"]),
         estimatedDurationMin: 20,
         movementCount: { min: 2, max: 3 },
       },
@@ -410,7 +416,7 @@ function buildPieces(input: {
         scheme: { type: "ladder", reps: pick([[21, 15, 9], [1, 2, 3, 4, 5], [15, 12, 9, 6, 3]], random) },
         pattern,
         load,
-        modalities: ["W", "G"],
+        modalities: modalities(["W", "G"]),
         estimatedDurationMin: 22,
         movementCount: { min: 2, max: 2 },
       },
@@ -425,7 +431,7 @@ function buildPieces(input: {
         scheme: { type: "chipper", capMin: between(22, 30, random) },
         pattern,
         load: load === "light" ? "moderate" : load,
-        modalities: ["W", "G", "M"],
+        modalities: modalities(["W", "G", "M"]),
         estimatedDurationMin: between(24, 32, random),
         movementCount: { min: 5, max: 7 },
       },
@@ -440,7 +446,7 @@ function buildPieces(input: {
         scheme: { type: "max_reps", minutes: between(4, 8, random) },
         pattern: "none",
         load: "light",
-        modalities: ["G", "M"],
+        modalities: modalities(["G", "M"]),
         estimatedDurationMin: 10,
         movementCount: { min: 1, max: 2 },
       },
@@ -458,7 +464,7 @@ function buildPieces(input: {
             : { type: "amrap", minutes: between(16, 20, random) },
         pattern,
         load: load === "light" ? "moderate" : load,
-        modalities: ["W", "G", "M"],
+        modalities: modalities(["W", "G", "M"]),
         estimatedDurationMin: 20,
         movementCount: { min: 3, max: 3 },
       },
@@ -475,7 +481,7 @@ function buildPieces(input: {
           : { type: "amrap", minutes: between(12, 16, random) },
       pattern,
       load: load === "light" ? "moderate" : load,
-      modalities: ["W", "G"],
+      modalities: modalities(["W", "G"]),
       estimatedDurationMin: 22,
       movementCount: { min: 2, max: 2 },
     },
@@ -591,6 +597,7 @@ export function assignmentPrompt(assignment: DayAssignment, shortlists: Shortlis
   modalities: ${piece.modalities.join(" + ")}
   load: ${piece.load}
   primary pattern: ${piece.pattern}
+  ${piece.scheme.type === "intervals" ? "This is an AMRAP circuit inside each work window. Choose 2-3 movements: at least one monostructural station and at least one contrasting station." : piece.kind === "metcon" ? "Use at least two modalities and pair contrasting patterns." : ""}
   choose only from:
 ${lines}`;
   });

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   clockFace,
   clockPlan,
+  clockPlanForScheme,
   clockWorkout,
   prestartCues,
   prestartSecond,
@@ -99,6 +100,24 @@ test("work and rest intervals alternate", () => {
   assert.equal(clockFace(plan, 120).caption, "Rest");
   assert.equal(clockFace(plan, 120).display, "1:00");
   assert.equal(clockFace(plan, 180).caption, "Work");
+});
+
+test("interval circuits show work progress, not an AMRAP round counter", () => {
+  const plan = clockPlanForScheme({
+    type: "intervals",
+    rounds: 6,
+    workSec: 120,
+    restSec: 60,
+    task: "amrap",
+  });
+  assert.equal(plan.count, 6);
+  assert.equal(clockFace(plan, 0).caption, "Work · 1/6");
+  assert.equal(clockFace(plan, 120).caption, "Rest · 1/6");
+  assert.equal(clockFace(plan, 180).caption, "Work · 2/6");
+  assert.equal(
+    showsRoundCounter({ scoreType: "reps", format: "6 rounds: 2:00 AMRAP / 1:00 rest", scheme: { type: "intervals", rounds: 6, workSec: 120, restSec: 60, task: "amrap" } }),
+    false,
+  );
 });
 
 test("an EMOM is a minute clock, not a cap", () => {

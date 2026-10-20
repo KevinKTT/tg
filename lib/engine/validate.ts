@@ -1,6 +1,7 @@
 import {
   doseInRange,
   doseRangeFor,
+  estimateDoseSeconds,
   isAdvancedSkill,
   movementById,
   movementEligible,
@@ -24,6 +25,9 @@ export function validateAiWorkout(input: {
   const issues: ValidationIssue[] = [];
   if (!ai.title.trim()) issues.push({ path: "title", message: "Add a workout title." });
   if (ai.title.length > 60) issues.push({ path: "title", message: "Keep the title under 60 characters." });
+  if (/\b(locomotion|monostructural|modality)\b/i.test(ai.title)) {
+    issues.push({ path: "title", message: "Use a human workout title, not internal programming words." });
+  }
   if (!ai.stimulus.trim()) issues.push({ path: "stimulus", message: "Add a one-line stimulus." });
   if (ai.stimulus.length > 140) issues.push({ path: "stimulus", message: "Keep the stimulus under 140 characters." });
   if (/\b\d+\s*(?:min|mins|minute|minutes|sec|secs|second|seconds)\b/i.test(ai.stimulus)) {
@@ -117,6 +121,64 @@ export function validateAiWorkout(input: {
 
     if (scoreTypeForScheme(brief.scheme) !== "none" && piece.movements.length === 0) {
       issues.push({ path: `${path}.movements`, message: "A scored piece needs at least one movement." });
+    }
+
+    const chosenModalities = new Set(
+      piece.movements
+        .map((item) => movementById(item.id)?.modality)
+        .filter((modality): modality is "M" | "G" | "W" => Boolean(modality)),
+    );
+    if (brief.kind === "metcon") {
+      if (brief.scheme.type === "intervals") {
+        const canMix = brief.modalities.length > 1;
+        if (canMix && chosenModalities.size < 2) {
+          issues.push({
+            path: `${path}.movements`,
+            message: "An interval circuit needs at least two modalities. Add a non-monostructural station.",
+          });
+        }
+        if (canMix && brief.modalities.includes("M")) {
+          const hasEngine = chosenModalities.has("M");
+          const hasOther = [...chosenModalities].some((modality) => modality !== "M");
+          if (!hasEngine || !hasOther) {
+            issues.push({
+              path: `${path}.movements`,
+              message: "An interval circuit needs at least one monostructural station and one contrasting station.",
+            });
+          }
+        }
+      } else if (brief.modalities.length > 1 && chosenModalities.size < 2) {
+        issues.push({
+          path: `${path}.movements`,
+          message: `A metcon needs at least two modalities. This piece allows ${brief.modalities.join(" + ")}.`,
+        });
+      }
+    }
+
+    if (brief.scheme.type === "intervals") {
+      const roundSeconds = piece.movements.reduce((sum, item) => {
+        const movement = movementById(item.id);
+        return movement ? sum + estimateDoseSeconds(movement, item.dose) : sum;
+      }, 0);
+      if (roundSeconds > brief.scheme.workSec * 1.05) {
+        issues.push({
+          path: `${path}.movements`,
+          message: `That round takes about ${Math.round(roundSeconds)} seconds, more than the ${brief.scheme.workSec}-second window. Reduce the doses.`,
+        });
+      }
+    }
+    if (brief.scheme.type === "emom") {
+      const window = brief.scheme.everySec ?? 60;
+      for (const [movementIndex, item] of piece.movements.entries()) {
+        const movement = movementById(item.id);
+        if (!movement) continue;
+        if (estimateDoseSeconds(movement, item.dose) > window * 1.05) {
+          issues.push({
+            path: `${path}.movements.${movementIndex}.dose`,
+            message: `${movement.name} will not fit inside one ${window}-second EMOM minute.`,
+          });
+        }
+      }
     }
   });
 

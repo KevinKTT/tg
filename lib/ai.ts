@@ -52,8 +52,9 @@ Standards:
 - Keep every dose inside the range shown for that movement.
 - Use the number of movements specified for the piece.
 - Mix modalities as assigned. A metcon should pair a primary pattern with contrasting bodyweight, engine, or carry work, not three variations of the same lift. Never stack two movements with the same pattern in one piece (for example, goblet squats plus air squats).
+- A metcon must use at least two modalities when the assignment allows them. An interval circuit must include one monostructural station and one contrasting station. Never submit a single-modality metcon.
 - Strength pieces use loaded movements. Skill pieces use bodyweight or skill work. For strength, skill, max-load, and max-reps pieces the scheme supplies the dose, so movement choice is what matters.
-- Write a short, specific title that matches the piece you chose. Do not call it a ladder, chipper, EMOM, or AMRAP unless the assignment's scheme is that type.
+- Write a short, specific title that matches the piece you chose. Do not call it a ladder, chipper, EMOM, or AMRAP unless the assignment's scheme is that type. Never use internal words like "locomotion", "monostructural", or "modality" in the title.
 - Write a short, specific title and a one-line stimulus about effort and pacing. Never put a time estimate in the stimulus.
 - Whiteboard style: the app renders the scheme, doses, loads, and scales. You provide only the title, stimulus, and movement choices.
 Return one JSON object matching the schema. Do not add pieces the assignment did not ask for.`;
