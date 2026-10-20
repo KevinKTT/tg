@@ -336,7 +336,7 @@ function buildPieces(input: {
       { type: "amrap", minutes: between(14, 18, random) },
       { type: "amrap", minutes: between(14, 18, random) },
       { type: "for_time", rounds: between(4, 6, random) },
-      { type: "emom", minutes: between(16, 20, random) },
+      { type: "for_time", rounds: between(4, 6, random) },
     ];
     if (domain === "long") options.push({ type: "chipper", capMin: between(24, 32, random) });
     return pick(options, random);
@@ -412,7 +412,6 @@ function buildPieces(input: {
             { type: "amrap", minutes: between(14, 18, random) },
             { type: "amrap", minutes: between(14, 18, random) },
             { type: "for_time", rounds: between(4, 6, random) },
-            { type: "emom", minutes: between(16, 20, random) },
           ] as Scheme[],
           random,
         ),
@@ -527,7 +526,6 @@ function buildPieces(input: {
             { type: "amrap", minutes: between(16, 20, random) },
             { type: "amrap", minutes: between(16, 20, random) },
             { type: "for_time", rounds: between(4, 6, random) },
-            { type: "emom", minutes: between(16, 20, random) },
           ] as Scheme[],
           random,
         ),

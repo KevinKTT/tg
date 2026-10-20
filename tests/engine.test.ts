@@ -333,6 +333,22 @@ test("auto weeks rotate through EMOM, ladder, and max-effort sessions", () => {
   assert.ok(shapes.has("max_effort"), `shapes: ${[...shapes].join(", ")}`);
 });
 
+test("auto programming does not drift into an all-EMOM week", () => {
+  let metcons = 0;
+  let emoms = 0;
+  for (let offset = 0; offset < 28; offset += 1) {
+    const date = `2027-09-${String(1 + offset).padStart(2, "0")}`;
+    const assignment = planDay({ date, profile: profiles.garage, variant: "variety-check" });
+    for (const piece of assignment.pieces) {
+      if (piece.kind !== "metcon") continue;
+      metcons += 1;
+      if (piece.scheme.type === "emom") emoms += 1;
+    }
+  }
+  assert.ok(emoms <= 4, `${emoms} of ${metcons} metcons were EMOMs`);
+  assert.ok(emoms / metcons < 0.25, `${emoms} of ${metcons} metcons were EMOMs`);
+});
+
 test("dumbbell fatigue does not turn a heavy day into gymnastics", () => {
   for (const date of ["2027-07-08", "2027-07-15", "2027-07-22", "2027-07-29"]) {
     const recent: RecentSignal[] = [
