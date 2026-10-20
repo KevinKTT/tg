@@ -11,11 +11,11 @@ test("clarify keeps the workout and only cleans the board", () => {
   assert.doesNotMatch(task, /Do not write an unrelated workout/);
 });
 
-test("a clarify note can change the scheme", () => {
+test("a clarify note is passed through", () => {
   const task = rewriteTask("clarify", "Make this an AMRAP");
   assert.match(task, /Make this an AMRAP/);
-  assert.match(task, /unless the note changes them/);
-  assert.match(task, /update that part's format/);
+  assert.match(task, /Keep the same movements/);
+  assert.match(task, /Do not invent a new piece/);
 });
 
 test("load lines always name the male and female versions", () => {
@@ -49,9 +49,8 @@ test("load lines always name the male and female versions", () => {
 
 test("a focus rewrite restyles this session", () => {
   assert.match(rewriteTask("heavy"), /toward heavy/);
-  assert.match(rewriteTask("heavy"), /Heavy bias/);
+  assert.match(rewriteTask("heavy"), /Keep the same scheme/);
   assert.match(rewriteTask("cardio"), /toward cardio/);
-  assert.match(rewriteTask("cardio"), /Cardio bias/);
   assert.equal(rewriteIntent("clarify"), "clarify");
   assert.equal(rewriteIntent("heavy"), "heavy");
   assert.equal(rewriteIntent("rest"), null);

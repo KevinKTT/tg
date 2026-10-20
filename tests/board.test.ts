@@ -35,12 +35,11 @@ test("attaches scale lines to the previous movement and drops duplicates", () =>
   assert.deepEqual(lines[0].scales, [{ label: "Performance", text: "40 Single-unders" }]);
 });
 
-test("strips coaching cues and lays out an EMOM minute", () => {
+test("keeps an EMOM minute as a readable line", () => {
   const [line] = parseBoard("- Minute 1: 30 single-unders, focus on wrist speed and soft knees");
-  assert.equal(line.type, "move");
-  if (line.type !== "move") return;
-  assert.equal(line.reps, "1");
-  assert.equal(line.name, "30 single-unders");
+  assert.equal(line.type, "note");
+  if (line.type !== "note") return;
+  assert.equal(line.text, "Minute 1: 30 single-unders, focus on wrist speed and soft knees");
 });
 
 test("keeps distance and per-side units with the dose", () => {

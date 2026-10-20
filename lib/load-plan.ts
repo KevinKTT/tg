@@ -48,6 +48,16 @@ const CATALOG_CATEGORY: Record<string, ImplementCategory> = {
   thruster: "barbell",
   sdhp: "barbell",
   swing: "kettlebell",
+  "kb-swing": "kettlebell",
+  "kb-goblet-squat": "kettlebell",
+  "kb-clean": "kettlebell",
+  "kb-snatch": "kettlebell",
+  "kb-front-rack-carry": "kettlebell",
+  "wall-ball": "odd",
+  "med-ball-clean": "odd",
+  "sandbag-carry": "odd",
+  "sled-push": "odd",
+  "farmer-carry": "odd",
   goblet_squat: "dumbbell",
   wall_ball: "odd",
 };
@@ -248,18 +258,6 @@ export function computeLoadPlan(input: {
   });
 
   return { lines, byMovement, hasLoads: lines.length > 0 };
-}
-
-export function loadPlanPrompt(plan: LoadPlan): string {
-  if (!plan.hasLoads) {
-    return "COMPUTED LOADS: no external load today. Prescribe bodyweight and rep-based versions for Rx, Performance, and Lifestyle, and do not write a Loads block.";
-  }
-  const block = plan.lines.map((line) => `- ${line.label}: ${line.value}`).join("\n");
-  const perMovement = plan.byMovement
-    .map((movement) => `- ${movement.name}: ${movement.scales.map((scale) => `${scale.label} ${scale.text}`).join(" / ")}`)
-    .join("\n");
-  return `COMPUTED LOADS (anchor loads derived from owned gear and logged PRs — the reference effort for a comparable lift, not a movement-blind prescription; Rx may pick a different implement from the owned equipment list when the movement programmed bears more or less than the anchor, with Performance and Lifestyle stepping down from there):
-${block}${perMovement ? `\nPer movement:\n${perMovement}` : ""}`;
 }
 
 export function ensureLoadLines(existing: LoadLine[], fallback: LoadLine[]): LoadLine[] {

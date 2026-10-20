@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { EquipmentRow, PrRow } from "../lib/db";
-import { computeLoadPlan, ensureLoadLines, implementCategory, loadPlanPrompt } from "../lib/load-plan";
+import { computeLoadPlan, ensureLoadLines, implementCategory } from "../lib/load-plan";
 
 function db(weight: number, unit: "lb" | "kg" = "lb"): EquipmentRow {
   return {
@@ -80,22 +80,7 @@ test("reports no loads when no external load is owned", () => {
     movements: [{ slug: "db-deadlift", name: "Dumbbell Deadlift" }],
   });
   assert.equal(plan.hasLoads, false);
-  assert.match(loadPlanPrompt(plan), /bodyweight/i);
-});
-
-test("frames computed loads as an anchor, not an exact prescription", () => {
-  const plan = computeLoadPlan({
-    items: dumbbells,
-    members: [{ slug: "kt", initials: "KT", sex: "m" }],
-    prs: [],
-    load: "moderate",
-    movements: [{ slug: "db-deadlift", name: "Dumbbell Deadlift" }],
-  });
-  const prompt = loadPlanPrompt(plan);
-  assert.match(prompt, /anchor/i);
-  assert.match(prompt, /not a movement-blind prescription/i);
-  assert.doesNotMatch(prompt, /use these exact numbers/i);
-  assert.match(prompt, /Rx: KT 30 lb/);
+  assert.deepEqual(plan.lines, []);
 });
 
 test("maps movement slugs to an implement category", () => {

@@ -4,9 +4,10 @@ the garage. CrossFit for your garage gym.
 
 No accounts. Add your members, then pick who's lifting when you log a score or a PR. Each day is one shared workout, using only the equipment marked owned. Members are managed on the Members page; the app remembers the last person you selected on each device.
 
-Workout generation supplements the standard CrossFit equipment catalog with the curated garage movement, warm-up, and cooldown data in `lib/movement-library/data`. The source guide and original archive are retained in `docs/movement-library`.
+Workout generation is a small programming engine plus an AI head coach. The engine chooses the week's shape, scheme, time domain, movement patterns, modalities, loads, warm-up, and cool-down. The model chooses only the title, stimulus, and movements from a shortlist. Every scored piece has one structured scheme (for time, AMRAP, EMOM, intervals, chipper, ladder, strength, max load, max reps, or skill), so the whiteboard, clock, and score form can never disagree.
 
-Each day is programmed toward one complete ~45 minute class (warm-up, prep, work, cool-down). Every scored movement is written with Rx, Performance, and Lifestyle versions, and the loads come from the equipment you own and the PRs you have logged. The generator reviews each draft and asks the model to fix weak spots (short sessions, missing scale versions, unowned gear), but it always saves the best readable workout instead of failing on a programming rule.
+Each day is programmed toward one complete ~45 minute class (warm-up, prep, work, cool-down). Every scored movement is written with Rx, Performance, and Lifestyle versions, and the loads come from the equipment you own and the PRs you have logged. If the model is unavailable or returns something invalid, the app composes a valid original session from the same assignment instead of failing.
+
 
 ## Local
 
@@ -16,7 +17,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. On first run the app asks you to add your first member, then to mark the equipment you own. A fresh install starts with no members and nothing owned. Set `AI_API_KEY` before generating a workout (see below). `TZ` controls which calendar day is "today".
+Open http://localhost:3000. On first run the app asks you to add your first member, then to mark the equipment you own. A fresh install starts with no members and nothing owned. Set `AI_API_KEY` to have the model compose the movements; without a key, or if the provider fails, the app falls back to its own valid session composer (see below). `TZ` controls which calendar day is "today".
 
 ## AI provider
 

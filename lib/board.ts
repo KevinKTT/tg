@@ -132,6 +132,12 @@ export function parseBoard(body: string): BoardLine[] {
       continue;
     }
 
+    const minute = line.match(/^(?:Minute|Min)\s+\d+\s*[:.)-]\s*.+$/i);
+    if (minute) {
+      lines.push({ type: "note", text: line });
+      continue;
+    }
+
     const label = line.match(LABEL);
     const payload = stripCue(label ? label[3] : line);
     if (!payload) continue;

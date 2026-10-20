@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addDays, isISODate, monthMatrix, startOfWeek, todayISO } from "../lib/dates";
 import { EQUIPMENT } from "../lib/catalog";
-import { guardWorkout } from "../lib/guard";
+import { equipmentProfile, movementById, movementEligible } from "../lib/engine/movements";
 import { findPercents } from "../lib/resolve";
 import { closestLoad, loadBar } from "../lib/scaling";
 import { formatTime, normalizeScore, roundsValue } from "../lib/scoring";
@@ -40,32 +40,28 @@ test("normalizes scores", () => {
   assert.ok(Math.abs((load?.value ?? 0) - 132.277) < 0.01);
 });
 
-test("rejects a rower that is not owned", () => {
-  const violations = guardWorkout(
-    {
-      rx_men: {
-        warmup: "2 min row",
-        cooldown: "stretch",
-        parts: [{ name: "Metcon", details: "500m row", equipment: ["rower"] }],
-      },
-    },
-    [{ slug: "jump_rope", name: "Jump rope", category: "cardio", owned: true, loadValue: null, unit: null }],
-  );
-  assert.ok(violations.some((item) => /rower/i.test(item)));
-});
+test("movement eligibility follows owned gear", () => {
+  const ropeOnly = equipmentProfile([
+    { slug: "jump_rope", category: "cardio", quantity: 1, owned: true },
+  ]);
+  assert.equal(movementEligible(movementById("row")!, ropeOnly), false);
+  assert.equal(movementEligible(movementById("box-jump")!, ropeOnly), false);
+  assert.equal(movementEligible(movementById("weighted-vest-walk")!, ropeOnly), false);
+  assert.equal(movementEligible(movementById("air-squat")!, ropeOnly), true);
+  assert.equal(movementEligible(movementById("back_squat")!, ropeOnly), false);
 
-test("allows air squats without a barbell", () => {
-  const violations = guardWorkout(
-    {
-      rx_men: {
-        warmup: "air squats",
-        cooldown: "couch stretch",
-        parts: [{ name: "Metcon", details: "50 air squats", equipment: [] }],
-      },
-    },
-    [{ slug: "jump_rope", name: "Jump rope", category: "cardio", owned: true, loadValue: null, unit: null }],
-  );
-  assert.equal(violations.length, 0);
+  const full = equipmentProfile([
+    { slug: "jump_rope", category: "cardio", quantity: 1, owned: true },
+    { slug: "rower", category: "cardio", quantity: 1, owned: true },
+    { slug: "box_20", category: "rig", quantity: 1, owned: true },
+    { slug: "weight_vest", category: "odd", quantity: 1, owned: true },
+    { slug: "mens_bar", category: "barbell", kind: "bar", loadValue: 45, unit: "lb", quantity: 1, owned: true },
+    { slug: "plate_45lb", category: "plates", quantity: 2, owned: true },
+  ]);
+  assert.equal(movementEligible(movementById("row")!, full), true);
+  assert.equal(movementEligible(movementById("box-jump")!, full), true);
+  assert.equal(movementEligible(movementById("weighted-vest-walk")!, full), true);
+  assert.equal(movementEligible(movementById("back_squat")!, full), true);
 });
 
 test("catalog offers dumbbells to mark owned", () => {
@@ -73,32 +69,16 @@ test("catalog offers dumbbells to mark owned", () => {
   assert.ok(EQUIPMENT.some((item) => item.slug === "db_25lb" && item.loadValue === 25));
 });
 
-test("rejects a weight vest that is not owned", () => {
-  const violations = guardWorkout(
-    {
-      day: {
-        warmup: "easy walk",
-        cooldown: "stretch",
-        parts: [{ name: "Metcon", details: "20 burpees in a weighted vest", equipment: ["weight_vest"] }],
-      },
-    },
-    [{ slug: "jump_rope", name: "Jump rope", category: "cardio", owned: true, loadValue: null, unit: null }],
-  );
-  assert.ok(violations.some((item) => /vest/i.test(item)));
-});
-
-test("rejects a kettlebell load that is not owned", () => {
-  const violations = guardWorkout(
-    {
-      rx_men: {
-        warmup: "arm circles",
-        cooldown: "stretch",
-        parts: [{ name: "Metcon", details: "20 24 kg kettlebell swings", equipment: [] }],
-      },
-    },
-    [{ slug: "kb_16kg", name: "16 kg", category: "kettlebell", owned: true, loadValue: 16, unit: "kg" }],
-  );
-  assert.ok(violations.some((item) => /24 kg/.test(item)));
+test("two dumbbell movements require a pair", () => {
+  const single = equipmentProfile([
+    { slug: "db_35lb", category: "dumbbell", kind: "implement", loadValue: 35, unit: "lb", quantity: 1, owned: true },
+  ]);
+  const pair = equipmentProfile([
+    { slug: "db_35lb", category: "dumbbell", kind: "implement", loadValue: 35, unit: "lb", quantity: 2, owned: true },
+  ]);
+  assert.equal(movementEligible(movementById("db-deadlift")!, single), false);
+  assert.equal(movementEligible(movementById("db-deadlift")!, pair), true);
+  assert.equal(movementEligible(movementById("db-suitcase-deadlift")!, single), true);
 });
 
 test("reads percentage prescriptions", () => {

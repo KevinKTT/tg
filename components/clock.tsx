@@ -451,7 +451,7 @@ export function WorkoutClock({ partId }: { partId: number }) {
 
   if (!onWorkout || !workout || !option) return null;
 
-  const total = roundTotal(option.format);
+  const total = roundTotal(option.format, option.scheme);
   const showRounds = showsRoundCounter(option);
 
   function changeRounds(next: number) {

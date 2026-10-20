@@ -27,7 +27,7 @@ export function loadEnv() {
   if (loaded) return;
   loaded = true;
   for (const name of [".env", ".env.local"]) {
-    const file = path.join(process.cwd(), name);
+    const file = path.join(/*turbopackIgnore: true*/ process.cwd(), name);
     if (!fs.existsSync(file)) continue;
     for (const [key, value] of parseEnv(fs.readFileSync(file, "utf8"))) {
       if (!value.trim()) continue;

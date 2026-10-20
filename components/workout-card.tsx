@@ -5,8 +5,9 @@ import { editDay, editPart, removeDay, removeScore, saveScore } from "@/lib/acti
 import { DAY_TRACK, focusLabel, type Sex } from "@/lib/athletes";
 import { parseBoard, parseSummary, type BoardLine, type ScaleLine } from "@/lib/board";
 import { clockWorkout } from "@/lib/clock";
-import { formatLabel, partDisplayName, pieceScheme, visibleCap } from "@/lib/formats";
+import { capSecForPart, formatLabel, partDisplayName, scoreTypeForPart } from "@/lib/formats";
 import { computeLoadPlan, dayLoadKind, ensureLoadLines, type MovementScales } from "@/lib/load-plan";
+import { movementDisplayName } from "@/lib/engine/movements";
 import { scanMovements, stimulusForDisplay } from "@/lib/program";
 import { findPercents } from "@/lib/resolve";
 import { formatLoad, formatTime, higherIsBetter } from "@/lib/scoring";
@@ -46,8 +47,17 @@ export function WorkoutCard({
   const track = day.tracks.find((item) => item.track === DAY_TRACK) ?? day.tracks[0];
   const plan = useMemo(() => {
     if (day.status === "rest" || !track) return null;
-    const text = track.parts.map((part) => part.body).join("\n");
-    const detected = scanMovements(text).map((hit) => ({ slug: hit.slug, name: hit.slug.replace(/_/g, " ") }));
+    const heroParts = track.parts.filter((part) => HERO.has(part.kind));
+    const structured = heroParts.flatMap((part) => part.movements ?? []);
+    const detected = structured.length
+      ? [...new Map(structured.map((item) => [item.id, item])).values()].map((item) => ({
+          slug: item.id,
+          name: movementDisplayName(item.id),
+        }))
+      : scanMovements(heroParts.map((part) => part.body).join("\n")).map((hit) => ({
+          slug: hit.slug,
+          name: hit.slug.replace(/_/g, " "),
+        }));
     return computeLoadPlan({
       items: equipment,
       members,
@@ -66,7 +76,7 @@ export function WorkoutCard({
       athlete,
       track.parts.map((part) => ({
         ...part,
-        scoreType: pieceScheme(part.format, day.format, part.kind)?.scoreType ?? part.scoreType,
+        scoreType: scoreTypeForPart(part, day.format),
       })),
     );
   }, [athlete, day, track]);
@@ -92,7 +102,9 @@ export function WorkoutCard({
   if (!track) return null;
   const text = track.parts.map((part) => part.body).join("\n");
   const hits = findPercents(text);
-  const kicker = [formatLabel(day.format), day.focus ? focusLabel(day.focus) : day.source].filter(Boolean).join(" · ");
+  const kicker = [
+    ...new Set([formatLabel(day.format), day.focus ? focusLabel(day.focus) : day.source].filter(Boolean)),
+  ].join(" · ");
   const summary = parseSummary(track.summary);
   const loadLines = plan?.hasLoads ? ensureLoadLines(summary.loads, plan.lines) : summary.loads;
   const scaleMap = new Map<string, ScaleLine[]>((plan?.byMovement ?? []).map((movement: MovementScales) => [movement.slug, movement.scales]));
@@ -130,7 +142,7 @@ export function WorkoutCard({
       </section>
 
       {track.parts.map((part) => {
-        const scoreType = pieceScheme(part.format, day.format, part.kind)?.scoreType ?? part.scoreType;
+        const scoreType = scoreTypeForPart(part, day.format);
         if (scoreType === "none") return null;
         const mine = scores.find((score) => score.partId === part.id && score.athleteSlug === athlete);
         return (
@@ -226,15 +238,17 @@ function Piece({
   fallbackScales: Map<string, ScaleLine[]>;
 }) {
   const hero = HERO.has(part.kind);
-  const lines = parseBoard(part.body).map((line) => {
-    if (!hero || line.type !== "move") return line;
-    const slug = scanMovements(line.name)[0]?.slug;
-    const fallback = slug ? fallbackScales.get(slug) : undefined;
-    if (!fallback?.length) return line;
-    const labels = new Set(line.scales.map((scale) => scale.label.toLowerCase()));
-    const missing = fallback.filter((scale) => !labels.has(scale.label.toLowerCase()));
-    return missing.length ? { ...line, scales: [...line.scales, ...missing] } : line;
-  });
+  const lines = hero
+    ? parseBoard(part.body).map((line) => {
+        if (line.type !== "move") return line;
+        const slug = scanMovements(line.name)[0]?.slug;
+        const fallback = slug ? fallbackScales.get(slug) : undefined;
+        if (!fallback?.length) return line;
+        const labels = new Set(line.scales.map((scale) => scale.label.toLowerCase()));
+        const missing = fallback.filter((scale) => !labels.has(scale.label.toLowerCase()));
+        return missing.length ? { ...line, scales: [...line.scales, ...missing] } : line;
+      })
+    : [];
   const label = KIND[part.kind] || part.kind;
   const displayName = partDisplayName(part.kind, part.name);
   const [done, setDone] = useState<number[]>([]);
@@ -264,12 +278,12 @@ function Piece({
       {part.format ? (
         <p className="board-scheme">
           {part.format}
-          {visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
-            <span className="board-cap"> · Cap {formatTime(part.timeCapSec ?? 0)}</span>
+          {capSecForPart(part, dayFormat) ? (
+            <span className="board-cap"> · Cap {formatTime(capSecForPart(part, dayFormat) ?? 0)}</span>
           ) : null}
         </p>
-      ) : visibleCap(part.format, dayFormat, part.kind, part.timeCapSec) ? (
-        <p className="board-scheme">Cap {formatTime(part.timeCapSec ?? 0)}</p>
+      ) : capSecForPart(part, dayFormat) ? (
+        <p className="board-scheme">Cap {formatTime(capSecForPart(part, dayFormat) ?? 0)}</p>
       ) : null}
       {lines.length ? <BoardLines lines={lines} done={done} onToggle={toggle} /> : part.body ? <p className="pre">{part.body}</p> : null}
       {loads?.length ? <Loads loads={loads} initials={initials ?? ""} /> : null}
@@ -472,7 +486,7 @@ function DayBoard({ scores, parts, dayFormat }: { scores: ScoreView[]; parts: Pa
   const groups = new Map<string, ScoreView[]>();
   for (const score of scores) {
     const part = parts.find((item) => item.id === score.partId);
-    const scoreType = part ? (pieceScheme(part.format, dayFormat, part.kind)?.scoreType ?? score.scoreType) : score.scoreType;
+    const scoreType = part ? scoreTypeForPart(part, dayFormat) : score.scoreType;
     if (scoreType === "none") continue;
     const typed = { ...score, scoreType };
     const key = `${typed.partKind}:${typed.partName}:${typed.scoreType}`;

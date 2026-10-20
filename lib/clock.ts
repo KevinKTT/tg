@@ -1,4 +1,5 @@
 import { formatTime } from "./scoring";
+import { capSecForScheme, type Scheme } from "./engine/scheme";
 
 export type ClockKind = "up" | "capped" | "down" | "minute" | "interval";
 
@@ -18,6 +19,7 @@ export type ClockPart = {
   scoreType: string;
   timeCapSec: number | null;
   format: string;
+  scheme?: Scheme | null;
 };
 
 export type ClockOption = {
@@ -26,6 +28,7 @@ export type ClockOption = {
   kind: string;
   scoreType: string;
   format: string;
+  scheme?: Scheme | null;
   plan: ClockPlan;
 };
 
@@ -35,14 +38,17 @@ export function sessionElapsedSec(accumulatedSec: number, runningSince: number |
   return Math.floor(base + Math.max(0, nowMs - runningSince) / 1000);
 }
 
-export function roundTotal(format: string): number | null {
+export function roundTotal(format: string, scheme?: Scheme | null): number | null {
+  if (scheme?.type === "for_time" && scheme.rounds) return scheme.rounds;
   const match = format.match(/(\d+)\s+rounds?\b/i);
   if (!match) return null;
   const total = Number(match[1]);
   return total > 0 ? total : null;
 }
 
-export function showsRoundCounter(option: Pick<ClockOption, "scoreType" | "format">): boolean {
+export function showsRoundCounter(option: Pick<ClockOption, "scoreType" | "format"> & { scheme?: Scheme | null }): boolean {
+  if (option.scheme?.type === "amrap") return true;
+  if (option.scheme?.type === "for_time" && option.scheme.rounds) return true;
   return option.scoreType === "rounds_reps" || roundTotal(option.format) != null || /\brounds?\s+for\s+time\b/i.test(option.format);
 }
 
@@ -103,6 +109,7 @@ export function clockWorkout(dayFormat: string, date: string, athlete: string, p
     kind: part.kind,
     scoreType: part.scoreType,
     format: part.format,
+    scheme: part.scheme ?? null,
     plan: clockPlan(dayFormat, part),
   }));
   const metcons = scored.filter((part) => part.kind === "metcon");
@@ -112,6 +119,7 @@ export function clockWorkout(dayFormat: string, date: string, athlete: string, p
 }
 
 export function clockPlan(dayFormat: string, part: ClockPart): ClockPlan {
+  if (part.scheme) return clockPlanForScheme(part.scheme);
   const text = (part.kind === "metcon" ? `${part.format} ${dayFormat}` : part.format).toLowerCase();
   const cap = part.timeCapSec && part.timeCapSec > 0 ? part.timeCapSec : null;
   const every = readEvery(part.format);
@@ -148,6 +156,46 @@ export function clockPlan(dayFormat: string, part: ClockPart): ClockPlan {
     return { kind: "up", seconds: 0, restSec: 0, savesTime: true, label: "For time", count: 0 };
   }
   return OPEN_CLOCK;
+}
+
+export function clockPlanForScheme(scheme: Scheme): ClockPlan {
+  switch (scheme.type) {
+    case "amrap":
+      return { kind: "down", seconds: scheme.minutes * 60, restSec: 0, savesTime: false, label: "AMRAP", count: 0 };
+    case "emom":
+      return {
+        kind: "minute",
+        seconds: scheme.everySec && scheme.everySec > 0 ? scheme.everySec : 60,
+        restSec: 0,
+        savesTime: false,
+        label: "EMOM",
+        count: scheme.minutes,
+      };
+    case "intervals":
+      return {
+        kind: "interval",
+        seconds: scheme.workSec,
+        restSec: scheme.restSec,
+        savesTime: false,
+        label: scheme.task === "amrap" ? "AMRAP" : "Work",
+        count: 0,
+      };
+    case "for_time":
+    case "chipper":
+    case "ladder": {
+      const cap = capSecForScheme(scheme);
+      return cap
+        ? { kind: "capped", seconds: cap, restSec: 0, savesTime: true, label: "Cap", count: 0 }
+        : { kind: "up", seconds: 0, restSec: 0, savesTime: true, label: "For time", count: 0 };
+    }
+    case "strength":
+    case "max_load":
+      return { kind: "interval", seconds: 300, restSec: 0, savesTime: false, label: "Set", count: 0 };
+    case "max_reps":
+      return { kind: "down", seconds: scheme.minutes * 60, restSec: 0, savesTime: false, label: "Max reps", count: 0 };
+    case "skill":
+      return OPEN_CLOCK;
+  }
 }
 
 export function clockFace(plan: ClockPlan, elapsedSec: number): ClockFace {
