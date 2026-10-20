@@ -47,8 +47,10 @@ export function roundTotal(format: string, scheme?: Scheme | null): number | nul
 }
 
 export function showsRoundCounter(option: Pick<ClockOption, "scoreType" | "format"> & { scheme?: Scheme | null }): boolean {
+  if (option.scheme?.type === "intervals") return false;
   if (option.scheme?.type === "amrap") return true;
   if (option.scheme?.type === "for_time" && option.scheme.rounds) return true;
+  if (/\b(?:work|on)\b\s*\/\s*.+\b(?:rest|off)\b/i.test(option.format)) return false;
   return option.scoreType === "rounds_reps" || roundTotal(option.format) != null || /\brounds?\s+for\s+time\b/i.test(option.format);
 }
 
@@ -178,7 +180,7 @@ export function clockPlanForScheme(scheme: Scheme): ClockPlan {
         restSec: scheme.restSec,
         savesTime: false,
         label: scheme.task === "amrap" ? "AMRAP" : "Work",
-        count: 0,
+        count: scheme.rounds,
       };
     case "for_time":
     case "chipper":
@@ -238,15 +240,20 @@ function intervalFace(plan: ClockPlan, elapsed: number): ClockFace {
     const cycle = plan.seconds + plan.restSec;
     const window = Math.floor(elapsed / cycle);
     const into = elapsed % cycle;
+    const caption = plan.count > 0 ? progressLabel(plan, window + 1) : "";
     if (into < plan.seconds) {
-      return { display: formatTime(plan.seconds - into), caption: "Work", mark: window * 2 };
+      return { display: formatTime(plan.seconds - into), caption: caption ? `Work · ${caption}` : "Work", mark: window * 2 };
     }
-    return { display: formatTime(cycle - into), caption: "Rest", mark: window * 2 + 1 };
+    return { display: formatTime(cycle - into), caption: caption ? `Rest · ${caption}` : "Rest", mark: window * 2 + 1 };
   }
   const window = Math.floor(elapsed / plan.seconds);
   const into = elapsed % plan.seconds;
   const left = into === 0 ? plan.seconds : plan.seconds - into;
-  return { display: formatTime(left), caption: `Set ${window + 1}`, mark: window };
+  return { display: formatTime(left), caption: `Set ${progressLabel(plan, window + 1)}`, mark: window };
+}
+
+function progressLabel(plan: ClockPlan, round: number): string {
+  return plan.count > 0 ? `${Math.min(round, plan.count)}/${plan.count}` : String(round);
 }
 
 function isEmom(text: string) {

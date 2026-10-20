@@ -560,25 +560,6 @@ const ENGINE_MOVEMENTS: MovementDef[] = [
     description: "",
     source: "engine",
   },
-  {
-    id: "farmer-carry",
-    name: "Farmer Carry",
-    aliases: ["farmers carry", "farmer's carry"],
-    modality: "W",
-    pattern: "carry",
-    equipmentAny: [["farmer_handles", "kettlebell", "dumbbell"]],
-    equipment: [],
-    dumbbellCount: 0,
-    load: "odd",
-    doses: [{ unit: "meters", min: 40, max: 100 }],
-    unilateral: false,
-    skill: "beginner",
-    intensity: "moderate",
-    easier: [],
-    harder: [],
-    description: "",
-    source: "engine",
-  },
 ];
 
 const LIBRARY_MOVEMENTS: MovementDef[] = MOVEMENT_LIBRARY.map(libraryMovement);
@@ -651,8 +632,23 @@ export function unitSuffix(unit: DoseUnit): string {
 }
 
 export function defaultDose(movement: MovementDef, scheme: Scheme, style: "short" | "medium" | "long"): Dose {
-  const range = doseRangeFor(movement, scheme)[0] ?? movement.doses[0];
-  if (!range) return { reps: 10 };
+  const base = movement.doses[0];
+  if (!base) return { reps: 10 };
+  if (scheme.type === "intervals" && scheme.task === "amrap") {
+    const scale = Math.min(1, scheme.workSec / 120);
+    const value =
+      base.unit === "cal"
+        ? Math.max(base.min, Math.round(10 * scale))
+        : base.unit === "meters"
+          ? movement.pattern === "carry"
+            ? Math.max(base.min, Math.round(60 * scale))
+            : Math.max(base.min, Math.round(200 * scale))
+          : /jump rope|under|skier|boxer/i.test(movement.name)
+            ? Math.max(base.min, Math.round(40 * scale))
+            : base.min + (scale >= 1 ? 2 : 0);
+    return { [base.unit]: value } as Dose;
+  }
+  const range = doseRangeFor(movement, scheme)[0] ?? base;
   let value: number;
   if (scheme.type === "intervals") {
     value = Math.round((range.min + range.max) / 2);
@@ -684,6 +680,19 @@ export function doseValue(dose: Dose): { unit: DoseUnit; value: number } | null 
   return null;
 }
 
+/** Rough time cost for a dose, used to keep interval rounds and EMOM minutes honest. */
+export function estimateDoseSeconds(movement: MovementDef, dose: Dose): number {
+  const value = doseValue(dose);
+  if (!value) return 0;
+  if (value.unit === "seconds") return value.value;
+  if (value.unit === "cal") return value.value * 3;
+  if (value.unit === "meters") return value.value * (movement.pattern === "carry" ? 0.65 : 0.28);
+  const eachSide = dose.eachSide || movement.unilateral ? 2 : 1;
+  const fast = /jump rope|under|skier|boxer|high knee|skip/i.test(movement.name);
+  const perRep = fast ? 0.55 : movement.load ? 3 : 1.8;
+  return value.value * perRep * eachSide;
+}
+
 export function doseInRange(movement: MovementDef, dose: Dose, scheme?: Scheme): boolean {
   const value = doseValue(dose);
   if (!value) return false;
@@ -701,19 +710,26 @@ export function doseRangeFor(movement: MovementDef, scheme: Scheme): DoseRange[]
   const base = movement.doses[0];
   if (!base) return [];
   if (scheme.type === "intervals") {
+    // In an AMRAP window the listed dose is one round of the circuit, not the
+    // whole window. Keep the movement's normal round dose and let the capacity
+    // check decide whether the round fits.
+    if (scheme.task === "amrap") return movement.doses;
     const work = Math.max(15, scheme.workSec);
     if (base.unit === "cal") {
-      const min = Math.max(base.min, Math.round(work / 15));
-      const max = Math.max(min + 4, Math.round(work / 5));
+      const min = Math.max(base.min, Math.round(work / 7));
+      const max = Math.max(min + 5, Math.round(work / 3.5));
       return [{ unit: "cal", min, max }];
     }
     if (base.unit === "meters") {
-      const min = Math.max(base.min, Math.round(work * 2));
-      const max = Math.max(min + 50, Math.min(base.max, Math.round(work * 4)));
+      if (movement.pattern === "carry" || /sled/i.test(movement.name)) return movement.doses;
+      const min = Math.max(base.min, Math.round(work * 3));
+      const max = Math.max(min + 50, Math.min(base.max, Math.round(work * 5)));
       return [{ unit: "meters", min, max }];
     }
     if (base.unit === "reps") {
-      const perMinute = /double-under/i.test(movement.name) ? 40 : /jump|skip/i.test(movement.name) ? 60 : 20;
+      const fast = /jump rope|under|skier|boxer|high knee|skip/i.test(movement.name);
+      if (!fast && movement.modality !== "M") return movement.doses;
+      const perMinute = /double-under/i.test(movement.name) ? 40 : 60;
       const min = Math.max(base.min, Math.round((work / 60) * perMinute * 0.7));
       const max = Math.max(min + 5, Math.round((work / 60) * perMinute * 1.5));
       return [{ unit: "reps", min, max }];

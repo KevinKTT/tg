@@ -463,7 +463,7 @@ function ScoreForm({
           <input className="field" name="seconds" type="number" min="0" max="59" placeholder="Sec" required />
         </div>
       ) : null}
-      {scoreType === "reps" ? <input className="field" name="reps" type="number" min="0" placeholder="Reps" required /> : null}
+      {scoreType === "reps" ? <input className="field" name="reps" type="number" min="0" placeholder="Total reps / cal / m" required /> : null}
       {scoreType === "rounds_reps" ? (
         <div className="score-grid">
           <input className="field" name="rounds" type="number" min="0" placeholder="Rounds" required />
