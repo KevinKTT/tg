@@ -84,6 +84,7 @@ export type DayView = {
   focus: string;
   format: string;
   status: string;
+  program: string;
   tracks: TrackView[];
 };
 
@@ -573,6 +574,7 @@ export function getDay(date: string): DayView | null {
         focus: string;
         format: string;
         status: string;
+        program: string;
       }
     | undefined;
   if (!day) return null;
@@ -599,6 +601,7 @@ export function getDay(date: string): DayView | null {
     focus: day.focus,
     format: day.format,
     status: day.status,
+    program: day.program ?? "",
     tracks: tracks.map((track) => ({
       id: track.id,
       track: track.track,

@@ -21,6 +21,7 @@ import {
   partCapSec,
   partScoreType,
   renderPieceBody,
+  repairAiCopy,
   type AiWorkout,
   type ClassPlan,
   type PlannedPiece,
@@ -53,9 +54,12 @@ Standards:
 - Use the number of movements specified for the piece.
 - Mix modalities as assigned. A metcon should pair a primary pattern with contrasting bodyweight, engine, or carry work, not three variations of the same lift. Never stack two movements with the same pattern in one piece (for example, goblet squats plus air squats).
 - A metcon must use at least two modalities when the assignment allows them. An interval circuit must include one monostructural station and one contrasting station. Never submit a single-modality metcon.
+- Mixed conditioning must include at least one loaded movement when the piece allows weightlifting. Do not turn a hard mixed piece into a bodyweight circuit.
 - Strength pieces use loaded movements. Skill pieces use bodyweight or skill work. For strength, skill, max-load, and max-reps pieces the scheme supplies the dose, so movement choice is what matters.
+- Program demanding sessions: choose doses in the upper half of the listed ranges, keep time domains tight, and use the full movement count.
+- Vary the combination. Never reuse movements from the version being replaced or from the recently used list unless the piece truly requires it.
 - Write a short, specific title that matches the piece you chose. Do not call it a ladder, chipper, EMOM, or AMRAP unless the assignment's scheme is that type. Never use internal words like "locomotion", "monostructural", or "modality" in the title.
-- Write a short, specific title and a one-line stimulus about effort and pacing. Never put a time estimate in the stimulus.
+- Write a short, specific title and a one-line stimulus about effort and pacing. The stimulus is at most 140 characters. Never put a time estimate in the stimulus. Example: "Hard breathing at a repeatable pace; sets break before form does."
 - Whiteboard style: the app renders the scheme, doses, loads, and scales. You provide only the title, stimulus, and movement choices.
 Return one JSON object matching the schema. Do not add pieces the assignment did not ask for.`;
 
@@ -100,12 +104,66 @@ function recentSignals(date: string): RecentSignal[] {
   });
 }
 
+type StoredProgram = {
+  pattern?: MovementPattern;
+  movements?: string[];
+  load?: RecentSignal["load"];
+  history?: string[][];
+};
+
+function parseStoredProgram(raw: string): StoredProgram {
+  if (!raw) return {};
+  try {
+    const value = JSON.parse(raw) as StoredProgram;
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function dayMovementIds(day: DayView): string[] {
+  const structured = day.tracks
+    .flatMap((track) => track.parts)
+    .flatMap((part) => part.movements?.map((movement) => movement.id) ?? []);
+  if (structured.length) return [...new Set(structured)];
+  const text = day.tracks.flatMap((track) => track.parts).map((part) => part.body).join("\n");
+  return [...new Set(scanMovements(text).map((hit) => hit.slug))];
+}
+
+function previousSession(day: DayView | null): {
+  pattern?: MovementPattern;
+  movements: string[];
+  history: string[][];
+} {
+  if (!day) return { movements: [], history: [] };
+  const stored = parseStoredProgram(day.program);
+  const current = dayMovementIds(day);
+  const storedHistory = Array.isArray(stored.history)
+    ? stored.history
+        .filter((version): version is string[] => Array.isArray(version))
+        .map((version) => version.filter((id): id is string => typeof id === "string"))
+    : [];
+  const pattern =
+    stored.pattern && stored.pattern !== "none"
+      ? stored.pattern
+      : current.map((id) => movementById(id)?.pattern).find((value): value is MovementPattern => Boolean(value) && value !== "none");
+  return {
+    pattern,
+    movements: [...new Set([...storedHistory.flat(), ...current])],
+    history: [...storedHistory, current].filter((version) => version.length > 0).slice(-3),
+  };
+}
+
 function seededRandom(seed: number) {
   let state = seed || 1;
   return () => {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
     return state / 4294967296;
   };
+}
+
+function generationVariant(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function shortlistsFor(assignment: DayAssignment, items: EquipmentRow[]): Shortlist[] {
@@ -133,7 +191,7 @@ ROSTER: ${roster}
 OWNED EQUIPMENT (anything absent is forbidden):
 ${gear}
 
-RECENTLY USED (avoid unless the piece truly needs it): ${avoid}
+RECENTLY USED AND THE VERSION BEING REPLACED (do not reuse): ${avoid}
 
 ${assignmentPrompt(input.assignment, input.shortlists)}
 
@@ -234,12 +292,13 @@ async function askForWorkout(input: {
     if (!parsed) {
       lastIssues = ["Return the required JSON object with title, stimulus, and pieces."];
     } else {
+      const repaired = repairAiCopy(parsed, input.assignment);
       const issues = validateAiWorkout({
         assignment: input.assignment,
-        ai: parsed,
+        ai: repaired,
         profile,
       });
-      if (!issues.length) return parsed;
+      if (!issues.length) return repaired;
       lastIssues = issues.map((issue) => `${issue.path}: ${issue.message}`);
     }
     if (attempt === 0) {
@@ -267,6 +326,7 @@ function savePlan(input: {
   assignment: DayAssignment;
   plan: ClassPlan;
   items: EquipmentRow[];
+  history?: string[][];
 }) {
   const parts = input.plan.pieces.map((piece) => generatedPart(piece));
   saveGeneratedDay({
@@ -282,6 +342,7 @@ function savePlan(input: {
       movements: [...new Set(input.plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id)))],
       load: input.assignment.load,
       shape: input.assignment.shape,
+      history: (input.history ?? []).slice(-3),
     }),
     snapshot: JSON.stringify(input.items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity }))),
     track: {
@@ -346,18 +407,21 @@ function clarifyScheme(note: string, current: Scheme): Scheme {
   return current;
 }
 
-export async function generateDay(input: { date: string; focus?: string }) {
+export async function generateDay(input: { date: string; focus?: string; variant?: string }) {
   loadEnv();
   const items = listEquipment();
   if (!items.some((item) => item.owned)) {
     throw new Error("Mark the equipment you own first. Workouts are built only from that list.");
   }
   const focus: Focus | undefined = isFocus(input.focus) ? input.focus : input.focus === "cardio" ? ("engine" as Focus) : undefined;
+  const previous = previousSession(getDay(input.date));
   const assignment = planDay({
     date: input.date,
     focus,
     profile: equipmentProfile(items),
     recent: recentSignals(input.date),
+    variant: input.variant ?? generationVariant(),
+    previous,
   });
   const shortlists = shortlistsFor(assignment, items);
   let plan: ClassPlan;
@@ -375,11 +439,12 @@ export async function generateDay(input: { date: string; focus?: string }) {
       caps: equipmentProfile(items).caps,
       random: seededRandom(assignment.seed + 7),
     });
-  } catch {
+  } catch (error) {
     // A valid, original session beats a failed generation.
+    console.warn("Workout generation fell back to the deterministic composer.", error);
     plan = fallbackPlan(assignment, shortlists, items);
   }
-  savePlan({ assignment, plan, items });
+  savePlan({ assignment, plan, items, history: previous.history });
   return { title: plan.title };
 }
 
@@ -470,23 +535,25 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
         .join("\n\n")}\n\n${assignmentPrompt(assignment, shortlists)}`,
     },
   ];
+  const history = previousSession(input.day).history;
   let lastError = "Could not clarify the workout.";
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     const content = await completeWithFallback(messages, config, attempt === 0 ? 0.4 : 0.2);
     const parsed = parseAiWorkout(extractJson(content));
     if (!parsed) {
       lastError = "The coach returned an incomplete workout.";
     } else {
-      const issues = validateAiWorkout({ assignment, ai: parsed, profile });
+      const repaired = repairAiCopy(parsed, assignment);
+      const issues = validateAiWorkout({ assignment, ai: repaired, profile });
       if (!issues.length) {
         const plan = buildClassFromAi({
           assignment,
-          ai: parsed,
+          ai: repaired,
           items,
           caps: profile.caps,
           random: seededRandom(assignment.seed + 3),
         });
-        savePlan({ assignment, plan, items });
+        savePlan({ assignment, plan, items, history });
         return { title: plan.title };
       }
       lastError = formatIssues(issues);
