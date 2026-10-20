@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { addDays, formatLong, isISODate, todayISO } from "@/lib/dates";
 import { getDay, getScores, listAthletes } from "@/lib/db";
-import { partDisplayName, partKindLabel, pieceScheme } from "@/lib/formats";
+import { partDisplayName, partKindLabel, scoreTypeForPart } from "@/lib/formats";
 import { stimulusForDisplay } from "@/lib/program";
 import { higherIsBetter } from "@/lib/scoring";
 
@@ -21,7 +21,7 @@ export default async function BoardPage({
   const groups = new Map<string, typeof scores>();
   for (const score of scores) {
     const part = parts.find((item) => item.id === score.partId);
-    const scoreType = part && day ? (pieceScheme(part.format, day.format, part.kind)?.scoreType ?? score.scoreType) : score.scoreType;
+    const scoreType = part && day ? scoreTypeForPart(part, day.format) : score.scoreType;
     if (scoreType === "none") continue;
     const typed = { ...score, scoreType };
     const key = `${typed.partKind}:${typed.partName}:${typed.scoreType}`;

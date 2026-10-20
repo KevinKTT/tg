@@ -3,6 +3,8 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { DAY_TRACK, type Sex, type TrackId } from "./athletes";
 import { EQUIPMENT, MOVEMENTS } from "./catalog";
+import { parseScheme, formatText, type Scheme } from "./engine/scheme";
+import type { MovementDose } from "./engine/movements";
 import { env, loadEnv } from "./env";
 import { isBetter } from "./scoring";
 
@@ -61,6 +63,8 @@ export type PartView = {
   scoreDirection: string;
   repsPerRound: number | null;
   sortOrder: number;
+  scheme: Scheme | null;
+  movements: MovementDose[] | null;
 };
 
 export type TrackView = {
@@ -192,7 +196,9 @@ CREATE TABLE IF NOT EXISTS workout_parts (
   estimated_duration_min INTEGER,
   score_type TEXT NOT NULL DEFAULT 'none',
   score_direction TEXT NOT NULL DEFAULT 'desc',
-  reps_per_round INTEGER
+  reps_per_round INTEGER,
+  scheme_json TEXT NOT NULL DEFAULT '',
+  movements_json TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS scores (
   id INTEGER PRIMARY KEY,
@@ -248,6 +254,10 @@ export function getDb() {
   ensureColumn(db, "workout_days", "format", "format TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "workout_days", "program", "program TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "workout_parts", "estimated_duration_min", "estimated_duration_min INTEGER");
+  ensureColumn(db, "workout_parts", "scheme_json", "scheme_json TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, "workout_parts", "movements_json", "movements_json TEXT NOT NULL DEFAULT ''");
+  // Clean up tables left by an abandoned experiment in older builds.
+  db.exec("DROP TABLE IF EXISTS archive_gear; DROP TABLE IF EXISTS archive_movements; DROP TABLE IF EXISTS archive_workouts; DROP TABLE IF EXISTS archive_deck;");
   if (ensureColumn(db, "athletes", "sort", "sort INTEGER NOT NULL DEFAULT 0")) {
     db.exec("UPDATE athletes SET sort = rowid");
   }
@@ -520,6 +530,8 @@ function mapPart(row: {
   score_direction: string;
   reps_per_round: number | null;
   sort_order: number;
+  scheme_json?: string;
+  movements_json?: string;
 }): PartView {
   return {
     id: row.id,
@@ -533,7 +545,19 @@ function mapPart(row: {
     scoreDirection: row.score_direction,
     repsPerRound: row.reps_per_round,
     sortOrder: row.sort_order,
+    scheme: parseScheme(row.scheme_json),
+    movements: parseMovements(row.movements_json),
   };
+}
+
+function parseMovements(raw: string | null | undefined): MovementDose[] | null {
+  if (!raw?.trim()) return null;
+  try {
+    const value = JSON.parse(raw) as MovementDose[];
+    return Array.isArray(value) ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 export function getDay(date: string): DayView | null {
@@ -741,7 +765,9 @@ export function updateDayMeta(date: string, title: string, stimulus: string) {
 }
 
 export function updatePart(id: number, body: string, format: string) {
-  getDb().prepare("UPDATE workout_parts SET body = ?, format = ? WHERE id = ?").run(body, format, id);
+  getDb()
+    .prepare("UPDATE workout_parts SET body = ?, format = ?, scheme_json = '', movements_json = '' WHERE id = ?")
+    .run(body, format, id);
 }
 
 export function deleteDay(date: string) {
@@ -757,6 +783,8 @@ export type GeneratedPart = {
   estimatedDurationMin: number | null;
   scoreType: "time" | "reps" | "rounds_reps" | "load" | "done" | "none";
   repsPerRound: number | null;
+  scheme?: Scheme | null;
+  movements?: MovementDose[] | null;
 };
 
 export type GeneratedTrack = {
@@ -808,15 +836,15 @@ export function saveGeneratedDay(input: {
     const insertTrack = db.prepare("INSERT INTO workout_tracks (day_id, track, summary) VALUES (?, ?, ?)");
     const insertPart = db.prepare(
       `INSERT INTO workout_parts
-        (track_id, sort_order, kind, name, format, body, time_cap_sec, estimated_duration_min, score_type, score_direction, reps_per_round)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (track_id, sort_order, kind, name, format, body, time_cap_sec, estimated_duration_min, score_type, score_direction, reps_per_round, scheme_json, movements_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     const body = input.track;
     const inserted = insertTrack.run(dayId, DAY_TRACK, body.summary);
     const trackId = Number(inserted.lastInsertRowid);
-    insertPart.run(trackId, 0, "warmup", "Warm-up", "", body.warmup, null, body.warmupDurationMin, "none", "desc", null);
+    insertPart.run(trackId, 0, "warmup", "Warm-up", "", body.warmup, null, body.warmupDurationMin, "none", "desc", null, "", "");
     if (body.prep.trim()) {
-      insertPart.run(trackId, 1, "prep", "Workout prep", "", body.prep, null, body.prepDurationMin, "none", "desc", null);
+      insertPart.run(trackId, 1, "prep", "Workout prep", "", body.prep, null, body.prepDurationMin, "none", "desc", null, "", "");
     }
     body.parts.forEach((part, index) => {
       insertPart.run(
@@ -831,11 +859,22 @@ export function saveGeneratedDay(input: {
         part.scoreType,
         direction(part.scoreType),
         part.repsPerRound,
+        part.scheme ? JSON.stringify(part.scheme) : "",
+        part.movements ? JSON.stringify(part.movements) : "",
       );
     });
-    insertPart.run(trackId, 100, "cooldown", "Cool-down", "", body.cooldown, null, body.cooldownDurationMin, "none", "desc", null);
+    insertPart.run(trackId, 100, "cooldown", "Cool-down", "", body.cooldown, null, body.cooldownDurationMin, "none", "desc", null, "", "");
   });
   tx();
+}
+
+function manualScheme(scoreType: GeneratedPart["scoreType"], capMin: number | null): Scheme | null {
+  const cap = capMin && capMin > 0 ? capMin : null;
+  if (scoreType === "time") return { type: "for_time", capMin: cap ?? undefined };
+  if (scoreType === "rounds_reps") return { type: "amrap", minutes: cap ?? 12 };
+  if (scoreType === "reps") return { type: "max_reps", minutes: cap ?? 6 };
+  if (scoreType === "load") return { type: "max_load", repMax: 3 };
+  return null;
 }
 
 export function saveManualDay(input: {
@@ -876,6 +915,13 @@ export function saveManualDay(input: {
     scoreType,
     repsPerRound: null,
   });
+  const scheme = manualScheme(scoreType, input.timeCapMin);
+  if (scheme) {
+    const part = parts[parts.length - 1];
+    part.scheme = scheme;
+    part.format = formatText(scheme);
+    part.timeCapMin = scheme.type === "for_time" || scheme.type === "chipper" || scheme.type === "ladder" ? scheme.capMin ?? null : null;
+  }
   const track: GeneratedTrack = {
     summary: "Written in the garage.",
     warmup: input.warmup.trim(),

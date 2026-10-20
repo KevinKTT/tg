@@ -1,3 +1,5 @@
+import { capSecForScheme, scoreTypeForScheme, type ScoreType, type Scheme } from "./engine/scheme";
+
 export type FormatId =
   | "for_time"
   | "amrap"
@@ -90,8 +92,21 @@ export function formatById(id: string): FormatDef | undefined {
   return BY_ID.get(id as FormatId);
 }
 
+const SCHEME_LABELS: Record<string, string> = {
+  strength: "Strength",
+  intervals: "Intervals",
+  max_load: "Max load",
+  max_reps: "Max reps",
+  skill: "Skill",
+  for_time: "For Time",
+  amrap: "AMRAP",
+  emom: "EMOM",
+  chipper: "Chipper",
+  ladder: "Ladder",
+};
+
 export function formatLabel(id: string): string {
-  return BY_ID.get(id as FormatId)?.label ?? "";
+  return BY_ID.get(id as FormatId)?.label ?? SCHEME_LABELS[id] ?? "";
 }
 
 export function partDisplayName(kind: string, name: string): string {
@@ -106,7 +121,25 @@ export function partKindLabel(kind: string): string {
   return kind;
 }
 
-export type ScoreKind = "time" | "reps" | "rounds_reps" | "load" | "done" | "none";
+export type ScoreKind = ScoreType;
+
+export type ScoredPart = {
+  format: string;
+  kind: string;
+  scoreType?: string;
+  timeCapSec?: number | null;
+  scheme?: Scheme | null;
+};
+
+export function scoreTypeForPart(part: ScoredPart, dayFormat: string): ScoreType {
+  if (part.scheme) return scoreTypeForScheme(part.scheme);
+  return pieceScheme(part.format, dayFormat, part.kind)?.scoreType ?? ((part.scoreType as ScoreType) || "none");
+}
+
+export function capSecForPart(part: ScoredPart, dayFormat: string): number | null {
+  if (part.scheme) return capSecForScheme(part.scheme);
+  return visibleCap(part.format, dayFormat, part.kind, part.timeCapSec ?? null);
+}
 
 export type PieceScheme = {
   scoreType: ScoreKind;

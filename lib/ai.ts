@@ -1,111 +1,151 @@
 import OpenAI from "openai";
-import { z } from "zod";
 import { isFormatError, modeOrder, resolveProvider, type JsonMode, type ProviderConfig } from "./ai-config";
-import { DAY_TRACK, focusLabel, FOCUSES } from "./athletes";
+import { FOCUSES, focusLabel } from "./athletes";
 import {
   getDay,
   listAthletes,
   listEquipment,
-  listMovements,
-  listPrs,
-  bestPr,
   recentDaySignals,
   saveGeneratedDay,
-  type AthleteRow,
   type DayView,
   type EquipmentRow,
   type TrackView,
 } from "./db";
-import { startOfWeek } from "./dates";
 import { env, loadEnv } from "./env";
-import { formatById, formatFromScheme, pickFormat, pieceScheme, type FormatDef } from "./formats";
-import { capabilities, reviewWorkout, type ProgramCheck } from "./guard";
-import { computeLoadPlan, dayLoadKind, loadPlanPrompt, type LoadPlan } from "./load-plan";
-import { movementMenu, movementMenuPrompt } from "./movement-library";
+import { scanMovements } from "./program";
+import {
+  aiWorkoutSchema,
+  buildClassFromAi,
+  buildFallbackClass,
+  parseAiWorkout,
+  partCapSec,
+  partScoreType,
+  renderPieceBody,
+  type AiWorkout,
+  type ClassPlan,
+  type PlannedPiece,
+} from "./engine/class";
+import {
+  equipmentProfile,
+  movementById,
+  type MovementPattern,
+} from "./engine/movements";
 import {
   assignmentPrompt,
-  inferProgram,
+  hashString,
+  isFocus,
   planDay,
-  tagFromDraft,
-  tagFromSignal,
-  type Assignment,
-  type ProgramTag,
-} from "./program";
+  shortlistForPiece,
+  type DayAssignment,
+  type Focus,
+  type RecentSignal,
+  type Shortlist,
+} from "./engine/planner";
+import { formatText, schemeMinutes, type Scheme } from "./engine/scheme";
+import { formatIssues, validateAiWorkout } from "./engine/validate";
 
-const scoreType = z.string().transform((value) => {
-  const normalized = value.toLowerCase().replace(/[\s-]+/g, "_");
-  if (["time", "for_time", "fortime"].includes(normalized)) return "time" as const;
-  if (["reps", "rep", "amrap", "calories", "cals"].includes(normalized)) return "reps" as const;
-  if (["rounds_reps", "rounds_and_reps", "rounds"].includes(normalized)) return "rounds_reps" as const;
-  if (["load", "weight", "1rm"].includes(normalized)) return "load" as const;
-  if (["done", "checkbox", "check"].includes(normalized)) return "done" as const;
-  return "none" as const;
-});
+const SYSTEM_PROMPT = `You are the head coach and programmer for a small garage CrossFit gym.
+Compose the workout you are assigned. Do not invent a different day.
 
-const partSchema = z.object({
-  name: z.string().min(1),
-  kind: z.enum(["strength", "metcon", "skill"]).catch("metcon"),
-  format: z.string().catch(""),
-  details: z.string().min(1),
-  timeCapMin: z.number().nullable().catch(null),
-  estimatedDurationMin: z.number().int().positive(),
-  scoreType,
-  repsPerRound: z.number().int().positive().nullable().catch(null),
-  equipment: z.array(z.string()).catch([]),
-});
+Standards:
+- Use only the movement IDs in each piece's shortlist. Never use equipment the athlete does not own.
+- Keep every dose inside the range shown for that movement.
+- Use the number of movements specified for the piece.
+- Mix modalities as assigned. A metcon should pair a primary pattern with contrasting bodyweight, engine, or carry work, not three variations of the same lift. Never stack two movements with the same pattern in one piece (for example, goblet squats plus air squats).
+- Strength pieces use loaded movements. Skill pieces use bodyweight or skill work. For strength, skill, max-load, and max-reps pieces the scheme supplies the dose, so movement choice is what matters.
+- Write a short, specific title that matches the piece you chose. Do not call it a ladder, chipper, EMOM, or AMRAP unless the assignment's scheme is that type.
+- Write a short, specific title and a one-line stimulus about effort and pacing. Never put a time estimate in the stimulus.
+- Whiteboard style: the app renders the scheme, doses, loads, and scales. You provide only the title, stimulus, and movement choices.
+Return one JSON object matching the schema. Do not add pieces the assignment did not ask for.`;
 
-const daySchema = z.object({
-  title: z.string().min(1),
-  stimulus: z.string().min(1),
-  summary: z.string().catch(""),
-  warmup: z.string().min(1),
-  warmupDurationMin: z.number().int().positive(),
-  prep: z.string().min(1),
-  prepDurationMin: z.number().int().positive(),
-  parts: z.array(partSchema).min(1).max(4),
-  cooldown: z.string().min(1),
-  cooldownDurationMin: z.number().int().positive(),
-});
+function inventoryText(items: EquipmentRow[]) {
+  const owned = items.filter((item) => item.owned);
+  return owned
+    .map((item) => {
+      const load = item.loadValue != null ? ` ${item.loadValue} ${item.unit}` : "";
+      const count = item.kind === "item" ? "" : ` x${item.quantity}`;
+      return `- ${item.name}${load}${count} [${item.slug}]`;
+    })
+    .join("\n");
+}
 
-const partJsonSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["name", "kind", "format", "details", "timeCapMin", "estimatedDurationMin", "scoreType", "repsPerRound", "equipment"],
-  properties: {
-    name: { type: "string" },
-    kind: { type: "string", enum: ["strength", "metcon", "skill"] },
-    format: { type: "string" },
-    details: { type: "string" },
-    timeCapMin: { anyOf: [{ type: "number" }, { type: "null" }] },
-    estimatedDurationMin: { type: "integer" },
-    scoreType: { type: "string", enum: ["time", "reps", "rounds_reps", "load", "done", "none"] },
-    repsPerRound: { anyOf: [{ type: "integer" }, { type: "null" }] },
-    equipment: { type: "array", items: { type: "string" } },
-  },
-};
+function memberLabel(member: { initials: string; name: string; sex: string }): string {
+  return `${member.initials} (${member.name}, ${member.sex === "f" ? "female" : "male"})`;
+}
 
-const jsonSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["title", "stimulus", "summary", "warmup", "warmupDurationMin", "prep", "prepDurationMin", "parts", "cooldown", "cooldownDurationMin"],
-  properties: {
-    title: { type: "string" },
-    stimulus: { type: "string" },
-    summary: { type: "string" },
-    warmup: { type: "string" },
-    warmupDurationMin: { type: "integer" },
-    prep: { type: "string" },
-    prepDurationMin: { type: "integer" },
-    cooldown: { type: "string" },
-    cooldownDurationMin: { type: "integer" },
-    parts: {
-      type: "array",
-      minItems: 1,
-      maxItems: 4,
-      items: partJsonSchema,
-    },
-  },
-};
+function recentSignals(date: string): RecentSignal[] {
+  return recentDaySignals(date, 14).map((row) => {
+    let pattern: MovementPattern = "none";
+    let movements: string[] = [];
+    let load: RecentSignal["load"];
+    try {
+      const stored = JSON.parse(row.program) as { pattern?: MovementPattern; movements?: string[]; load?: RecentSignal["load"] };
+      if (stored.pattern) pattern = stored.pattern;
+      if (Array.isArray(stored.movements)) movements = stored.movements;
+      if (stored.load) load = stored.load;
+    } catch {
+      // Legacy row: fall back to scanning the rendered text.
+    }
+    if (!movements.length) {
+      movements = scanMovements(row.text).map((hit) => hit.slug);
+    }
+    return {
+      date: row.date,
+      pattern,
+      scheme: row.format,
+      movements,
+      load,
+    };
+  });
+}
+
+function seededRandom(seed: number) {
+  let state = seed || 1;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function shortlistsFor(assignment: DayAssignment, items: EquipmentRow[]): Shortlist[] {
+  const profile = equipmentProfile(items);
+  return assignment.pieces.map((piece, index) => {
+    const random = seededRandom(hashString(`${assignment.seed}:${index}:${piece.name}`));
+    return shortlistForPiece(piece, profile, assignment.avoidMovements, random);
+  });
+}
+
+function userPrompt(input: {
+  assignment: DayAssignment;
+  shortlists: Shortlist[];
+  items: EquipmentRow[];
+  members: { initials: string; name: string; sex: string }[];
+}): string {
+  const gear = inventoryText(input.items) || "- bodyweight only";
+  const roster = input.members.length ? input.members.map(memberLabel).join("; ") : "no members added";
+  const avoid = input.assignment.avoidMovements.length
+    ? input.assignment.avoidMovements.map((id) => movementById(id)?.name ?? id).join(", ")
+    : "none";
+  return `DATE: ${input.assignment.date}
+ROSTER: ${roster}
+
+OWNED EQUIPMENT (anything absent is forbidden):
+${gear}
+
+RECENTLY USED (avoid unless the piece truly needs it): ${avoid}
+
+${assignmentPrompt(input.assignment, input.shortlists)}
+
+Return:
+{
+  "title": "short, specific name",
+  "stimulus": "one line on effort and pacing",
+  "pieces": [
+    { "movements": [{ "id": "movement-id", "reps": 10 }] }
+  ]
+}
+Use reps, cal, meters, or seconds exactly as the shortlist lists for that movement. Set the other dose fields to null.`;
+}
 
 function client(config: ProviderConfig) {
   if (!config.apiKey) {
@@ -116,153 +156,6 @@ function client(config: ProviderConfig) {
     baseURL: config.baseURL,
     timeout: 90_000,
   });
-}
-
-function inventoryText(items: EquipmentRow[]) {
-  const owned = items.filter((item) => item.owned);
-  if (owned.length === 0) return "";
-  return owned
-    .map((item) => {
-      const load = item.loadValue != null ? ` ${item.loadValue} ${item.unit}` : "";
-      const count = item.kind === "item" ? "" : ` ×${item.quantity}`;
-      return `- ${item.name}${load}${count} [${item.slug}]`;
-    })
-    .join("\n");
-}
-
-function memberLabel(member: AthleteRow): string {
-  return `${member.initials} (${member.name}, ${member.sex === "f" ? "female" : "male"})`;
-}
-
-function prText(members: AthleteRow[]) {
-  if (members.length === 0) return "No members added yet.";
-  const movements = listMovements();
-  const prs = listPrs();
-  return members
-    .map((member) => {
-      const owned = movements
-        .map((movement) => {
-          const best = bestPr(prs, member.slug, movement.slug, movement.scoreKind);
-          return best ? `- ${movement.name}: ${best.display}` : null;
-        })
-        .filter(Boolean);
-      return owned.length
-        ? `${memberLabel(member)}\n${owned.join("\n")}`
-        : `${memberLabel(member)}\n- no PRs logged`;
-    })
-    .join("\n\n");
-}
-
-function focusBrief(focus: string) {
-  switch (focus) {
-    case "strength":
-      return "Strength bias: prioritize a primary lift with owned dumbbells. A barbell only if a bar and plates are owned.";
-    case "heavy":
-      return "Heavy bias: low-rep heavy lifting with the heaviest owned implements. A barbell only if a bar and plates are owned.";
-    case "cardio":
-    case "engine":
-      return "Cardio bias: a measurable engine piece. Jump rope, running if owned, vest carries, or bodyweight cyclical work.";
-    case "gymnastics":
-      return "Gymnastics bias, using only owned rig pieces and bodyweight. Do not invent a pull-up bar, rings, or rope.";
-    case "olympic":
-      return "Power bias. Olympic lifts only if a bar and plates are owned. Otherwise heavy dumbbell or vest work that keeps the power stimulus.";
-    default:
-      return "Mixed bias: a classic couplet or triplet that blends strength and engine, using only owned gear.";
-  }
-}
-
-function shapeBrief(focus: string, format: FormatDef) {
-  if (format.id === "heavy") {
-    return "Day shape: one 25-35 minute heavy strength piece only. No conditioning piece.";
-  }
-  if (format.id === "skill_metcon") {
-    return "Day shape: an 8-10 minute skill piece (kind skill) first, then an 18-25 minute metcon (kind metcon).";
-  }
-  if (focus === "strength" || focus === "heavy") {
-    return "Day shape: a 14-18 minute strength piece (kind strength) first, then a 12-16 minute metcon (kind metcon) in today's format.";
-  }
-  return "Day shape: one main piece in today's format, sized so the scored work totals 25-40 minutes.";
-}
-
-function systemPrompt(members: AthleteRow[]) {
-  const roster = members.length ? members.map(memberLabel).join("; ") : "no members added yet";
-  return `You are the head coach and programmer for "the garage", a garage-based CrossFit gym. The members are: ${roster}.
-The garage is where the equipment lives and stationary work happens. Athletes head outside — driveway, yard, or street — for anything that travels, the way a normal affiliate uses its parking lot. Program space like a regular CrossFit gym; the garage walls are not the boundary of the workout.
-
-PROGRAMMING STANDARD
-- Write a realistic CrossFit class, not a random exercise circuit.
-- Dose travelling work — carries, walking lunges, runs — by how long the athlete should keep moving and the effort intended, the same judgment you use for reps. Let the distance come from the stimulus, not from the length of floor available indoors.
-- Judge a load by the movement it is loaded on, not in the abstract. Carries, holds, and hinges bear far more than presses, thrusters, or overhead work; the same implement can be a warm-up for one and a max for another.
-- Build one complete class of 45-60 minutes (about 50), including warm-up, workout prep, every workout piece, transitions, and cool-down.
-- Give every section an integer estimated duration. Budget 8-12 minutes for warm-up, 5-10 for prep, 25-40 total for scored workout pieces, and 3-7 for cool-down. The estimates must add to 45-60 minutes. A longer session is better than a short one.
-- Er toward more work: athletes should have real work to do and commonly finish near the cap.
-- Normal Rx is challenging but sustainable: moderate sets usually break and sprint pace is difficult to hold. Do not train to failure or max out every day.
-- Vary movement combinations, rep structures, planes, unilateral work, and workout feel. Do not default to air squats, burpees, push-ups, thrusters, or basic dumbbell work unless selected for today's assignment.
-- Follow the supplied movement library. For its supported equipment, use exact displayed movement names and its matched preparation. Movements using other owned equipment are still allowed.
-
-FORMAT PLAYBOOK (write each scored piece as one clear scheme a human can read and run)
-- For Time: fixed work to finish as fast as possible. "5 rounds for time: 12 X, 9 Y, 6 Z" or "21-15-9 X / Y". Score: time.
-- AMRAP: as many rounds and reps as possible in a fixed window. "AMRAP 15: 10 X, 15 Y, 20 Z". Score: rounds + reps.
-- EMOM: a set dose at the top of each minute. "EMOM 12: Min 1: 10 X; Min 2: 12 Y; Min 3: rest". Some minutes may be max reps. Score: done (a checkmark).
-- Intervals: repeated work and rest where every work window states its task. Use one repeated effort, "8 rounds: 30 sec max single-unders / 30 sec rest", or a rotation where each window is an AMRAP, "4 rounds: 2:00 AMRAP / 1:00 rest" then list the station tasks. Never list fixed reps for a timed window unless the window is an AMRAP. Never say "rotate stations" without an AMRAP inside each window. Score: done, or reps for a max-effort window.
-- Chipper: once through, in order. "For time: 50 X, 40 Y, 30 Z, 20 A, 10 B". Score: time.
-- Ladder: ascending or descending reps. "For time: 1-2-3-4-5 X and Y". Score: time.
-- Strength: rep work with owned load, e.g. "4x8 dumbbell floor press". Only use "build to a heavy 3" or a max when a barbell or a heavy implement is owned; otherwise keep it rep-based. Score: load only for a true max, otherwise done.
-- Benchmark: a named classic, Rx preserved. Score: time or rounds + reps.
-- Calories (only with a rower or bike): "1:00 max cal row". Score: reps (calories).
-
-WHITEBOARD STYLE
-One glance. Movement lines, doses, and loads only. No coaching paragraphs or technique cues.
-
-Name: a fun name tied to the work. Not generic.
-Stimulus: the intended effort and pacing only, never a time estimate or a number of minutes. Example: "Hard breathing, small fast sets, keep moving".
-
-Each scored movement is one line: "- <reps> <movement>". Immediately below it, always write all three versions, Rx first, one per line:
-- Rx: <weight, plus reps if they change>
-- Performance: <weight, plus reps if they change>
-- Lifestyle: <weight, plus reps if they change>
-For a loaded movement each version is the weight (and reps only when they differ). For a bodyweight or gymnastics movement each version is the reps or the easier movement. Never omit a version; if two versions match, write the same value twice. Do not put weights inside the movement line itself.
-When a movement uses an external load, also put the three versions in "summary": "Equipment:" then the pieces used, then "Loads:" with one line per version, naming every member, e.g. "Rx — KT 25 lb / HT 20 lb". On a bodyweight or jump-rope-only day, omit the Loads block.
-The computed loads supplied in the prompt are an anchor, not a movement-blind prescription: they show the intended effort for a comparable lift and the Performance and Lifestyle steps below it. For the movement actually programmed, Rx may use a different implement from the owned equipment list when that is what produces the same intended effort — heavier where the movement bears it (carries, holds, hinges), lighter where it does not (presses, thrusters, overhead work). Performance and Lifestyle keep the computed loads unless the chosen Rx makes those steps incoherent, in which case step down from the chosen Rx the same way. Never invent a weight or a vest poundage: every load written must come from the owned equipment list. Never Rx the lightest owned implement when a heavier one exists.
-Owned gear only. Bodyweight is always allowed. If a classic piece needs missing gear, substitute.
-
-COHERENCE
-- Title the day after its main piece.
-- Write exactly the scored pieces the assignment lists. If it says one scored piece, return one; do not add a strength piece or a second metcon to a conditioning day.
-- The scheme and details must agree: a timed piece says what to do in the time; an EMOM lists the reps per minute; an AMRAP says "as many rounds and reps as possible".
-- Warm-up, prep, and cool-down never carry a scheme, a clock, or scale versions.
-
-Class order: warmup, prep, parts, cooldown.
-Warm-up is 6-8 lines: one general raise, 1-2 activation drills, and 2-3 dynamic mobility drills, with useful doses. Prep is 3-5 lines that rehearse and ramp the exact workout movements. Cool-down is 3-5 matched mobility/stretch/breathing lines.
-Each scored part "format" is the full scheme with its number: "5 rounds for time", "AMRAP 12", "EMOM 12", "21-15-9". The label alone is invalid. Do not restate the scheme in details.
-EMOM and intervals are scoreType done with timeCapMin null (reps for a max-effort window). AMRAP is rounds_reps, no cap. For time is time. A cap only if the scheme says cap. Strength is load only for a true max, otherwise done. Skill is none.
-Do not reuse a banned movement.
-
-Return one JSON object with title, stimulus, summary, warmup, warmupDurationMin, prep, prepDurationMin, parts, cooldown, and cooldownDurationMin.
-Each part has name, kind (strength, metcon, or skill), format, details, timeCapMin, estimatedDurationMin, scoreType, repsPerRound, and equipment.`;
-}
-
-function userPrompt(input: {
-  date: string;
-  items: EquipmentRow[];
-  members: AthleteRow[];
-  assignment: Assignment;
-  library: string;
-  loadPlan: LoadPlan;
-}) {
-  return `Program one CrossFit workout for ${input.date}. Write it as a whiteboard: short lines, no coaching notes.
-
-${assignmentPrompt(input.assignment)}
-
-${loadPlanPrompt(input.loadPlan)}
-
-${input.library}
-
-OWNED EQUIPMENT (anything absent is forbidden):
-${inventoryText(input.items)}
-
-CURRENT PRS:
-${prText(input.members)}`;
 }
 
 function extractJson(text: string): unknown {
@@ -278,7 +171,7 @@ async function complete(
   messages: { role: "system" | "user"; content: string }[],
   config: ProviderConfig,
   mode: JsonMode,
-  temperature = 0.6,
+  temperature: number,
 ) {
   const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
     model: config.model,
@@ -288,7 +181,7 @@ async function complete(
   };
   if (config.reasoningEffort) params.reasoning_effort = config.reasoningEffort;
   if (mode === "schema") {
-    params.response_format = { type: "json_schema", json_schema: { name: "WorkoutDay", schema: jsonSchema } };
+    params.response_format = { type: "json_schema", json_schema: { name: "Workout", schema: aiWorkoutSchema() } };
   } else if (mode === "object") {
     params.response_format = { type: "json_object" };
   }
@@ -321,164 +214,101 @@ async function completeWithFallback(
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-const ownedError = "Mark the equipment you own first. Workouts are built only from that list.";
-
-function ownedSnapshot(items: EquipmentRow[]) {
-  return JSON.stringify(items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity })));
-}
-
-function programHistory(date: string) {
-  const weekStart = startOfWeek(date);
-  const tagged = recentDaySignals(date).map((row) => ({ date: row.date, tag: tagFromSignal(row) }));
-  return {
-    recent: tagged.map((item) => item.tag),
-    week: tagged.filter((item) => item.date >= weekStart).map((item) => item.tag),
-  };
-}
-
-function checkFor(tag: ProgramTag): ProgramCheck {
-  return {
-    load: tag.load,
-    allowRun: tag.mono === "run",
-    allowHeavy: tag.load === "heavy",
-  };
-}
-
-function planMembers(members: AthleteRow[]) {
-  return members.map((member) => ({ slug: member.slug, initials: member.initials, sex: member.sex }));
-}
-
-function recentMovementIds(recent: ProgramTag[], days = 7): string[] {
-  return [...new Set(recent.slice(0, days).flatMap((tag) => tag.movements))];
-}
-
-function describeSchemaError(error: unknown): string {
-  if (error instanceof z.ZodError) {
-    const issues = error.issues.map((issue) => {
-      const path = issue.path.length ? issue.path.join(".") : "workout";
-      if (issue.code === "too_small") {
-        return issue.origin === "string" ? `${path} must not be empty` : `${path} must be greater than 0`;
-      }
-      if (issue.code === "invalid_type") return `${path} is missing or the wrong type`;
-      return `${path}: ${issue.message}`;
-    });
-    return [...new Set(issues)].slice(0, 8).join("; ");
-  }
-  return error instanceof Error ? error.message : "Could not read the workout.";
-}
-
-async function draftDay(input: {
-  date: string;
-  focus: string;
-  formatId: string;
-  program?: ProgramTag;
-  check?: ProgramCheck;
-  sourceText: string;
+async function askForWorkout(input: {
+  assignment: DayAssignment;
+  shortlists: Shortlist[];
   items: EquipmentRow[];
-  messages: { role: "system" | "user"; content: string }[];
-  temperature?: number;
-  invalid: (error: string) => string;
-  repair: (findings: string[]) => string;
-}) {
+  members: { initials: string; name: string; sex: string }[];
+}): Promise<AiWorkout> {
   const config = resolveProvider(env);
-  const maxAttempts = 4;
-  let lastError = "Could not generate a workout.";
-  let best: { parsed: z.infer<typeof daySchema>; score: number } | null = null;
-
-  const save = (parsed: z.infer<typeof daySchema>) => {
-    const written = parsed.parts.map((part) => `${part.name}\n${part.details}`).join("\n");
-    const nextFormat = clarifyFormat(input.sourceText, input.formatId, parsed.parts);
-    const tag = tagFromDraft(
-      input.program ?? inferProgram({ focus: input.focus, format: nextFormat, text: written, stimulus: parsed.stimulus }),
-      written,
-    );
-    saveGeneratedDay({
-      date: input.date,
-      title: parsed.title,
-      stimulus: parsed.stimulus,
-      source: "programmed",
-      sourceText: input.sourceText,
-      focus: input.focus,
-      format: nextFormat,
-      program: JSON.stringify(tag),
-      snapshot: ownedSnapshot(input.items),
-      track: {
-        summary: parsed.summary,
-        warmup: parsed.warmup,
-        warmupDurationMin: parsed.warmupDurationMin,
-        prep: parsed.prep,
-        prepDurationMin: parsed.prepDurationMin,
-        cooldown: parsed.cooldown,
-        cooldownDurationMin: parsed.cooldownDurationMin,
-        parts: parsed.parts.map((part) => {
-          const scheme = pieceScheme(part.format, nextFormat, part.kind);
-          return {
-            name: part.name,
-            kind: part.kind,
-            format: part.format,
-            details: part.details,
-            timeCapMin: scheme && !scheme.allowCap ? null : part.timeCapMin,
-            estimatedDurationMin: part.estimatedDurationMin,
-            scoreType: scheme?.scoreType ?? part.scoreType,
-            repsPerRound: part.repsPerRound,
-          };
-        }),
-      },
-    });
-  };
-
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    let content = "";
-    try {
-      content = await completeWithFallback(input.messages, config, input.temperature);
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : "The AI provider request failed.";
-      break;
-    }
-    try {
-      const parsed = daySchema.parse(extractJson(content));
-      const findings = reviewWorkout({
-        parsed: {
-          summary: parsed.summary,
-          warmup: parsed.warmup,
-          prep: parsed.prep,
-          cooldown: parsed.cooldown,
-          warmupDurationMin: parsed.warmupDurationMin,
-          prepDurationMin: parsed.prepDurationMin,
-          cooldownDurationMin: parsed.cooldownDurationMin,
-          parts: parsed.parts.map((part) => ({ ...part, kind: part.kind })),
-        },
-        items: input.items,
-        check: input.check,
+  const profile = equipmentProfile(input.items);
+  const messages: { role: "system" | "user"; content: string }[] = [
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "user", content: userPrompt(input) },
+  ];
+  let lastIssues: string[] = [];
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const content = await completeWithFallback(messages, config, attempt === 0 ? 0.7 : 0.2);
+    const parsed = parseAiWorkout(extractJson(content));
+    if (!parsed) {
+      lastIssues = ["Return the required JSON object with title, stimulus, and pieces."];
+    } else {
+      const issues = validateAiWorkout({
+        assignment: input.assignment,
+        ai: parsed,
+        profile,
       });
-      if (!findings.length) {
-        save(parsed);
-        return { title: parsed.title };
-      }
-      const total =
-        parsed.warmupDurationMin +
-        parsed.prepDurationMin +
-        parsed.cooldownDurationMin +
-        parsed.parts.reduce((sum, part) => sum + part.estimatedDurationMin, 0);
-      const inRange = total >= 45 && total <= 60;
-      const score = (inRange ? 0 : 1000) + findings.length;
-      if (!best || score < best.score) best = { parsed, score };
-      if (attempt === maxAttempts - 1) break;
-      input.messages.push({ role: "user", content: input.repair(findings) });
-    } catch (error) {
-      const readable = describeSchemaError(error);
-      lastError =
-        error instanceof z.ZodError
-          ? `The coach returned an incomplete workout (${readable}). Try again.`
-          : readable;
-      input.messages.push({ role: "user", content: input.invalid(readable) });
+      if (!issues.length) return parsed;
+      lastIssues = issues.map((issue) => `${issue.path}: ${issue.message}`);
+    }
+    if (attempt === 0) {
+      messages.push({
+        role: "user",
+        content: `Fix these issues. Do not change the scheme or piece count. Return the full corrected JSON object.\n${lastIssues.map((issue) => `- ${issue}`).join("\n")}`,
+      });
     }
   }
-  if (best) {
-    save(best.parsed);
-    return { title: best.parsed.title };
-  }
-  throw new Error(lastError);
+  throw new Error(lastIssues.length ? `The coach could not produce a valid workout: ${lastIssues.join("; ")}` : "The coach could not produce a valid workout.");
+}
+
+function fallbackPlan(assignment: DayAssignment, shortlists: Shortlist[], items: EquipmentRow[]): ClassPlan {
+  const random = seededRandom(assignment.seed + 17);
+  return buildFallbackClass({
+    assignment,
+    shortlists,
+    items,
+    caps: equipmentProfile(items).caps,
+    random,
+  });
+}
+
+function savePlan(input: {
+  assignment: DayAssignment;
+  plan: ClassPlan;
+  items: EquipmentRow[];
+}) {
+  const parts = input.plan.pieces.map((piece) => generatedPart(piece));
+  saveGeneratedDay({
+    date: input.plan.date,
+    title: input.plan.title,
+    stimulus: input.plan.stimulus,
+    source: "programmed",
+    sourceText: "",
+    focus: input.plan.focus,
+    format: input.plan.format,
+    program: JSON.stringify({
+      pattern: input.assignment.pieces[0]?.pattern ?? "none",
+      movements: [...new Set(input.plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id)))],
+      load: input.assignment.load,
+      shape: input.assignment.shape,
+    }),
+    snapshot: JSON.stringify(input.items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity }))),
+    track: {
+      summary: input.plan.summary,
+      warmup: input.plan.warmup,
+      warmupDurationMin: input.plan.warmupDurationMin,
+      prep: input.plan.prep,
+      prepDurationMin: input.plan.prepDurationMin,
+      cooldown: input.plan.cooldown,
+      cooldownDurationMin: input.plan.cooldownDurationMin,
+      parts,
+    },
+  });
+}
+
+function generatedPart(piece: PlannedPiece) {
+  return {
+    name: piece.name,
+    kind: piece.kind,
+    format: formatText(piece.scheme),
+    details: renderPieceBody(piece),
+    timeCapMin: partCapSec(piece) ? (partCapSec(piece) as number) / 60 : null,
+    estimatedDurationMin: piece.estimatedDurationMin,
+    scoreType: partScoreType(piece),
+    repsPerRound: piece.scheme.type === "for_time" ? piece.scheme.rounds ?? null : null,
+    scheme: piece.scheme,
+    movements: piece.movements,
+  };
 }
 
 export function rewriteIntent(value: string): string | null {
@@ -490,133 +320,66 @@ export function coachNote(value: string | undefined): string {
   return (value ?? "").replace(/\s+/g, " ").trim().slice(0, 400);
 }
 
-function clarifyFormat(
-  sourceText: string,
-  formatId: string,
-  parts: { kind: string; name: string; format: string; scoreType: string }[],
-) {
-  if (!sourceText.startsWith("rewrite:clarify")) return formatId;
-  const metcon =
-    parts.find((part) => part.kind === "metcon" && !/warm-?up|workout prep|cool-?down/i.test(part.name)) ??
-    parts.find((part) => part.scoreType !== "none");
-  return formatFromScheme(metcon?.format ?? "") ?? formatId;
-}
-
 export function rewriteTask(intent: string, note = ""): string {
   if (intent === "clarify") {
     const ask = coachNote(note);
-    const asked = ask ? `\nApply this note, and only this note: ${ask}` : "";
-    return `Clarify this workout. Keep the same movements and loads unless the note changes them. Do not invent a new piece.${asked}\nIf the note changes the scheme, update that part's format, scoreType, and timeCapMin together. Otherwise keep the scheme and fix only what the note asks.`;
+    return `Clarify this workout. Keep the same movements and loads unless the note changes them. Do not invent a new piece.${ask ? `\nApplies only this note: ${ask}` : ""}`;
   }
-  return `Rewrite this session toward ${focusLabel(intent).toLowerCase()}. Keep it a rewrite of this workout when the movements can carry that bias. Change movements, reps, and format only when they cannot. Do not write an unrelated workout.\n${focusBrief(intent)}`;
+  return `Rewrite this session toward ${focusLabel(intent).toLowerCase()}. Keep the same scheme when it still fits. Change movements and doses when they cannot carry that bias.`;
 }
 
-function workoutText(day: DayView, track: TrackView) {
-  const pieces = track.parts
-    .map((part) => {
-      const meta = [
-        part.kind,
-        part.format,
-        part.scoreType !== "none" ? `score ${part.scoreType}` : "",
-        part.timeCapSec ? `cap ${Math.round(part.timeCapSec / 60)} min` : "",
-        part.estimatedDurationMin ? `estimated ${part.estimatedDurationMin} min` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      return `${part.name} (${meta})\n${part.body}`;
-    })
-    .join("\n\n");
-  return `Title: ${day.title}
-Stimulus: ${day.stimulus || "none"}
-Focus: ${day.focus || "mixed"}
-Format: ${day.format || "unspecified"}
-Summary:
-${track.summary || "none"}
-
-${pieces}`;
-}
-
-function rewritePrompt(input: {
-  date: string;
-  intent: string;
-  source: string;
-  focus: string;
-  format: FormatDef;
-  items: EquipmentRow[];
-  members: AthleteRow[];
-  library: string;
-  loadPlan: LoadPlan;
-  note?: string;
-}) {
-  const clarify = input.intent === "clarify";
-  const ask = coachNote(input.note);
-  const formatBlock = clarify
-    ? `Keep each part's scheme unless the note changes it. If the note changes the scheme, write the full scheme with its count in "format", and set scoreType and timeCapMin to match. Warm-up, prep, and cool-down never carry a scheme or a clock.`
-    : `TODAY'S FORMAT: ${input.format.label}
-${input.format.brief}
-- The main workout's "format" field is a complete scheme in this style, including the count. Not the label alone.
-${shapeBrief(input.focus, input.format)}`;
-  const noted = ask ? `\n\nCOACH NOTE (do this, keep the rest): ${ask}` : "";
-  return `${rewriteTask(input.intent, ask)}
-
-CURRENT WORKOUT:
-${input.source}
-
-${formatBlock}
-
-${loadPlanPrompt(input.loadPlan)}
-
-${input.library}
-
-OWNED EQUIPMENT (anything absent is forbidden):
-${inventoryText(input.items)}
-
-CURRENT PRS:
-${prText(input.members)}${noted}`;
+/** A clarify note can change the scheme. Keep this deterministic so score and clock stay coherent. */
+function clarifyScheme(note: string, current: Scheme): Scheme {
+  const text = note.toLowerCase();
+  const minutes = Number(text.match(/(?:amrap|emom|every minute)[^\d]*(\d+)/)?.[1] ?? 0);
+  const duration = minutes > 0 ? minutes : Math.max(6, schemeMinutes(current));
+  if (/\bamrap\b|as many rounds/.test(text)) return { type: "amrap", minutes: duration };
+  if (/\bemom\b|every minute/.test(text)) return { type: "emom", minutes: duration };
+  if (/\bchipper\b/.test(text)) return { type: "chipper", capMin: Math.max(12, duration) };
+  if (/\bintervals?\b/.test(text)) return { type: "intervals", rounds: 6, workSec: 120, restSec: 60, task: "fixed" };
+  const rounds = Number(text.match(/(\d+)\s*rounds?\s*(?:for time)?/)?.[1] ?? 0);
+  if (/\bfor time\b|fast as possible/.test(text)) {
+    return rounds > 0 ? { type: "for_time", rounds } : { type: "for_time" };
+  }
+  if (/\bheavy\b/.test(text) && current.type === "strength") return { ...current, intent: "heavy" };
+  return current;
 }
 
 export async function generateDay(input: { date: string; focus?: string }) {
   loadEnv();
   const items = listEquipment();
-  if (!items.some((item) => item.owned)) throw new Error(ownedError);
-
-  const members = listAthletes();
-  const history = programHistory(input.date);
-  const bias = input.focus && input.focus !== "auto" ? input.focus : undefined;
+  if (!items.some((item) => item.owned)) {
+    throw new Error("Mark the equipment you own first. Workouts are built only from that list.");
+  }
+  const focus: Focus | undefined = isFocus(input.focus) ? input.focus : input.focus === "cardio" ? ("engine" as Focus) : undefined;
   const assignment = planDay({
-    bias,
-    caps: capabilities(items),
-    recent: history.recent,
-    week: history.week,
-  });
-  const menu = movementMenu({
-    items,
-    pattern: assignment.tag.pattern,
-    mono: assignment.tag.mono,
-    recentIds: recentMovementIds(history.recent),
-  });
-  const library = movementMenuPrompt(menu);
-  const loadPlan = assignment.tag.elements.includes("W")
-    ? computeLoadPlan({ items, members: planMembers(members), prs: listPrs(), load: assignment.tag.load, movements: [] })
-    : { lines: [], byMovement: [], hasLoads: false };
-  const messages: { role: "system" | "user"; content: string }[] = [
-    { role: "system", content: systemPrompt(members) },
-    { role: "user", content: userPrompt({ date: input.date, items, members, assignment, library, loadPlan }) },
-  ];
-  return draftDay({
     date: input.date,
-    focus: assignment.focus,
-    formatId: assignment.tag.format,
-    program: assignment.tag,
-    check: checkFor(assignment.tag),
-    sourceText: "",
-    items,
-    messages,
-    invalid: (error) =>
-      `That response was invalid (${error}). Return one JSON object for a complete 45-60 minute session. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. One movement per line. No paragraphs.`,
-    repair: (findings) =>
-      `The draft is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. The section estimates must add to 45-60 minutes and the scored work must be 24-40 minutes. Return the full corrected JSON object.`,
+    focus,
+    profile: equipmentProfile(items),
+    recent: recentSignals(input.date),
   });
+  const shortlists = shortlistsFor(assignment, items);
+  let plan: ClassPlan;
+  try {
+    const ai = await askForWorkout({
+      assignment,
+      shortlists,
+      items,
+      members: listAthletes(),
+    });
+    plan = buildClassFromAi({
+      assignment,
+      ai,
+      items,
+      caps: equipmentProfile(items).caps,
+      random: seededRandom(assignment.seed + 7),
+    });
+  } catch {
+    // A valid, original session beats a failed generation.
+    plan = fallbackPlan(assignment, shortlists, items);
+  }
+  savePlan({ assignment, plan, items });
+  return { title: plan.title };
 }
 
 export async function rewriteDay(input: { date: string; intent: string; note?: string }) {
@@ -626,59 +389,108 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
   const note = coachNote(input.note);
   if (intent === "clarify" && !note) throw new Error("Tell the coach what to fix.");
   const day = getDay(input.date);
-  const track = day?.tracks.find((item) => item.track === DAY_TRACK) ?? day?.tracks[0];
+  const track = day?.tracks.find((item) => item.track === "day") ?? day?.tracks[0];
   if (!day || day.status === "rest" || !track) throw new Error("There is no workout to rewrite.");
 
-  const items = listEquipment();
-  if (!items.some((item) => item.owned)) throw new Error(ownedError);
+  if (intent === "clarify") {
+    return clarifyDay({ day, track, note });
+  }
 
-  const members = listAthletes();
-  const clarify = intent === "clarify";
-  const focus = clarify ? (day.focus && day.focus !== "rest" ? day.focus : "mixed") : intent;
-  const picked = clarify ? formatById(day.format) : pickFormat(focus, capabilities(items), []);
-  const format: FormatDef = picked ?? {
-    id: "for_time",
-    label: day.format || "the scheme already on the board",
-    brief: "Keep the scheme already written on the board.",
-    focuses: [],
-  };
-  const source = workoutText(day, track);
-  const sourceProgram = inferProgram({ focus, format: day.format, text: source, stimulus: day.stimulus });
-  const library = movementMenuPrompt(
-    movementMenu({
-      items,
-      pattern: sourceProgram.pattern,
-      mono: sourceProgram.mono,
-    }),
-  );
-  const loadPlan = sourceProgram.elements.includes("W")
-    ? computeLoadPlan({
-        items,
-        members: planMembers(members),
-        prs: listPrs(),
-        load: dayLoadKind(focus, day.format),
-        movements: sourceProgram.movements.map((slug) => ({ slug, name: slug.replace(/_/g, " ") })),
-      })
-    : { lines: [], byMovement: [], hasLoads: false };
-  const messages: { role: "system" | "user"; content: string }[] = [
-    {
-      role: "system",
-      content: `${systemPrompt(members)}\n\nREWRITE:\nThis is a rewrite of the workout already on the board, not a new day. You may keep this workout's movements. Follow the rewrite instructions over the naming rules. On a clarify, the coach note wins over the current scheme.`,
-    },
-    { role: "user", content: rewritePrompt({ date: input.date, intent, source, focus, format, items, members, library, loadPlan, note }) },
-  ];
-  return draftDay({
-    date: input.date,
-    focus,
-    formatId: clarify ? day.format : format.id,
-    check: clarify ? undefined : { load: intent === "heavy" ? "heavy" : "moderate", allowRun: true, allowHeavy: true },
-    sourceText: `rewrite:${intent}`,
-    items,
-    messages,
-    temperature: clarify ? 0.3 : 0.6,
-    invalid: (error) =>
-      `That response was invalid (${error}). Return one JSON object. Every section (warmup, prep, cooldown) and every part needs non-empty text and a duration greater than 0. ${rewriteTask(intent, note)}`,
-    repair: (findings) =>
-      `The rewrite is close. Fix only these before finalizing:\n${findings.map((item) => `- ${item}`).join("\n")}\nKeep the rest. The section estimates must add to 45-60 minutes and the scored work must be 24-40 minutes. ${rewriteTask(intent, note)} Return the full corrected JSON object.`,
+  return generateDay({ date: input.date, focus: intent });
+}
+
+async function clarifyDay(input: { day: DayView; track: TrackView; note: string }) {
+  const items = listEquipment();
+  if (!items.some((item) => item.owned)) {
+    throw new Error("Mark the equipment you own first. Workouts are built only from that list.");
+  }
+  const profile = equipmentProfile(items);
+  const structured = input.track.parts.filter((part) => part.scheme && part.movements?.length);
+  if (structured.length === 0) {
+    throw new Error("This workout was written before structured workouts. Generate it again, then clarify.");
+  }
+
+  const pieces = structured.map((part) => {
+    const currentScheme = part.scheme!;
+    const scheme = part.kind === "metcon" ? clarifyScheme(input.note, currentScheme) : currentScheme;
+    const existing = part.movements!
+      .map((item) => movementById(item.id))
+      .filter((movement): movement is NonNullable<typeof movement> => Boolean(movement));
+    const modalities = [...new Set(existing.map((movement) => movement.modality))];
+    const pattern = existing.find((movement) => movement.pattern !== "none")?.pattern ?? "none";
+    return {
+      kind: part.kind as "strength" | "metcon" | "skill",
+      name: part.name,
+      scheme,
+      pattern,
+      load: (/heavy|heavier/i.test(input.note) && part.kind === "strength" ? "heavy" : "moderate") as "heavy" | "moderate",
+      modalities: (modalities.length ? modalities : part.kind === "skill" ? ["G"] : ["W", "G"]) as ("W" | "G" | "M")[],
+      estimatedDurationMin: part.estimatedDurationMin ?? schemeMinutes(scheme),
+      movementCount: { min: part.movements!.length, max: part.movements!.length },
+    };
   });
+
+  const assignment: DayAssignment = {
+    date: input.day.date,
+    focus: (isFocus(input.day.focus) ? input.day.focus : "mixed") as Focus,
+    shape: "couplet",
+    domain: "medium",
+    load: "moderate",
+    pieces,
+    brief: pieces.map((piece) => `${piece.kind}: ${formatText(piece.scheme)}`).join("\n"),
+    seed: hashString(`${input.day.date}:clarify`),
+    avoidMovements: [],
+    avoidPatterns: [],
+    avoidDumbbell: false,
+  };
+  const shortlists = pieces.map((piece, index) => {
+    const existing = structured[index].movements!.map((item) => item.id);
+    const available = shortlistForPiece(piece, profile, [], seededRandom(assignment.seed + index));
+    const existingMovements = existing.flatMap((id) => {
+      const movement = movementById(id);
+      return movement ? [movement] : [];
+    });
+    return {
+      movements: [
+        ...existingMovements,
+        ...available.movements.filter((movement) => !existingMovements.some((item) => item.id === movement.id)),
+      ].slice(0, 18),
+      byId: available.byId,
+    } satisfies Shortlist;
+  });
+
+  const config = resolveProvider(env);
+  const messages: { role: "system" | "user"; content: string }[] = [
+    { role: "system", content: SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: `Apply this coach note to the existing workout. Keep everything the note does not change.\n\nNOTE: ${input.note}\n\nCURRENT WORKOUT:\n${structured
+        .map((part) => `${part.name}: ${part.format}\n${part.body}`)
+        .join("\n\n")}\n\n${assignmentPrompt(assignment, shortlists)}`,
+    },
+  ];
+  let lastError = "Could not clarify the workout.";
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const content = await completeWithFallback(messages, config, attempt === 0 ? 0.4 : 0.2);
+    const parsed = parseAiWorkout(extractJson(content));
+    if (!parsed) {
+      lastError = "The coach returned an incomplete workout.";
+    } else {
+      const issues = validateAiWorkout({ assignment, ai: parsed, profile });
+      if (!issues.length) {
+        const plan = buildClassFromAi({
+          assignment,
+          ai: parsed,
+          items,
+          caps: profile.caps,
+          random: seededRandom(assignment.seed + 3),
+        });
+        savePlan({ assignment, plan, items });
+        return { title: plan.title };
+      }
+      lastError = formatIssues(issues);
+    }
+    messages.push({ role: "user", content: `Fix these issues and return the full JSON object.\n${lastError}` });
+  }
+  throw new Error(lastError);
 }
