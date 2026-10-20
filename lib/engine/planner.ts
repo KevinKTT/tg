@@ -45,6 +45,8 @@ export type PieceBrief = {
   estimatedDurationMin: number;
   movementCount: { min: number; max: number };
   allowSkill?: boolean;
+  /** False when the day is deliberately resting its only load. */
+  requireLoad?: boolean;
 };
 
 export type DayAssignment = {
@@ -67,6 +69,12 @@ export type RecentSignal = {
   scheme?: string;
   movements: string[];
   load?: LoadKind;
+};
+
+/** The version currently on the calendar for the date being programmed. */
+export type PreviousSession = {
+  pattern?: MovementPattern;
+  movements?: string[];
 };
 
 const FOCUS_VALUES: Focus[] = ["mixed", "strength", "heavy", "cardio", "engine", "gymnastics", "olympic"];
@@ -110,23 +118,33 @@ function normaliseFocus(value: string | undefined): Focus | "auto" {
 
 function weekdayShape(date: string): { shape: SessionShape; focus: Focus; domain: Domain } {
   const weekday = new Date(`${date}T12:00:00`).getDay();
+  const week = Math.floor(Date.parse(`${startOfWeek(date)}T00:00:00Z`) / 86_400_000);
+  const alternate = week % 2 === 1;
   if (weekday === 1) return { shape: "strength_metcon", focus: "strength", domain: "medium" };
-  if (weekday === 2) return { shape: "intervals", focus: "engine", domain: "medium" };
+  if (weekday === 2) return alternate
+    ? { shape: "emom", focus: "engine", domain: "medium" }
+    : { shape: "intervals", focus: "engine", domain: "medium" };
   if (weekday === 3) return { shape: "gymnastics", focus: "gymnastics", domain: "short" };
-  if (weekday === 4) return { shape: "heavy", focus: "heavy", domain: "short" };
-  if (weekday === 5) return { shape: "chipper", focus: "mixed", domain: "long" };
-  if (weekday === 6) return { shape: "triplet", focus: "mixed", domain: "medium" };
+  if (weekday === 4) return alternate
+    ? { shape: "max_effort", focus: "engine", domain: "short" }
+    : { shape: "heavy", focus: "heavy", domain: "short" };
+  if (weekday === 5) return alternate
+    ? { shape: "ladder", focus: "mixed", domain: "long" }
+    : { shape: "chipper", focus: "mixed", domain: "long" };
+  if (weekday === 6) return alternate
+    ? { shape: "couplet", focus: "mixed", domain: "medium" }
+    : { shape: "triplet", focus: "mixed", domain: "medium" };
   return { shape: "couplet", focus: "mixed", domain: "short" };
 }
 
-function shapeForFocus(focus: Focus, date: string): { shape: SessionShape; domain: Domain } {
+function shapeForFocus(focus: Focus, date: string, variant: string): { shape: SessionShape; domain: Domain } {
   if (focus === "strength") return { shape: "strength_metcon", domain: "medium" };
   if (focus === "heavy") return { shape: "heavy", domain: "short" };
-  if (focus === "engine") return { shape: "intervals", domain: "medium" };
+  if (focus === "engine") return { shape: hashString(`${date}:${variant}`) % 2 ? "emom" : "intervals", domain: "medium" };
   if (focus === "gymnastics") return { shape: "gymnastics", domain: "short" };
   if (focus === "olympic") return { shape: "strength_metcon", domain: "medium" };
-  const templates: SessionShape[] = ["couplet", "triplet", "chipper", "ladder", "emom"];
-  const shape = templates[hashString(date) % templates.length];
+  const templates: SessionShape[] = ["couplet", "triplet", "chipper", "ladder", "emom", "max_effort"];
+  const shape = templates[hashString(`${date}:${variant}`) % templates.length];
   return { shape, domain: shape === "chipper" ? "long" : "medium" };
 }
 
@@ -136,12 +154,15 @@ export function planDay(input: {
   profile: EquipmentProfile;
   recent?: RecentSignal[];
   random?: () => number;
+  variant?: string;
+  previous?: PreviousSession;
 }): DayAssignment {
-  const random = input.random ?? rng(hashString(input.date));
+  const variant = input.variant ?? "";
+  const random = input.random ?? rng(hashString(`${input.date}:${variant}`));
   const requested = normaliseFocus(input.focus);
   const template = weekdayShape(input.date);
   const focus = requested === "auto" ? template.focus : requested;
-  const focused = requested === "auto" ? template : { ...shapeForFocus(focus, input.date), focus };
+  const focused = requested === "auto" ? template : { ...shapeForFocus(focus, input.date, variant), focus };
   const shaped = { shape: focused.shape, domain: focused.domain };
   const hasLoad = eligibleCatalog(input.profile).some((movement) => movement.load);
   let sessionFocus: Focus = focus;
@@ -150,7 +171,8 @@ export function planDay(input: {
     shaped.domain = "short";
     sessionFocus = "gymnastics";
   }
-  let load = pickLoad(sessionFocus, shaped.shape, input.profile, random);  const recent = input.recent ?? [];
+  const load = pickLoad(sessionFocus, shaped.shape, input.profile, random);
+  const recent = input.recent ?? [];
   const weekStart = startOfWeek(input.date);
   const recentDumbbellDays = recent
     .filter((signal) => signal.date >= weekStart)
@@ -158,35 +180,46 @@ export function planDay(input: {
   const hasOtherLoad =
     input.profile.caps.has("barbell") ||
     input.profile.kettlebells.length > 0 ||
-    ["wall_ball", "med_ball", "slam_ball", "sandbag", "sled", "farmer_handles"].some((cap) => input.profile.caps.has(cap));
+    ["wall_ball", "med_ball", "slam_ball", "sandbag", "sled", "farmer_handles", "weight_vest"].some((cap) => input.profile.caps.has(cap));
+  // Dumbbell fatigue is a conditioning problem, not a reason to turn a
+  // strength day into gymnastics or strip the only load out of the whole week.
   const avoidDumbbell =
+    shaped.shape !== "heavy" &&
+    shaped.shape !== "strength_metcon" &&
     recentDumbbellDays >= 2 &&
     !hasOtherLoad &&
     (requested === "auto" || sessionFocus === "mixed" || sessionFocus === "engine" || sessionFocus === "gymnastics");
-  if (avoidDumbbell && (shaped.shape === "heavy" || shaped.shape === "strength_metcon")) {
-    shaped.shape = "gymnastics";
-    shaped.domain = "short";
-    sessionFocus = "gymnastics";
-    load = "light";
-  }
-  const avoidMovements = [...new Set(recent.slice(0, 10).flatMap((item) => item.movements))];
+  const previousMovements = input.previous?.movements ?? [];
+  const avoidMovements = [
+    ...new Set([...previousMovements, ...recent.slice(0, 10).flatMap((item) => item.movements)]),
+  ];
   if (avoidDumbbell) {
     for (const movement of eligibleCatalog(input.profile)) {
       if (movement.load === "dumbbell") avoidMovements.push(movement.id);
     }
   }
-  const avoidPatterns = [...new Set(recent.slice(0, 2).map((item) => item.pattern).filter((pattern) => pattern !== "none"))];
+  const previousPattern = input.previous?.pattern;
+  const avoidPatterns = [
+    ...new Set([
+      ...(previousPattern && previousPattern !== "none" ? [previousPattern] : []),
+      ...recent.slice(0, 2).map((item) => item.pattern).filter((pattern) => pattern !== "none"),
+    ]),
+  ];
   const pattern = pickPattern(shaped.shape, sessionFocus, input.profile, avoidPatterns, random);
   const pieces = buildPieces({
     date: input.date,
     shape: shaped.shape,
-    focus: sessionFocus,
     domain: shaped.domain,
     load,
     pattern,
     profile: input.profile,
     random,
   });
+  if (avoidDumbbell) {
+    for (const piece of pieces) {
+      if (piece.kind === "metcon") piece.requireLoad = false;
+    }
+  }
   const brief = pieces
     .map(
       (piece) =>
@@ -201,7 +234,7 @@ export function planDay(input: {
     load,
     pieces,
     brief,
-    seed: hashString(`${input.date}:${sessionFocus}:${pattern}`),
+    seed: hashString(`${input.date}:${sessionFocus}:${pattern}:${variant}`),
     avoidMovements,
     avoidPatterns,
     avoidDumbbell,
@@ -279,20 +312,35 @@ function availableModalities(desired: Modality[], profile: EquipmentProfile): Mo
 function buildPieces(input: {
   date: string;
   shape: SessionShape;
-  focus: Focus;
   domain: Domain;
   load: LoadKind;
   pattern: MovementPattern;
   profile: EquipmentProfile;
   random: () => number;
 }): PieceBrief[] {
-  const { shape, focus, domain, load, pattern, profile, random } = input;
+  const { shape, domain, load, pattern, profile, random } = input;
   const hasHeavy = profile.hasHeavyLoad;
   const modalities = (desired: Modality[]) => availableModalities(desired, profile);
   const strengthScheme = (intent: "moderate" | "heavy"): Scheme =>
     hasHeavy && intent === "heavy" && load === "heavy"
       ? { type: "max_load", repMax: pick([1, 3, 5], random) }
-      : { type: "strength", sets: between(4, 6, random), reps: pick(["5", "6", "8"], random), intent };
+      : {
+          type: "strength",
+          sets: intent === "heavy" ? between(5, 6, random) : between(4, 5, random),
+          reps: intent === "heavy" ? pick(["3", "5"], random) : pick(["6", "8"], random),
+          intent,
+        };
+  const conditioningScheme = (): Scheme => {
+    if (domain === "short") return { type: "for_time", rounds: between(4, 6, random) };
+    const options: Scheme[] = [
+      { type: "amrap", minutes: between(14, 18, random) },
+      { type: "amrap", minutes: between(14, 18, random) },
+      { type: "for_time", rounds: between(4, 6, random) },
+      { type: "emom", minutes: between(16, 20, random) },
+    ];
+    if (domain === "long") options.push({ type: "chipper", capMin: between(24, 32, random) });
+    return pick(options, random);
+  };
 
   if (shape === "heavy") {
     const main: PieceBrief = {
@@ -302,19 +350,19 @@ function buildPieces(input: {
       pattern,
       load,
       modalities: modalities(["W"]),
-      estimatedDurationMin: 22,
-      movementCount: { min: 1, max: hasHeavy && load === "heavy" ? 1 : 2 },
+      estimatedDurationMin: 24,
+      movementCount: hasHeavy && load === "heavy" ? { min: 1, max: 1 } : { min: 2, max: 2 },
     };
     if (load === "heavy") return [main];
     const finisher: PieceBrief = {
       kind: "metcon",
       name: "Finisher",
-      scheme: { type: "for_time", rounds: between(3, 4, random) },
+      scheme: { type: "for_time", rounds: between(4, 5, random) },
       pattern: contrastPattern(pattern),
       load: "light",
       modalities: modalities(["G", "M"]),
-      estimatedDurationMin: 9,
-      movementCount: { min: 2, max: 2 },
+      estimatedDurationMin: 10,
+      movementCount: { min: 2, max: 3 },
     };
     return [main, finisher];
   }
@@ -333,15 +381,12 @@ function buildPieces(input: {
     const metcon: PieceBrief = {
       kind: "metcon",
       name: "Workout",
-      scheme:
-        domain === "short"
-          ? { type: "for_time", rounds: between(3, 4, random) }
-          : { type: "amrap", minutes: between(10, 14, random) },
+      scheme: conditioningScheme(),
       pattern: contrastPattern(pattern),
-      load: load === "heavy" ? "moderate" : "moderate",
+      load: "moderate",
       modalities: modalities(["W", "G", "M"]),
-      estimatedDurationMin: domain === "short" ? 10 : 12,
-      movementCount: { min: 2, max: 3 },
+      estimatedDurationMin: domain === "short" ? 12 : 16,
+      movementCount: { min: 3, max: 4 },
     };
     return [strength, metcon];
   }
@@ -362,12 +407,20 @@ function buildPieces(input: {
       {
         kind: "metcon",
         name: "Workout",
-        scheme: { type: "amrap", minutes: between(12, 15, random) },
+        scheme: pick(
+          [
+            { type: "amrap", minutes: between(14, 18, random) },
+            { type: "amrap", minutes: between(14, 18, random) },
+            { type: "for_time", rounds: between(4, 6, random) },
+            { type: "emom", minutes: between(16, 20, random) },
+          ] as Scheme[],
+          random,
+        ),
         pattern: pick(["core", "press", "pull", "jump"], random),
         load: "light",
         modalities: modalities(["G", "M"]),
-        estimatedDurationMin: 14,
-        movementCount: { min: 2, max: 3 },
+        estimatedDurationMin: 16,
+        movementCount: { min: 3, max: 3 },
         allowSkill: true,
       },
     ];
@@ -398,12 +451,12 @@ function buildPieces(input: {
       {
         kind: "metcon",
         name: "EMOM",
-        scheme: { type: "emom", minutes: between(12, 20, random) },
+        scheme: { type: "emom", minutes: between(16, 24, random) },
         pattern,
         load: load === "heavy" ? "moderate" : load,
         modalities: modalities(["W", "G", "M"]),
-        estimatedDurationMin: 20,
-        movementCount: { min: 2, max: 3 },
+        estimatedDurationMin: 22,
+        movementCount: { min: 3, max: 4 },
       },
     ];
   }
@@ -416,9 +469,9 @@ function buildPieces(input: {
         scheme: { type: "ladder", reps: pick([[21, 15, 9], [1, 2, 3, 4, 5], [15, 12, 9, 6, 3]], random) },
         pattern,
         load,
-        modalities: modalities(["W", "G"]),
-        estimatedDurationMin: 22,
-        movementCount: { min: 2, max: 2 },
+        modalities: modalities(["W", "G", "M"]),
+        estimatedDurationMin: 24,
+        movementCount: { min: 2, max: 3 },
       },
     ];
   }
@@ -428,12 +481,12 @@ function buildPieces(input: {
       {
         kind: "metcon",
         name: "Workout",
-        scheme: { type: "chipper", capMin: between(22, 30, random) },
+        scheme: { type: "chipper", capMin: between(24, 32, random) },
         pattern,
         load: load === "light" ? "moderate" : load,
         modalities: modalities(["W", "G", "M"]),
-        estimatedDurationMin: between(24, 32, random),
-        movementCount: { min: 5, max: 7 },
+        estimatedDurationMin: between(26, 34, random),
+        movementCount: { min: 6, max: 7 },
       },
     ];
   }
@@ -441,14 +494,25 @@ function buildPieces(input: {
   if (shape === "max_effort") {
     return [
       {
+        kind: "skill",
+        name: "Skill",
+        scheme: { type: "skill", minutes: between(10, 12, random) },
+        pattern: pick(["press", "pull", "core"], random),
+        load: "light",
+        modalities: modalities(["G"]),
+        estimatedDurationMin: 12,
+        movementCount: { min: 1, max: 2 },
+        allowSkill: true,
+      },
+      {
         kind: "metcon",
         name: "Max effort",
-        scheme: { type: "max_reps", minutes: between(4, 8, random) },
+        scheme: { type: "max_reps", minutes: between(6, 8, random) },
         pattern: "none",
         load: "light",
         modalities: modalities(["G", "M"]),
-        estimatedDurationMin: 10,
-        movementCount: { min: 1, max: 2 },
+        estimatedDurationMin: 12,
+        movementCount: { min: 2, max: 2 },
       },
     ];
   }
@@ -458,15 +522,20 @@ function buildPieces(input: {
       {
         kind: "metcon",
         name: "Workout",
-        scheme:
-          focus === "mixed" && random() < 0.35
-            ? { type: "for_time", rounds: between(4, 5, random) }
-            : { type: "amrap", minutes: between(16, 20, random) },
+        scheme: pick(
+          [
+            { type: "amrap", minutes: between(16, 20, random) },
+            { type: "amrap", minutes: between(16, 20, random) },
+            { type: "for_time", rounds: between(4, 6, random) },
+            { type: "emom", minutes: between(16, 20, random) },
+          ] as Scheme[],
+          random,
+        ),
         pattern,
         load: load === "light" ? "moderate" : load,
         modalities: modalities(["W", "G", "M"]),
         estimatedDurationMin: 20,
-        movementCount: { min: 3, max: 3 },
+        movementCount: { min: 3, max: 4 },
       },
     ];
   }
@@ -477,13 +546,13 @@ function buildPieces(input: {
       name: "Workout",
       scheme:
         random() < 0.5
-          ? { type: "for_time", rounds: between(3, 5, random) }
-          : { type: "amrap", minutes: between(12, 16, random) },
+          ? { type: "for_time", rounds: between(5, 6, random) }
+          : { type: "amrap", minutes: between(14, 16, random) },
       pattern,
       load: load === "light" ? "moderate" : load,
-      modalities: modalities(["W", "G"]),
-      estimatedDurationMin: 22,
-      movementCount: { min: 2, max: 2 },
+      modalities: modalities(["W", "G", "M"]),
+      estimatedDurationMin: 18,
+      movementCount: { min: 2, max: 3 },
     },
   ];
 }
@@ -537,7 +606,7 @@ export function shortlistForPiece(
     })
     .sort((left, right) => rank(left) - rank(right));
   const jitter = rng(hashString(`${piece.name}:${piece.scheme.type}:${random()}`));
-  const withJitter = sorted.map((movement) => ({ movement, score: rank(movement) + jitter() * 4 }));
+  const withJitter = sorted.map((movement) => ({ movement, score: rank(movement) + jitter() * 9 }));
   withJitter.sort((left, right) => left.score - right.score);
   const ranked = withJitter.map((item) => item.movement);
 
@@ -598,6 +667,7 @@ export function assignmentPrompt(assignment: DayAssignment, shortlists: Shortlis
   load: ${piece.load}
   primary pattern: ${piece.pattern}
   ${piece.scheme.type === "intervals" ? "This is an AMRAP circuit inside each work window. Choose 2-3 movements: at least one monostructural station and at least one contrasting station." : piece.kind === "metcon" ? "Use at least two modalities and pair contrasting patterns." : ""}
+  ${piece.requireLoad === false ? "Dumbbells are resting today. Build this piece from the other listed movements." : ""}
   choose only from:
 ${lines}`;
   });

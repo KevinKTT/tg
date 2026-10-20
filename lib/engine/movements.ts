@@ -666,7 +666,9 @@ export function defaultDose(movement: MovementDef, scheme: Scheme, style: "short
   } else if (scheme.type === "for_time" && scheme.rounds && scheme.rounds >= 5) {
     value = range.min;
   } else {
-    value = Math.round((range.min + range.max) / 2);
+    // Bias the default prescription into the upper half so fallback sessions
+    // carry real volume instead of always sitting at the easy midpoint.
+    value = Math.round(range.min + (range.max - range.min) * 0.6);
   }
   value = Math.max(range.min, Math.min(range.max, value));
   return { [range.unit]: value } as Dose;

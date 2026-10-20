@@ -5,6 +5,7 @@ import {
   buildFallbackClass,
   parseAiWorkout,
   renderPieceBody,
+  repairAiCopy,
   type AiWorkout,
 } from "../lib/engine/class";
 import {
@@ -13,7 +14,7 @@ import {
   movementById,
   movementEligible,
 } from "../lib/engine/movements";
-import { planDay, shortlistForPiece, type RecentSignal } from "../lib/engine/planner";
+import { hashString, planDay, shortlistForPiece, type RecentSignal } from "../lib/engine/planner";
 import {
   capSecForScheme,
   formatText,
@@ -55,6 +56,36 @@ const profiles = {
     item("plate_45lb", "plates"),
   ]),
 };
+
+function seeded(seed: number) {
+  let state = seed || 1;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function fallbackPlan(assignment: ReturnType<typeof planDay>, profile = profiles.garage) {
+  const shortlists = assignment.pieces.map((piece, index) =>
+    shortlistForPiece(
+      piece,
+      profile,
+      assignment.avoidMovements,
+      seeded(hashString(`${assignment.seed}:${index}:${piece.name}`)),
+    ),
+  );
+  return buildFallbackClass({
+    assignment,
+    shortlists,
+    items: garage,
+    caps: profile.caps,
+    random: seeded(assignment.seed + 17),
+  });
+}
+
+function movementIds(assignment: ReturnType<typeof planDay>, profile = profiles.garage) {
+  return fallbackPlan(assignment, profile).pieces.flatMap((piece) => piece.movements.map((item) => item.id));
+}
 
 test("scheme is the only source of score and cap", () => {
   const cases: [Scheme, string][] = [
@@ -134,16 +165,28 @@ test("garage profile is not dumbbell-only", () => {
   assert.ok(withEngine >= 10, `only ${withEngine} of 28 days used a monostructural movement`);
 });
 
-test("a full week caps dumbbell-led sessions", () => {
+test("a full week caps dumbbell-led conditioning without stripping strength days", () => {
+  const onlyDumbbells = [5, 10, 15, 20, 25].map(db);
   let recent: RecentSignal[] = [];
   let dumbbellDays = 0;
+  let conditioningWithoutDumbbell = 0;
   for (let offset = 0; offset < 6; offset += 1) {
     const date = `2027-01-${String(4 + offset).padStart(2, "0")}`;
-    const assignment = planDay({ date, profile: profiles.garage, recent });
-    const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, assignment.avoidMovements, () => 0.4));
-    const plan = buildFallbackClass({ assignment, shortlists, items: garage, caps: profiles.garage.caps, random: () => 0.4 });
+    const assignment = planDay({ date, profile: profiles.dumbbells, recent });
+    const shortlists = assignment.pieces.map((piece) =>
+      shortlistForPiece(piece, profiles.dumbbells, assignment.avoidMovements, () => 0.4),
+    );
+    const plan = buildFallbackClass({
+      assignment,
+      shortlists,
+      items: onlyDumbbells,
+      caps: profiles.dumbbells.caps,
+      random: () => 0.4,
+    });
     const ids = plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id));
-    if (ids.some((id) => movementById(id)?.load === "dumbbell")) dumbbellDays += 1;
+    const hasDumbbell = ids.some((id) => movementById(id)?.load === "dumbbell");
+    if (hasDumbbell) dumbbellDays += 1;
+    if (!hasDumbbell && assignment.pieces.some((piece) => piece.kind === "metcon")) conditioningWithoutDumbbell += 1;
     recent = [
       {
         date,
@@ -155,6 +198,7 @@ test("a full week caps dumbbell-led sessions", () => {
     ];
   }
   assert.ok(dumbbellDays <= 3, `dumbbells led ${dumbbellDays} of 6 sessions`);
+  assert.ok(conditioningWithoutDumbbell >= 2, "conditioning did not rotate away from dumbbells");
 });
 
 test("engine intervals are mixed-modal circuits scored by reps", () => {
@@ -226,6 +270,94 @@ test("validation rejects unowned gear, duplicate patterns, and out-of-range dose
   assert.ok(issues.some((issue) => /equipment you do not own/i.test(issue.message)));
   assert.ok(issues.some((issue) => /repeats the squat pattern/i.test(issue.message)));
   assert.ok(issues.some((issue) => /within cal 8-20/i.test(issue.message)));
+});
+
+test("copy repair rescues a long, time-flavoured stimulus", () => {
+  const assignment = planDay({ date: "2026-11-02", profile: profiles.garage });
+  const ai: AiWorkout = {
+    title: "Monostructural Modality Grinder",
+    stimulus:
+      "Settle in for about 12-18 min, then hold a hard, repeatable pace for the whole piece and never stop moving until the very end of the workout, no matter what.",
+    pieces: [],
+  };
+  const repaired = repairAiCopy(ai, assignment);
+  assert.ok(repaired.stimulus.length <= 140, repaired.stimulus);
+  assert.doesNotMatch(repaired.stimulus, /\b\d+\s*(?:min|mins|minute|minutes|sec|secs|second|seconds)\b/i);
+  assert.doesNotMatch(repaired.stimulus, /^then\b/i);
+  assert.doesNotMatch(repaired.title, /\b(?:locomotion|monostructural|modality)\b/i);
+  assert.ok(repaired.title.length <= 60);
+
+  const punctuated = repairAiCopy(
+    { ...ai, stimulus: "Heavy hinge sets, then steady EMOM work; keep transitions quick." },
+    assignment,
+  );
+  assert.doesNotMatch(punctuated.stimulus, /;/);
+  assert.match(punctuated.stimulus, /keep transitions quick/i);
+});
+
+test("regeneration varies the session instead of repeating the same workout", () => {
+  let differences = 0;
+  for (let offset = 0; offset < 8; offset += 1) {
+    const date = `2027-04-${String(5 + offset).padStart(2, "0")}`;
+    const first = planDay({ date, profile: profiles.garage, variant: "first" });
+    const second = planDay({ date, profile: profiles.garage, variant: "second" });
+    assert.notEqual(first.seed, second.seed);
+    if (movementIds(first).join(",") !== movementIds(second).join(",")) differences += 1;
+  }
+  assert.ok(differences >= 6, `only ${differences} of 8 regenerations changed the movements`);
+});
+
+test("a replacement avoids the version already on the calendar", () => {
+  const date = "2027-05-03";
+  const first = planDay({ date, profile: profiles.garage, variant: "first" });
+  const firstIds = movementIds(first);
+  const second = planDay({
+    date,
+    profile: profiles.garage,
+    variant: "second",
+    previous: { pattern: first.pieces[0]?.pattern, movements: firstIds },
+  });
+  assert.ok(firstIds.every((id) => second.avoidMovements.includes(id)));
+  assert.ok(second.avoidPatterns.includes(first.pieces[0]!.pattern));
+});
+
+test("auto weeks rotate through EMOM, ladder, and max-effort sessions", () => {
+  const shapes = new Set<string>();
+  for (let offset = 0; offset < 28; offset += 1) {
+    const date = `2027-06-${String(1 + offset).padStart(2, "0")}`;
+    const assignment = planDay({ date, profile: profiles.garage });
+    shapes.add(assignment.shape);
+  }
+  assert.ok(shapes.has("emom"), `shapes: ${[...shapes].join(", ")}`);
+  assert.ok(shapes.has("ladder"), `shapes: ${[...shapes].join(", ")}`);
+  assert.ok(shapes.has("max_effort"), `shapes: ${[...shapes].join(", ")}`);
+});
+
+test("dumbbell fatigue does not turn a heavy day into gymnastics", () => {
+  for (const date of ["2027-07-08", "2027-07-15", "2027-07-22", "2027-07-29"]) {
+    const recent: RecentSignal[] = [
+      { date, pattern: "squat", movements: ["db-deadlift"], load: "moderate" },
+      { date, pattern: "press", movements: ["db-strict-press"], load: "moderate" },
+    ];
+    const assignment = planDay({ date, profile: profiles.dumbbells, recent });
+    assert.notEqual(assignment.shape, "gymnastics", `${date} was downgraded to gymnastics`);
+    if (assignment.shape === "heavy" || assignment.shape === "strength_metcon") {
+      assert.equal(assignment.avoidDumbbell, false, `${date} banned dumbbells from a strength day`);
+    }
+  }
+});
+
+test("mixed conditioning gets more movements and density", () => {
+  const strengthDay = planDay({ date: "2027-08-02", profile: profiles.garage });
+  const metcon = strengthDay.pieces.find((piece) => piece.kind === "metcon");
+  assert.ok(metcon);
+  assert.ok(metcon.movementCount.min >= 3, `metcon allows only ${metcon.movementCount.min} movements`);
+
+  const chipperDay = planDay({ date: "2027-08-06", profile: profiles.garage });
+  if (chipperDay.shape === "chipper") {
+    const piece = chipperDay.pieces[0];
+    assert.ok(piece.movementCount.min >= 6);
+  }
 });
 
 test("the abandoned WOD archive is gone", () => {

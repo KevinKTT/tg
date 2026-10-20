@@ -1,6 +1,7 @@
 import {
   doseInRange,
   doseRangeFor,
+  eligibleCatalog,
   estimateDoseSeconds,
   isAdvancedSkill,
   movementById,
@@ -151,6 +152,18 @@ export function validateAiWorkout(input: {
         issues.push({
           path: `${path}.movements`,
           message: `A metcon needs at least two modalities. This piece allows ${brief.modalities.join(" + ")}.`,
+        });
+      }
+      if (
+        brief.requireLoad !== false &&
+        brief.load !== "light" &&
+        brief.modalities.includes("W") &&
+        eligibleCatalog(profile).some((movement) => movement.load && movement.modality === "W") &&
+        !piece.movements.some((item) => movementById(item.id)?.load)
+      ) {
+        issues.push({
+          path: `${path}.movements`,
+          message: "A mixed conditioning piece needs at least one loaded movement. Add real load, not another bodyweight variation.",
         });
       }
     }

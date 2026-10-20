@@ -294,6 +294,8 @@ export function buildFallbackPiece(
   if (!pool.length) return [];
   const selected: MovementDef[] = [];
   const usedPatterns = new Set<string>();
+  const allowed = new Set(brief.modalities);
+  const usedModalities = () => new Set(selected.map((movement) => movement.modality));
 
   const add = (movement: MovementDef | undefined) => {
     if (!movement || selected.length >= target) return;
@@ -302,44 +304,76 @@ export function buildFallbackPiece(
     usedPatterns.add(movement.pattern);
   };
 
-  const first = (predicate: (movement: MovementDef) => boolean) => pool.find(predicate);
-
   if (brief.kind === "strength") {
-    const loaded = pool.filter((movement) => movement.load);
+    const loaded = pool.filter((movement) => movement.load && !isAccessory(movement));
     if (!loaded.length) {
-      add(pool.find((movement) => !isAccessory(movement)));
-      add(pool.find((movement) => movement.pattern !== selected[0]?.pattern && !isAccessory(movement)));
+      const candidates = pool.filter((movement) => !isAccessory(movement));
+      add(randomFrom(candidates.filter((movement) => movement.pattern === brief.pattern), random));
+      add(randomFrom(candidates.filter((movement) => movement.pattern !== selected[0]?.pattern), random));
     } else {
-      add(loaded.find((movement) => movement.pattern === brief.pattern && !isAccessory(movement)) ?? loaded.find((movement) => !isAccessory(movement)) ?? loaded[0]);
-      add(loaded.find((movement) => movement.pattern !== selected[0]?.pattern && !isAccessory(movement)));
+      add(randomFrom(loaded.filter((movement) => movement.pattern === brief.pattern), random) ?? loaded[0]);
+      add(randomFrom(loaded.filter((movement) => movement.pattern !== selected[0]?.pattern), random));
     }
   } else if (brief.kind === "skill") {
     const skill = pool.filter((movement) => !movement.load && isSkillMovement(movement));
-    add(skill.find((movement) => movement.pattern === brief.pattern) ?? skill[0] ?? pool.find((movement) => !movement.load));
-    add(skill.find((movement) => movement.pattern !== selected[0]?.pattern));
+    add(randomFrom(skill.filter((movement) => movement.pattern === brief.pattern), random) ?? skill[0] ?? pool.find((movement) => !movement.load));
+    add(randomFrom(skill.filter((movement) => movement.pattern !== selected[0]?.pattern), random));
   } else {
-    const allowed = new Set(brief.modalities);
     if (brief.modalities.includes("M")) {
       const friendly = pool.filter((movement) => intervalFriendly(movement));
       const engine = pool.filter((movement) => movement.modality === "M" && !isAccessory(movement));
       if (brief.scheme.type === "intervals" && friendly.length) {
-        add(friendly[0]);
+        add(randomFrom(friendly, random));
       } else {
-        add(randomItem(engine.length ? engine : pool.filter((movement) => movement.modality === "M"), random));
+        add(randomFrom(engine.length ? engine : pool.filter((movement) => movement.modality === "M"), random));
       }
     }
-    add(first((movement) => allowed.has(movement.modality) && movement.pattern === brief.pattern && movement.modality !== "M" && !isAccessory(movement)));
-    const usedModalities = () => new Set(selected.map((movement) => movement.modality));
     add(
-      first(
-        (movement) =>
-          allowed.has(movement.modality) &&
-          !usedModalities().has(movement.modality) &&
-          !usedPatterns.has(movement.pattern) &&
-          !isAccessory(movement),
+      randomFrom(
+        pool.filter(
+          (movement) =>
+            allowed.has(movement.modality) &&
+            movement.pattern === brief.pattern &&
+            movement.modality !== "M" &&
+            !isAccessory(movement),
+        ),
+        random,
       ),
     );
-    const diverse = pool.filter((movement) => allowed.has(movement.modality) && !isAccessory(movement));
+    // Mixed conditioning should carry real load when the gym has it. This is a
+    // big part of making the session feel hard rather than like a bodyweight circuit.
+    if (brief.load !== "light" && brief.modalities.includes("W") && !selected.some((movement) => movement.load)) {
+      add(
+        randomFrom(
+          pool.filter(
+            (movement) =>
+              movement.load &&
+              allowed.has(movement.modality) &&
+              !usedPatterns.has(movement.pattern) &&
+              !isAccessory(movement),
+          ),
+          random,
+        ),
+      );
+    }
+
+    add(
+      randomFrom(
+        pool.filter(
+          (movement) =>
+            allowed.has(movement.modality) &&
+            !usedModalities().has(movement.modality) &&
+            !usedPatterns.has(movement.pattern) &&
+            !isAccessory(movement),
+        ),
+        random,
+      ),
+    );
+
+    const diverse = shuffle(
+      pool.filter((movement) => allowed.has(movement.modality) && !isAccessory(movement)),
+      random,
+    );
     for (const movement of diverse) {
       if (selected.length >= target) break;
       if (usedPatterns.has(movement.pattern)) continue;
@@ -349,7 +383,7 @@ export function buildFallbackPiece(
       if (selected.length >= target) break;
       add(movement);
     }
-    for (const movement of pool) {
+    for (const movement of shuffle(pool, random)) {
       if (selected.length >= target) break;
       add(movement);
     }
@@ -403,6 +437,20 @@ function randomItem<T>(items: T[], random: () => number): T {
   return items[Math.min(items.length - 1, Math.floor(random() * items.length))];
 }
 
+function randomFrom<T>(items: T[], random: () => number, limit = 4): T | undefined {
+  if (!items.length) return undefined;
+  return randomItem(items.slice(0, Math.min(limit, items.length)), random);
+}
+
+function shuffle<T>(items: T[], random: () => number): T[] {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [copy[index], copy[swap]] = [copy[swap], copy[index]];
+  }
+  return copy;
+}
+
 function fallbackTitle(assignment: DayAssignment, pieces: PlannedPiece[]): string {
   const names = pieces
     .flatMap((piece) => piece.movements.slice(0, 2))
@@ -421,7 +469,65 @@ function fallbackStimulus(assignment: DayAssignment): string {
   if (assignment.focus === "gymnastics") return "Quality positions before speed.";
   if (assignment.shape === "chipper") return "Steady grind. Small rests, keep moving.";
   if (assignment.shape === "intervals") return "Even splits. Full effort inside each window.";
-  return "Moderate-hard pace. Sets should break before the finish.";
+  return "Hard, repeatable effort. Sets break before form does.";
+}
+
+const TIME_ESTIMATE =
+  /\b\d+\s*(?:[-–—]\s*\d+\s*)?(?:min|mins|minute|minutes|sec|secs|second|seconds)\b|\b\d{1,2}:\d{2}\b/i;
+
+function truncateWords(value: string, max: number): string {
+  if (value.length <= max) return value;
+  const cut = value.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.55 ? cut.slice(0, lastSpace) : cut).trim();
+}
+
+function cleanTitle(raw: string, ai: AiWorkout): string {
+  let title = raw
+    .replace(/\s+/g, " ")
+    .replace(/\b(?:locomotion|monostructural|modality)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s\-–—:,.]+|[\s\-–—:,.]+$/g, "")
+    .trim();
+  if (!title) {
+    const names = ai.pieces
+      .flatMap((piece) => piece.movements.slice(0, 2).map((item) => movementDisplayName(item.id)))
+      .filter((name, index, list) => list.indexOf(name) === index);
+    title = names.slice(0, 2).join(" & ") || "Garage Session";
+  }
+  return truncateWords(title, 60);
+}
+
+function cleanStimulus(raw: string, assignment: DayAssignment): string {
+  const clauses = raw
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?;])\s+|,\s+/)
+    .map((clause) => clause.trim())
+    .filter(Boolean)
+    .filter((clause) => !TIME_ESTIMATE.test(clause));
+  let stimulus = clauses
+    .join(", ")
+    .replace(/\s+/g, " ")
+    .replace(/;/g, ",")
+    .replace(/\s*,\s*,+/g, ", ")
+    .replace(/\s+,/g, ",")
+    .replace(/^(?:and|but|then|so|also)\b[\s,;:.-]*/i, "")
+    .replace(/^[\s,;.:-]+|[\s,.;:-]+$/g, "")
+    .trim();
+  if (!stimulus) stimulus = fallbackStimulus(assignment);
+  return truncateWords(stimulus, 140);
+}
+
+/**
+ * Copy is not programming. Keep a long or time-flavoured stimulus from sinking
+ * an otherwise valid workout: repair it before validation and retries.
+ */
+export function repairAiCopy(ai: AiWorkout, assignment: DayAssignment): AiWorkout {
+  return {
+    ...ai,
+    title: cleanTitle(ai.title, ai),
+    stimulus: cleanStimulus(ai.stimulus, assignment),
+  };
 }
 
 export function aiWorkoutSchema(): Record<string, unknown> {
@@ -430,8 +536,8 @@ export function aiWorkoutSchema(): Record<string, unknown> {
     additionalProperties: false,
     required: ["title", "stimulus", "pieces"],
     properties: {
-      title: { type: "string" },
-      stimulus: { type: "string" },
+      title: { type: "string", maxLength: 60 },
+      stimulus: { type: "string", maxLength: 140 },
       pieces: {
         type: "array",
         minItems: 1,
