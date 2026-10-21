@@ -2,7 +2,6 @@ import { addDays, startOfWeek } from "../dates";
 import {
   doseRangeFor,
   eligibleCatalog,
-  movementById,
   type EquipmentProfile,
   type Modality,
   type MovementDef,
@@ -17,7 +16,7 @@ import {
   slotLabel,
   type PieceSlot,
 } from "./roles";
-import { formatText, type Scheme } from "./scheme";
+import { formatText, schemeMinutes, type Scheme } from "./scheme";
 
 export type Focus = "mixed" | "strength" | "heavy" | "cardio" | "engine" | "gymnastics" | "olympic";
 
@@ -29,6 +28,7 @@ export type SessionShape =
   | "heavy"
   | "couplet"
   | "triplet"
+  | "quad"
   | "chipper"
   | "intervals"
   | "emom"
@@ -107,36 +107,54 @@ function normaliseFocus(value: string | undefined): Focus | "auto" {
   return "auto";
 }
 
-function weekdayShape(date: string): { shape: SessionShape; focus: Focus; domain: Domain } {
-  const weekday = new Date(`${date}T12:00:00`).getDay();
-  if (weekday === 1) return { shape: "strength_metcon", focus: "strength", domain: "medium" };
-  if (weekday === 2) return { shape: "intervals", focus: "engine", domain: "medium" };
-  if (weekday === 3) return { shape: "gymnastics", focus: "gymnastics", domain: "short" };
-  if (weekday === 4) return { shape: "heavy", focus: "heavy", domain: "short" };
-  if (weekday === 5) return { shape: "chipper", focus: "mixed", domain: "long" };
-  if (weekday === 6) return { shape: "triplet", focus: "mixed", domain: "medium" };
-  return { shape: "couplet", focus: "mixed", domain: "short" };
-}
+type ClassPick = { shape: SessionShape; focus: Focus; domain: Domain };
+
+/** Real classes. The weekday is not an input, and the same focus may repeat. */
+const CLASS_MENU: ClassPick[] = [
+  { shape: "triplet", focus: "mixed", domain: "medium" },
+  { shape: "quad", focus: "mixed", domain: "medium" },
+  { shape: "chipper", focus: "mixed", domain: "long" },
+  { shape: "emom", focus: "mixed", domain: "medium" },
+  { shape: "ladder", focus: "mixed", domain: "medium" },
+  { shape: "strength_metcon", focus: "strength", domain: "medium" },
+  { shape: "heavy", focus: "heavy", domain: "short" },
+  { shape: "gymnastics", focus: "gymnastics", domain: "medium" },
+  { shape: "intervals", focus: "engine", domain: "medium" },
+];
 
 function mix(date: string, salt: number, label = ""): string {
   if (!salt) return label ? `${date}:${label}` : date;
   return label ? `${date}:${salt}:${label}` : `${date}:${salt}`;
 }
 
-function shapeForFocus(focus: Focus, date: string, salt = 0): { shape: SessionShape; domain: Domain } {
-  if (focus === "strength") return { shape: "strength_metcon", domain: "medium" };
-  if (focus === "heavy") return { shape: "heavy", domain: "short" };
-  if (focus === "engine") return { shape: "intervals", domain: "medium" };
-  if (focus === "gymnastics") return { shape: "gymnastics", domain: "short" };
-  if (focus === "olympic") return { shape: "strength_metcon", domain: "medium" };
-  const templates: SessionShape[] = ["couplet", "triplet", "chipper", "ladder", "emom"];
-  const shape = templates[hashString(mix(date, salt)) % templates.length];
-  return { shape, domain: shape === "chipper" ? "long" : "medium" };
+function classForShape(shape: SessionShape): ClassPick {
+  return (
+    CLASS_MENU.find((item) => item.shape === shape) ?? {
+      shape,
+      focus: "mixed",
+      domain: shape === "couplet" || shape === "max_effort" ? "short" : "medium",
+    }
+  );
+}
+
+function optionsForFocus(focus: Focus): ClassPick[] {
+  if (focus === "strength") return CLASS_MENU.filter((item) => item.shape === "strength_metcon" || item.shape === "heavy");
+  if (focus === "heavy") return CLASS_MENU.filter((item) => item.shape === "heavy");
+  if (focus === "engine") return CLASS_MENU.filter((item) => item.shape === "intervals" || item.shape === "emom" || item.shape === "chipper");
+  if (focus === "gymnastics") return CLASS_MENU.filter((item) => item.shape === "gymnastics" || item.shape === "triplet" || item.shape === "chipper");
+  if (focus === "olympic") return CLASS_MENU.filter((item) => item.shape === "strength_metcon");
+  return CLASS_MENU;
+}
+
+function pickClass(focus: Focus | "auto", date: string, salt: number): ClassPick {
+  const options = focus === "auto" ? CLASS_MENU : optionsForFocus(focus);
+  return options[hashString(mix(date, salt, "class")) % options.length];
 }
 
 export function planDay(input: {
   date: string;
   focus?: string;
+  shape?: SessionShape;
   profile: EquipmentProfile;
   recent?: RecentSignal[];
   random?: () => number;
@@ -146,44 +164,19 @@ export function planDay(input: {
   const salt = input.salt || 0;
   const random = input.random ?? rng(hashString(mix(input.date, salt)));
   const requested = normaliseFocus(input.focus);
-  const template = weekdayShape(input.date);
-  const focus = requested === "auto" ? template.focus : requested;
-  const focused = requested === "auto" ? template : { ...shapeForFocus(focus, input.date, salt), focus };
-  const shaped = { shape: focused.shape, domain: focused.domain };
+  const picked = input.shape ? classForShape(input.shape) : pickClass(requested, input.date, salt);
+  const shaped = { shape: picked.shape, domain: picked.domain };
   const hasLoad = eligibleCatalog(input.profile).some((movement) => movement.load);
-  let sessionFocus: Focus = focus;
+  let sessionFocus: Focus = picked.focus;
   if (!hasLoad && (shaped.shape === "heavy" || shaped.shape === "strength_metcon")) {
     shaped.shape = "gymnastics";
-    shaped.domain = "short";
+    shaped.domain = "medium";
     sessionFocus = "gymnastics";
   }
-  let load = pickLoad(sessionFocus, shaped.shape, input.profile, random);  const recent = input.recent ?? [];
-  const weekStart = startOfWeek(input.date);
-  const recentDumbbellDays = recent
-    .filter((signal) => signal.date >= weekStart)
-    .filter((signal) => signal.movements.some((id) => movementById(id)?.load === "dumbbell")).length;
-  const hasOtherLoad = eligibleCatalog(input.profile).some(
-    (movement) =>
-      movement.load === "barbell" ||
-      movement.load === "kettlebell" ||
-      (movement.load === "odd" && !movement.equipmentAny?.some((options) => options.includes("dumbbell"))),
-  );
-  const avoidDumbbell =
-    recentDumbbellDays >= 2 &&
-    !hasOtherLoad &&
-    (requested === "auto" || sessionFocus === "mixed" || sessionFocus === "engine" || sessionFocus === "gymnastics");
-  if (avoidDumbbell && (shaped.shape === "heavy" || shaped.shape === "strength_metcon")) {
-    shaped.shape = "gymnastics";
-    shaped.domain = "short";
-    sessionFocus = "gymnastics";
-    load = "light";
-  }
+  const load = pickLoad(sessionFocus, shaped.shape, input.profile, random);
+  const recent = input.recent ?? [];
+  const avoidDumbbell = false;
   const avoidMovements = [...new Set([...recent.slice(0, 7).flatMap((item) => item.movements), ...(input.avoid ?? [])])];
-  if (avoidDumbbell) {
-    for (const movement of eligibleCatalog(input.profile)) {
-      if (movement.load === "dumbbell") avoidMovements.push(movement.id);
-    }
-  }
   const avoidPatterns = [...new Set(recent.slice(0, 2).map((item) => item.pattern).filter((pattern) => pattern !== "none"))];
   const pattern = pickPattern(shaped.shape, sessionFocus, input.profile, avoidPatterns, random);
   const pieces = buildPieces({
@@ -389,12 +382,12 @@ function chipperSlots(profile: EquipmentProfile, avoidDumbbell: boolean): PieceS
   ];
 }
 
-function finisherSlots(profile: EquipmentProfile): PieceSlot[] {
-  if (hasEngine(profile)) return [{ role: "gymnastics", pattern: "jump" }, { role: "engine" }];
-  return [
-    { role: "gymnastics", pattern: "jump" },
-    { role: "gymnastics", pattern: "press" },
-  ];
+function quadSlots(profile: EquipmentProfile, avoidDumbbell: boolean, pattern: MovementPattern): PieceSlot[] {
+  const base = tripletSlots(profile, avoidDumbbell, pattern);
+  const used = new Set(base.map((slot) => slot.pattern).filter((item): item is MovementPattern => Boolean(item)));
+  const extras: MovementPattern[] = ["core", "squat", "jump", "press", "lunge"];
+  const next = extras.find((item) => !used.has(item)) ?? "core";
+  return [...base, { role: "gymnastics", pattern: next }];
 }
 
 function coupletScheme(date: string, domain: Domain, slots: PieceSlot[], salt = 0): Scheme {
@@ -446,7 +439,7 @@ function buildPieces(input: {
         scheme: { type: "amrap", minutes: 8 },
         pattern: contrastPattern(pattern),
         load: "light",
-        slots: finisherSlots(profile),
+        slots: tripletSlots(profile, avoidDumbbell, contrastPattern(pattern)),
         minutes: 8,
         profile,
       }),
@@ -454,7 +447,7 @@ function buildPieces(input: {
   }
 
   if (shape === "strength_metcon") {
-    const slots = coupletSlots(profile, avoidDumbbell, contrastPattern(pattern), seed);
+    const slots = tripletSlots(profile, avoidDumbbell, contrastPattern(pattern));
     return [
       brief({
         kind: "strength",
@@ -496,48 +489,25 @@ function buildPieces(input: {
       brief({
         kind: "metcon",
         name: "Workout",
-        scheme: { type: "amrap", minutes: 12 },
+        scheme: { type: "amrap", minutes: 14 },
         pattern: gymSeed % 2 === 0 ? "jump" : "squat",
         load: "light",
-        slots: [
-          { role: "gymnastics", pattern: gymSeed % 2 === 0 ? "jump" : "squat" },
-          { role: "gymnastics", pattern: "press" },
-        ],
-        minutes: 12,
+        slots: quadSlots(profile, avoidDumbbell, gymSeed % 2 === 0 ? "jump" : "squat"),
+        minutes: 14,
         profile,
       }),
     ];
   }
 
   if (shape === "intervals") {
-    const mono = hasEngine(profile) && hashString(mix(date, salt, "engine")) % 2 === 0;
-    if (mono) {
-      return [
-        brief({
-          kind: "metcon",
-          name: "Intervals",
-          scheme: { type: "intervals", rounds: 10, workSec: 60, restSec: 60, task: "fixed" },
-          pattern: "locomotion",
-          load: "light",
-          slots: [{ role: "engine" }],
-          minutes: 20,
-          profile,
-        }),
-      ];
-    }
     return [
       brief({
         kind: "metcon",
-        name: "Workout",
-        scheme: { type: "emom", minutes: 16 },
+        name: "Intervals",
+        scheme: { type: "emom", minutes: 16, everySec: 120 },
         pattern: "locomotion",
         load: "light",
-        slots: hasEngine(profile)
-          ? [{ role: "engine" }, { role: "gymnastics", pattern: "jump" }]
-          : [
-              { role: "gymnastics", pattern: "jump" },
-              { role: "gymnastics", pattern: "press" },
-            ],
+        slots: tripletSlots(profile, avoidDumbbell, pattern === "locomotion" ? "hinge" : pattern),
         minutes: 16,
         profile,
       }),
@@ -549,11 +519,11 @@ function buildPieces(input: {
       brief({
         kind: "metcon",
         name: "EMOM",
-        scheme: { type: "emom", minutes: 16 },
+        scheme: { type: "emom", minutes: 15 },
         pattern,
         load: metconLoad,
-        slots: coupletSlots(profile, avoidDumbbell, pattern, seed),
-        minutes: 16,
+        slots: tripletSlots(profile, avoidDumbbell, pattern),
+        minutes: 15,
         profile,
       }),
     ];
@@ -567,7 +537,7 @@ function buildPieces(input: {
         scheme: { type: "ladder", reps: [21, 15, 9], capMin: 15 },
         pattern,
         load: metconLoad,
-        slots: coupletSlots(profile, avoidDumbbell, pattern, seed, false),
+        slots: tripletSlots(profile, avoidDumbbell, pattern),
         minutes: 15,
         profile,
       }),
@@ -600,6 +570,22 @@ function buildPieces(input: {
         load: "light",
         slots: [{ role: "gymnastics", pattern: "jump" }],
         minutes: 8,
+        profile,
+      }),
+    ];
+  }
+
+  if (shape === "quad") {
+    const slots = quadSlots(profile, avoidDumbbell, pattern);
+    return [
+      brief({
+        kind: "metcon",
+        name: "Workout",
+        scheme: seed % 2 === 0 ? { type: "for_time", rounds: 4, capMin: 18 } : { type: "amrap", minutes: 16 },
+        pattern,
+        load: metconLoad,
+        slots,
+        minutes: 18,
         profile,
       }),
     ];
@@ -711,6 +697,19 @@ ${lines}`;
 ${pieces.join("\n\n")}
 
 Do not change the scheme, piece count, or slot order. Use only the movement IDs listed above.`;
+}
+
+export function withMetconScheme(assignment: DayAssignment, scheme: Scheme): DayAssignment {
+  const pieces = assignment.pieces.map((piece) =>
+    piece.kind === "metcon" ? { ...piece, scheme, estimatedDurationMin: schemeMinutes(scheme) } : piece,
+  );
+  const brief = pieces
+    .map(
+      (piece) =>
+        `${piece.kind.toUpperCase()}: ${formatText(piece.scheme)}. ${piece.movementCount.min}-${piece.movementCount.max} movements. Modalities: ${piece.modalities.join(" + ")}. Load: ${piece.load}.`,
+    )
+    .join("\n");
+  return { ...assignment, pieces, brief };
 }
 
 export function weekDates(date: string): string[] {

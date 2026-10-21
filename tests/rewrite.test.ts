@@ -1,21 +1,39 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rewriteIntent, rewriteTask } from "../lib/ai";
+import { parseCoachRequest, rewriteIntent, rewriteTask } from "../lib/ai";
 import type { EquipmentRow } from "../lib/db";
 import { computeLoadPlan } from "../lib/load-plan";
 
-test("clarify keeps the workout and only cleans the board", () => {
-  const task = rewriteTask("clarify");
-  assert.match(task, /Keep the same movements/);
-  assert.match(task, /Do not invent a new piece/);
-  assert.doesNotMatch(task, /Do not write an unrelated workout/);
+test("a named workout replaces the day", () => {
+  const chipper = parseCoachRequest("make it a chipper");
+  assert.equal(chipper.kind, "rebuild");
+  if (chipper.kind === "rebuild") assert.equal(chipper.shape, "chipper");
+
+  const emom = parseCoachRequest("EMOM 12");
+  assert.equal(emom.kind, "rebuild");
+  if (emom.kind === "rebuild") {
+    assert.equal(emom.shape, "emom");
+    assert.deepEqual(emom.scheme, { type: "emom", minutes: 12 });
+  }
+
+  const strength = parseCoachRequest("strength then a metcon");
+  assert.equal(strength.kind, "rebuild");
+  if (strength.kind === "rebuild") assert.equal(strength.shape, "strength_metcon");
+
+  const ladder = parseCoachRequest("21-15-9");
+  assert.equal(ladder.kind, "rebuild");
+  if (ladder.kind === "rebuild") {
+    assert.equal(ladder.shape, "ladder");
+    assert.deepEqual(ladder.scheme, { type: "ladder", reps: [21, 15, 9], capMin: 15 });
+  }
 });
 
-test("a clarify note is passed through", () => {
-  const task = rewriteTask("clarify", "Make this an AMRAP");
-  assert.match(task, /Make this an AMRAP/);
-  assert.match(task, /Keep the same movements/);
-  assert.match(task, /Do not invent a new piece/);
+test("a part fix does not rebuild the day", () => {
+  assert.equal(parseCoachRequest("swap push-ups for burpees").kind, "edit");
+  assert.equal(parseCoachRequest("make the lift heavier").kind, "edit");
+  assert.equal(parseCoachRequest("make the AMRAP 12 minutes").kind, "edit");
+  assert.match(rewriteTask("clarify", "swap push-ups for burpees"), /Change only what the note asks for/);
+  assert.match(rewriteTask("clarify", "make it a chipper"), /Build the workout/);
 });
 
 test("load lines always name the male and female versions", () => {
