@@ -28,6 +28,9 @@ import {
 import {
   equipmentProfile,
   movementById,
+  movementEligible,
+  MOVEMENT_CATALOG,
+  type MovementDef,
   type MovementPattern,
 } from "./engine/movements";
 import {
@@ -36,9 +39,11 @@ import {
   isFocus,
   planDay,
   shortlistForPiece,
+  withMetconScheme,
   type DayAssignment,
   type Focus,
   type RecentSignal,
+  type SessionShape,
   type Shortlist,
 } from "./engine/planner";
 import { formatText, schemeMinutes, type Scheme } from "./engine/scheme";
@@ -50,7 +55,8 @@ The assignment already chose the scheme and the slots. You choose the title, the
 Standards:
 - Use only movement IDs from that slot. Return them in slot order. Never use equipment the athlete does not own.
 - Prefer the first IDs in each slot. They are the classic choices. Do not pick a variation, trick, isometric, or accessory when a staple is listed.
-- Keep every dose inside the range shown. A couplet or triplet round should take about a minute. An EMOM minute should finish with rest left. A chipper is one hard pass.
+- Fill a loaded slot, a gymnastics slot, and an engine slot with those staples when the assignment lists them.
+- Keep every dose inside the range shown. A couplet or triplet round should take about a minute. An EMOM minute, or a 2-minute station, should finish with rest left. A chipper is one hard pass.
 - Never stack two movements with the same pattern in one piece.
 - Strength and skill pieces: the scheme owns the dose. Movement choice is what matters.
 - Title: short and specific, like a whiteboard name. Do not name a scheme the assignment did not ask for.
@@ -323,26 +329,91 @@ export function coachNote(value: string | undefined): string {
 export function rewriteTask(intent: string, note = ""): string {
   if (intent === "clarify") {
     const ask = coachNote(note);
-    return `Clarify this workout. Keep the same movements and loads unless the note changes them. Do not invent a new piece.${ask ? `\nApplies only this note: ${ask}` : ""}`;
+    const request = parseCoachRequest(ask);
+    if (request.kind === "rebuild") return `Build the workout this note asks for.${ask ? `\n${ask}` : ""}`;
+    return `Change only what the note asks for. Keep every other piece and movement.${ask ? `\n${ask}` : ""}`;
   }
   return `Rewrite this session toward ${focusLabel(intent).toLowerCase()}. Keep the same scheme when it still fits. Change movements and doses when they cannot carry that bias.`;
 }
 
-/** A clarify note can change the scheme. Keep this deterministic so score and clock stay coherent. */
-function clarifyScheme(note: string, current: Scheme): Scheme {
-  const text = note.toLowerCase();
-  const minutes = Number(text.match(/(?:amrap|emom|every minute)[^\d]*(\d+)/)?.[1] ?? 0);
-  const duration = minutes > 0 ? minutes : Math.max(6, schemeMinutes(current));
-  if (/\bamrap\b|as many rounds/.test(text)) return { type: "amrap", minutes: duration };
-  if (/\bemom\b|every minute/.test(text)) return { type: "emom", minutes: duration };
-  if (/\bchipper\b/.test(text)) return { type: "chipper", capMin: Math.max(12, duration) };
-  if (/\bintervals?\b/.test(text)) return { type: "intervals", rounds: 6, workSec: 120, restSec: 60, task: "fixed" };
-  const rounds = Number(text.match(/(\d+)\s*rounds?\s*(?:for time)?/)?.[1] ?? 0);
-  if (/\bfor time\b|fast as possible/.test(text)) {
-    return rounds > 0 ? { type: "for_time", rounds } : { type: "for_time" };
+export type CoachRequest = { kind: "rebuild"; shape: SessionShape; scheme?: Scheme } | { kind: "edit" };
+
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/-/g, " ")
+    .replace(/\b(\w+)s\b/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function minutesIn(text: string): number {
+  const named = text.match(/(?:amrap|emom|e2mom|every minute)[^\d]{0,16}(\d+)/);
+  if (named) return Number(named[1]);
+  const plain = text.match(/(\d+)\s*(?:min|mins|minute|minutes)\b/);
+  return plain ? Number(plain[1]) : 0;
+}
+
+function shapeFromNote(text: string): SessionShape | null {
+  if (/strength\s+(?:piece\s+)?(?:and|then|\+|plus)\s+(?:a\s+)?(?:metcon|workout)|lift then|add a strength piece/.test(text)) return "strength_metcon";
+  if (/\bheavy day\b|\bheavy workout\b|\bmake it heavy\b/.test(text)) return "heavy";
+  if (/\bgymnastics\b|\bskill day\b|\bskill work\b/.test(text)) return "gymnastics";
+  if (/\bcouplet\b|\b2 movements\b|\btwo movements\b/.test(text)) return "couplet";
+  if (/\btriplet\b|\b3 movements\b|\bthree movements\b/.test(text)) return "triplet";
+  if (/\b4 movements\b|\bfour movements\b/.test(text)) return "quad";
+  if (/\bchipper\b|\b5 movements\b|\bfive movements\b/.test(text)) return "chipper";
+  if (/\bladder\b|\b21\s*[-/]\s*15\s*[-/]\s*9\b/.test(text)) return "ladder";
+  if (/\bemom\b|\be2mom\b|every minute/.test(text)) return "emom";
+  if (/\bintervals?\b|\btabata\b/.test(text)) return "intervals";
+  if (/\bfor time\b|\b\d+\s*rounds?\b/.test(text)) return "triplet";
+  if (/\bamrap\b|as many rounds/.test(text)) return "triplet";
+  return null;
+}
+
+function schemeFromNote(text: string, shape: SessionShape): Scheme | undefined {
+  const minutes = minutesIn(text);
+  const ladder = text.match(/(\d+)\s*[-/]\s*(\d+)\s*[-/]\s*(\d+)/);
+  if (shape === "ladder" || ladder) {
+    const reps = ladder ? [Number(ladder[1]), Number(ladder[2]), Number(ladder[3])] : [21, 15, 9];
+    return { type: "ladder", reps, capMin: Math.max(12, minutes || 15) };
   }
-  if (/\bheavy\b/.test(text) && current.type === "strength") return { ...current, intent: "heavy" };
-  return current;
+  if (shape === "intervals") return { type: "emom", minutes: minutes || 16, everySec: 120 };
+  if (shape === "emom") return { type: "emom", minutes: minutes || 15 };
+  if (shape === "chipper") return minutes ? { type: "chipper", capMin: minutes } : undefined;
+  const rounds = Number(text.match(/(\d+)\s*rounds?\b/)?.[1] ?? 0);
+  if (/\bfor time\b/.test(text) || rounds > 0) {
+    if (rounds > 0) return minutes ? { type: "for_time", rounds, capMin: minutes } : { type: "for_time", rounds };
+    return minutes ? { type: "for_time", capMin: minutes } : { type: "for_time" };
+  }
+  if (/\bamrap\b|as many rounds/.test(text)) return { type: "amrap", minutes: minutes || 16 };
+  return undefined;
+}
+
+/** A named workout replaces the day. Anything else is a change to one part. */
+export function parseCoachRequest(note: string): CoachRequest {
+  const text = coachNote(note).toLowerCase();
+  if (!text) return { kind: "edit" };
+  const durationTweak = /\bmake the (?:amrap|emom|workout|metcon|chipper|interval|intervals)\b|\b(?:shorten|lengthen) the\b/.test(text);
+  const asksForNew = /\bmake it\b|\bi want\b|\bgive me\b|\bbuild\b/.test(text);
+  if (durationTweak && !asksForNew) return { kind: "edit" };
+  const shape = shapeFromNote(text);
+  if (!shape) return { kind: "edit" };
+  const scheme = schemeFromNote(text, shape);
+  return scheme ? { kind: "rebuild", shape, scheme } : { kind: "rebuild", shape };
+}
+
+function movementNamed(phrase: string): MovementDef | undefined {
+  const needle = normalizeName(phrase);
+  if (needle.length < 3) return undefined;
+  const named = (movement: MovementDef) =>
+    normalizeName(movement.name) === needle || movement.aliases.some((alias) => normalizeName(alias) === needle);
+  const exact = MOVEMENT_CATALOG.find(named);
+  if (exact) return exact;
+  const hits = MOVEMENT_CATALOG.filter(
+    (movement) => normalizeName(movement.name).includes(needle) || needle.includes(normalizeName(movement.name)),
+  );
+  hits.sort((left, right) => left.name.length - right.name.length);
+  return hits[0];
 }
 
 function replacement(date: string): { salt?: number; avoid: string[] } {
@@ -370,8 +441,13 @@ export async function generateDay(input: { date: string; focus?: string }) {
     salt: prior.salt,
     avoid: prior.avoid,
   });
+  const plan = await composePlan(assignment, items);
+  savePlan({ assignment, plan, items });
+  return { title: plan.title };
+}
+
+async function composePlan(assignment: DayAssignment, items: EquipmentRow[]): Promise<ClassPlan> {
   const shortlists = shortlistsFor(assignment, items);
-  let plan: ClassPlan;
   try {
     const ai = await askForWorkout({
       assignment,
@@ -379,7 +455,7 @@ export async function generateDay(input: { date: string; focus?: string }) {
       items,
       members: listAthletes(),
     });
-    plan = buildClassFromAi({
+    return buildClassFromAi({
       assignment,
       ai,
       items,
@@ -388,10 +464,8 @@ export async function generateDay(input: { date: string; focus?: string }) {
     });
   } catch {
     // A valid, original session beats a failed generation.
-    plan = fallbackPlan(assignment, shortlists, items);
+    return fallbackPlan(assignment, shortlists, items);
   }
-  savePlan({ assignment, plan, items });
-  return { title: plan.title };
 }
 
 export async function rewriteDay(input: { date: string; intent: string; note?: string }) {
@@ -411,34 +485,78 @@ export async function rewriteDay(input: { date: string; intent: string; note?: s
   return generateDay({ date: input.date, focus: intent });
 }
 
+function editedScheme(note: string, kind: string, scheme: Scheme): Scheme {
+  const text = note.toLowerCase();
+  if (kind === "strength" && /\bheavier\b|\bmake the lift heavy\b/.test(text) && scheme.type === "strength") {
+    return { ...scheme, intent: "heavy", reps: "3" };
+  }
+  if (kind !== "metcon") return scheme;
+  const minutes = minutesIn(text);
+  if (/\bmake the amrap\b|\bthe amrap\b/.test(text) && minutes) return { type: "amrap", minutes };
+  if (/\bmake the emom\b|\bthe emom\b/.test(text) && minutes) return { type: "emom", minutes };
+  return scheme;
+}
+
+function pieceLoad(kind: string, scheme: Scheme, note: string): "heavy" | "moderate" | "light" {
+  if (kind === "strength" && (/\bheavier\b|\bmake the lift heavy\b/i.test(note) || (scheme.type === "strength" && scheme.intent === "heavy") || scheme.type === "max_load")) {
+    return "heavy";
+  }
+  if (kind === "skill") return "light";
+  return "moderate";
+}
+
 async function clarifyDay(input: { day: DayView; track: TrackView; note: string }) {
   const items = listEquipment();
   if (!items.some((item) => item.owned)) {
     throw new Error("Mark the equipment you own first. Workouts are built only from that list.");
   }
   const profile = equipmentProfile(items);
+  const request = parseCoachRequest(input.note);
+  if (request.kind === "rebuild") {
+    const planned = planDay({
+      date: input.day.date,
+      shape: request.shape,
+      profile,
+      recent: recentSignals(input.day.date),
+      salt: hashString(`${input.day.date}:${input.note}`),
+    });
+    const assignment = request.scheme ? withMetconScheme(planned, request.scheme) : planned;
+    const plan = await composePlan(assignment, items);
+    savePlan({ assignment, plan, items });
+    return { title: plan.title };
+  }
+
   const structured = input.track.parts.filter((part) => part.scheme && part.movements?.length);
   if (structured.length === 0) {
     throw new Error("This workout was written before structured workouts. Generate it again, then clarify.");
   }
 
+  const swap = input.note.match(/\b(?:swap|replace)\s+(?:the\s+)?(.+?)\s+(?:for|with)\s+(?:the\s+)?(.+)/i);
+  const drop = input.note.match(/\b(?:drop|remove)\s+(?:the\s+)?([a-z0-9][a-z0-9 -]{1,40})/i);
+  const swapTo = swap ? movementNamed(swap[2]) : undefined;
+  const dropped = drop ? movementNamed(drop[1]) : undefined;
+  const ownedSwap = swapTo && movementEligible(swapTo, profile) ? swapTo : undefined;
+
   const pieces = structured.map((part) => {
     const currentScheme = part.scheme!;
-    const scheme = part.kind === "metcon" ? clarifyScheme(input.note, currentScheme) : currentScheme;
+    const scheme = editedScheme(input.note, part.kind, currentScheme);
     const existing = part.movements!
       .map((item) => movementById(item.id))
       .filter((movement): movement is NonNullable<typeof movement> => Boolean(movement));
-    const modalities = [...new Set(existing.map((movement) => movement.modality))];
+    const removed = dropped && existing.some((movement) => movement.id === dropped.id);
+    const kept = removed ? existing.filter((movement) => movement.id !== dropped.id) : existing;
+    const modalities = [...new Set([...(kept.length ? kept : existing).map((movement) => movement.modality), ...(ownedSwap ? [ownedSwap.modality] : [])])];
     const pattern = existing.find((movement) => movement.pattern !== "none")?.pattern ?? "none";
+    const count = Math.max(1, (removed ? kept.length : part.movements!.length));
     return {
       kind: part.kind as "strength" | "metcon" | "skill",
       name: part.name,
       scheme,
       pattern,
-      load: (/heavy|heavier/i.test(input.note) && part.kind === "strength" ? "heavy" : "moderate") as "heavy" | "moderate",
+      load: pieceLoad(part.kind, scheme, input.note),
       modalities: (modalities.length ? modalities : part.kind === "skill" ? ["G"] : ["W", "G"]) as ("W" | "G" | "M")[],
-      estimatedDurationMin: part.estimatedDurationMin ?? schemeMinutes(scheme),
-      movementCount: { min: part.movements!.length, max: part.movements!.length },
+      estimatedDurationMin: schemeMinutes(scheme),
+      movementCount: { min: count, max: count },
     };
   });
 
@@ -456,27 +574,29 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
     avoidDumbbell: false,
   };
   const shortlists = pieces.map((piece, index) => {
-    const existing = structured[index].movements!.map((item) => item.id);
-    const available = shortlistForPiece(piece, profile, [], seededRandom(assignment.seed + index));
-    const existingMovements = existing.flatMap((id) => {
+    const existingIds = structured[index].movements!.map((item) => item.id).filter((id) => id !== dropped?.id);
+    const available = shortlistForPiece(piece, profile, dropped ? [dropped.id] : [], seededRandom(assignment.seed + index));
+    const existingMovements = existingIds.flatMap((id) => {
       const movement = movementById(id);
       return movement ? [movement] : [];
     });
-    return {
-      movements: [
-        ...existingMovements,
-        ...available.movements.filter((movement) => !existingMovements.some((item) => item.id === movement.id)),
-      ].slice(0, 18),
-      byId: available.byId,
-    } satisfies Shortlist;
+    const pinned = ownedSwap && !existingMovements.some((movement) => movement.id === ownedSwap.id) ? [ownedSwap] : [];
+    const movements = [...pinned, ...existingMovements, ...available.movements.filter((movement) => !existingMovements.some((item) => item.id === movement.id) && movement.id !== ownedSwap?.id)].slice(0, 18);
+    const byId = new Map(available.byId);
+    for (const movement of movements) byId.set(movement.id, movement);
+    return { movements, byId } satisfies Shortlist;
   });
 
   const config = resolveProvider(env);
+  const ask = [
+    ownedSwap ? `Use ${ownedSwap.name} where the note asks for it.` : "",
+    dropped ? `Leave out ${dropped.name}.` : "",
+  ].filter(Boolean);
   const messages: { role: "system" | "user"; content: string }[] = [
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
-      content: `Apply this coach note to the existing workout. Keep everything the note does not change.\n\nNOTE: ${input.note}\n\nCURRENT WORKOUT:\n${structured
+      content: `Apply this coach note to the existing workout. Change only what the note asks for. Keep every other piece and movement.\n\nNOTE: ${input.note}${ask.length ? `\n${ask.join("\n")}` : ""}\n\nCURRENT WORKOUT:\n${structured
         .map((part) => `${part.name}: ${part.format}\n${part.body}`)
         .join("\n\n")}\n\n${assignmentPrompt(assignment, shortlists)}`,
     },

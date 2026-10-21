@@ -13,7 +13,7 @@ import {
   movementById,
   movementEligible,
 } from "../lib/engine/movements";
-import { hashString, planDay, shortlistForPiece, type DayAssignment, type RecentSignal } from "../lib/engine/planner";
+import { hashString, planDay, shortlistForPiece, withMetconScheme, type DayAssignment, type RecentSignal } from "../lib/engine/planner";
 import { isFiller, programmingPattern } from "../lib/engine/roles";
 import {
   capSecForScheme,
@@ -119,43 +119,57 @@ test("fallback workouts use only owned gear and valid doses", () => {
   }
 });
 
-test("garage profile is not dumbbell-only", () => {
-  let withoutDumbbell = 0;
+test("garage classes mix the equipment they own", () => {
   let withEngine = 0;
+  const shapes = new Set<string>();
   for (let offset = 0; offset < 28; offset += 1) {
     const date = `2027-01-${String(1 + offset).padStart(2, "0")}`;
     const assignment = planDay({ date, profile: profiles.garage });
+    shapes.add(assignment.shape);
+    for (const piece of assignment.pieces) {
+      if (piece.kind !== "metcon") continue;
+      assert.ok(piece.movementCount.min >= 3 && piece.movementCount.min <= 5, `${date} metcon has ${piece.movementCount.min} movements`);
+      assert.equal(piece.movementCount.min, piece.movementCount.max);
+    }
     const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, [], () => 0.4));
     const plan = buildFallbackClass({ assignment, shortlists, items: garage, caps: profiles.garage.caps, random: () => 0.4 });
-    const ids = plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id));
-    if (!ids.some((id) => movementById(id)?.load === "dumbbell")) withoutDumbbell += 1;
-    if (ids.some((id) => movementById(id)?.modality === "M")) withEngine += 1;
+    const movements = plan.pieces.flatMap((piece) => piece.movements.map((item) => movementById(item.id)));
+    assert.ok(movements.some((movement) => movement && movement.load !== "dumbbell"), `${date} is only dumbbells`);
+    if (movements.some((movement) => movement?.modality === "M")) withEngine += 1;
   }
-  assert.ok(withoutDumbbell >= 8, `only ${withoutDumbbell} of 28 days avoided dumbbells`);
+  assert.ok(shapes.size >= 4, `only drew ${[...shapes].join(", ")}`);
   assert.ok(withEngine >= 10, `only ${withEngine} of 28 days used a monostructural movement`);
 });
 
-test("a full week caps dumbbell-led sessions", () => {
-  let recent: RecentSignal[] = [];
-  let dumbbellDays = 0;
-  for (let offset = 0; offset < 6; offset += 1) {
-    const date = `2027-01-${String(4 + offset).padStart(2, "0")}`;
-    const assignment = planDay({ date, profile: profiles.garage, recent });
-    const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, assignment.avoidMovements, () => 0.4));
-    const plan = buildFallbackClass({ assignment, shortlists, items: garage, caps: profiles.garage.caps, random: () => 0.4 });
-    const ids = plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id));
-    if (ids.some((id) => movementById(id)?.load === "dumbbell")) dumbbellDays += 1;
-    recent = [
-      {
-        date,
-        pattern: assignment.pieces[0]?.pattern ?? "none",
-        movements: ids,
-        load: assignment.load,
-      },
-      ...recent,
-    ];
-  }
-  assert.ok(dumbbellDays <= 3, `dumbbells led ${dumbbellDays} of 6 sessions`);
+test("a class is drawn at random, and a named shape wins", () => {
+  const wednesdays = ["2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28", "2026-11-04", "2026-11-11"];
+  const wednesdayShapes = new Set(wednesdays.map((date) => planDay({ date, profile: profiles.garage }).shape));
+  assert.ok(wednesdayShapes.size > 1, `every Wednesday was ${[...wednesdayShapes].join(", ")}`);
+
+  const date = "2026-10-21";
+  assert.equal(planDay({ date, profile: profiles.garage }).shape, planDay({ date, profile: profiles.garage }).shape);
+  const salted = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9].map((salt) => planDay({ date, profile: profiles.garage, salt }).shape));
+  assert.ok(salted.size > 1, "a new salt never changed the class");
+
+  const chipper = planDay({ date, profile: profiles.garage, shape: "chipper" });
+  assert.equal(chipper.shape, "chipper");
+  assert.equal(chipper.pieces.find((piece) => piece.kind === "metcon")?.movementCount.min, 5);
+
+  const couplet = planDay({ date, profile: profiles.garage, shape: "couplet" });
+  assert.equal(couplet.pieces.find((piece) => piece.kind === "metcon")?.movementCount.min, 2);
+});
+
+test("recent dumbbells do not collapse a strength day", () => {
+  const recent: RecentSignal[] = [
+    { date: "2026-10-20", pattern: "hinge", movements: ["db-thruster", "db-deadlift", "db-front-squat"], load: "moderate" },
+  ];
+  const assignment = planDay({ date: "2026-10-21", profile: profiles.garage, recent, shape: "strength_metcon" });
+  assert.equal(assignment.shape, "strength_metcon");
+  assert.equal(assignment.avoidDumbbell, false);
+  const metcon = assignment.pieces.find((piece) => piece.kind === "metcon");
+  assert.ok(metcon);
+  assert.ok(metcon.movementCount.min >= 3);
+  assert.ok(metcon.slots?.some((slot) => slot.role === "loaded"));
 });
 
 test("a generated body always renders movement lines", () => {
@@ -168,7 +182,10 @@ test("a generated body always renders movement lines", () => {
 });
 
 test("validation rejects unowned gear, duplicate patterns, and out-of-range doses", () => {
-  const assignment = planDay({ date: "2026-11-02", profile: profiles.garage });
+  const assignment = withMetconScheme(planDay({ date: "2026-11-02", profile: profiles.garage, shape: "strength_metcon" }), {
+    type: "amrap",
+    minutes: 12,
+  });
   const ai: AiWorkout = {
     title: "Test",
     stimulus: "Hard, but repeatable.",
@@ -296,14 +313,10 @@ test("a salt replaces the session and an omitted salt stays on the date plan", (
   const first = sessionFingerprint(planDay({ date, profile: profiles.garage, salt: 1 }));
   const second = sessionFingerprint(planDay({ date, profile: profiles.garage, salt: 2 }));
   const original = sessionFingerprint(base);
-  assert.equal(first.shape, original.shape);
-  assert.equal(first.focus, original.focus);
-  assert.equal(second.shape, original.shape);
-  const firstSession = JSON.stringify({ schemes: first.schemes, ids: first.ids });
-  const secondSession = JSON.stringify({ schemes: second.schemes, ids: second.ids });
-  const originalSession = JSON.stringify({ schemes: original.schemes, ids: original.ids });
-  assert.notEqual(firstSession, originalSession);
-  assert.notEqual(secondSession, firstSession);
+  const fingerprint = (value: ReturnType<typeof sessionFingerprint>) =>
+    JSON.stringify({ shape: value.shape, schemes: value.schemes, ids: value.ids, warmup: value.warmup, cooldown: value.cooldown });
+  assert.notEqual(fingerprint(first), fingerprint(original));
+  assert.notEqual(fingerprint(second), fingerprint(first));
   assert.notEqual(first.warmup, original.warmup);
   assert.notEqual(first.cooldown, original.cooldown);
 

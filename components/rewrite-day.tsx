@@ -78,12 +78,12 @@ export function RewriteDay({ date, hasScores, kicker }: { date: string; hasScore
             void run("clarify", "Clarify", text);
           }}
         >
-          <p className="faint">Tell the coach what to fix. The workout stays.</p>
+          <p className="faint">Name a workout to replace the day, or change one part.</p>
           <textarea
             className="area area-note"
             value={note}
             maxLength={400}
-            placeholder="How many rounds? Make this an AMRAP."
+            placeholder="Make it a chipper. Swap push-ups for burpees."
             onChange={(event) => setNote(event.target.value)}
             required
           />
