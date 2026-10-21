@@ -700,6 +700,26 @@ export function doseInRange(movement: MovementDef, dose: Dose, scheme?: Scheme):
 export function doseRangeFor(movement: MovementDef, scheme: Scheme): DoseRange[] {
   const base = movement.doses[0];
   if (!base) return [];
+  if (scheme.type === "chipper") {
+    const units = new Set(movement.doses.map((dose) => dose.unit));
+    const ranges: DoseRange[] = [];
+    if (units.has("cal")) ranges.push({ unit: "cal", min: 15, max: 30 });
+    if (units.has("meters")) {
+      const carry = movement.pattern === "carry";
+      ranges.push({ unit: "meters", min: carry ? 40 : 200, max: carry ? 80 : 400 });
+    }
+    if (units.has("reps")) {
+      const rope = /under/i.test(movement.id);
+      const bodyweight = movement.modality === "G" && !movement.load;
+      ranges.push({
+        unit: "reps",
+        min: rope ? 30 : bodyweight ? 20 : 12,
+        max: rope ? 60 : bodyweight ? 40 : 21,
+      });
+    }
+    if (units.has("seconds")) ranges.push({ unit: "seconds", min: 20, max: 45 });
+    if (ranges.length) return ranges;
+  }
   if (scheme.type === "intervals") {
     const work = Math.max(15, scheme.workSec);
     if (base.unit === "cal") {
@@ -713,7 +733,13 @@ export function doseRangeFor(movement: MovementDef, scheme: Scheme): DoseRange[]
       return [{ unit: "meters", min, max }];
     }
     if (base.unit === "reps") {
-      const perMinute = /double-under/i.test(movement.name) ? 40 : /jump|skip/i.test(movement.name) ? 60 : 20;
+      const perMinute = /double-under/i.test(movement.name)
+        ? 50
+        : /single-under|jump rope/i.test(movement.name)
+          ? 80
+          : /jump|skip/i.test(movement.name)
+            ? 20
+            : 15;
       const min = Math.max(base.min, Math.round((work / 60) * perMinute * 0.7));
       const max = Math.max(min + 5, Math.round((work / 60) * perMinute * 1.5));
       return [{ unit: "reps", min, max }];

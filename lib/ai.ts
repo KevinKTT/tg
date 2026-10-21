@@ -44,19 +44,19 @@ import {
 import { formatText, schemeMinutes, type Scheme } from "./engine/scheme";
 import { formatIssues, validateAiWorkout } from "./engine/validate";
 
-const SYSTEM_PROMPT = `You are the head coach and programmer for a small garage CrossFit gym.
-Compose the workout you are assigned. Do not invent a different day.
+const SYSTEM_PROMPT = `You are the head coach for a small garage CrossFit gym.
+The assignment already chose the scheme and the slots. You choose the title, the stimulus, and one movement per slot.
 
 Standards:
-- Use only the movement IDs in each piece's shortlist. Never use equipment the athlete does not own.
-- Keep every dose inside the range shown for that movement.
-- Use the number of movements specified for the piece.
-- Mix modalities as assigned. A metcon should pair a primary pattern with contrasting bodyweight, engine, or carry work, not three variations of the same lift. Never stack two movements with the same pattern in one piece (for example, goblet squats plus air squats).
-- Strength pieces use loaded movements. Skill pieces use bodyweight or skill work. For strength, skill, max-load, and max-reps pieces the scheme supplies the dose, so movement choice is what matters.
-- Write a short, specific title that matches the piece you chose. Do not call it a ladder, chipper, EMOM, or AMRAP unless the assignment's scheme is that type.
-- Write a short, specific title and a one-line stimulus about effort and pacing. Never put a time estimate in the stimulus.
+- Use only movement IDs from that slot. Return them in slot order. Never use equipment the athlete does not own.
+- Prefer the first IDs in each slot. They are the classic choices. Do not pick a variation, trick, isometric, or accessory when a staple is listed.
+- Keep every dose inside the range shown. A couplet or triplet round should take about a minute. An EMOM minute should finish with rest left. A chipper is one hard pass.
+- Never stack two movements with the same pattern in one piece.
+- Strength and skill pieces: the scheme owns the dose. Movement choice is what matters.
+- Title: short and specific, like a whiteboard name. Do not name a scheme the assignment did not ask for.
+- Stimulus: one line on effort and pacing. Never put a time estimate in it.
 - Whiteboard style: the app renders the scheme, doses, loads, and scales. You provide only the title, stimulus, and movement choices.
-Return one JSON object matching the schema. Do not add pieces the assignment did not ask for.`;
+Return one JSON object matching the schema. Do not add pieces or slots the assignment did not ask for.`;
 
 function inventoryText(items: EquipmentRow[]) {
   const owned = items.filter((item) => item.owned);

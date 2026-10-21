@@ -8,6 +8,7 @@ import {
 } from "./movements";
 import type { AiWorkout } from "./class";
 import type { DayAssignment } from "./planner";
+import { isFiller, programmingPattern, slotLabel, slotMatches } from "./roles";
 import { scoreTypeForScheme } from "./scheme";
 
 export type ValidationIssue = {
@@ -74,16 +75,23 @@ export function validateAiWorkout(input: {
         issues.push({ path: `${path}.movements.${movementIndex}.id`, message: `Do not repeat ${movement.name} in one piece.` });
       }
       seen.add(item.id);
-      if (movement.pattern !== "none" && movement.pattern !== "locomotion" && movement.pattern !== "core") {
-        const previous = seenPatterns.get(movement.pattern);
+      const pattern = programmingPattern(movement);
+      if (pattern !== "none" && pattern !== "locomotion" && pattern !== "core") {
+        const previous = seenPatterns.get(pattern);
         if (previous) {
           issues.push({
             path: `${path}.movements.${movementIndex}.id`,
-            message: `${movement.name} repeats the ${movement.pattern} pattern already used by ${previous}. Pick a contrasting movement.`,
+            message: `${movement.name} repeats the ${pattern} pattern already used by ${previous}. Pick a contrasting movement.`,
           });
         } else {
-          seenPatterns.set(movement.pattern, movement.name);
+          seenPatterns.set(pattern, movement.name);
         }
+      }
+      if (brief.slots?.length && brief.kind !== "skill" && isFiller(movement)) {
+        issues.push({
+          path: `${path}.movements.${movementIndex}.id`,
+          message: `${movement.name} does not belong in a scored piece. Pick a cyclical or loaded staple.`,
+        });
       }
       const doseOptional =
         brief.scheme.type === "ladder" ||
@@ -117,6 +125,26 @@ export function validateAiWorkout(input: {
 
     if (scoreTypeForScheme(brief.scheme) !== "none" && piece.movements.length === 0) {
       issues.push({ path: `${path}.movements`, message: "A scored piece needs at least one movement." });
+    }
+    if (brief.slots?.length && piece.movements.length === brief.slots.length) {
+      const remaining = brief.slots.map((slot, slotIndex) => ({ slot, slotIndex }));
+      piece.movements.forEach((item, movementIndex) => {
+        const movement = movementById(item.id);
+        if (!movement) return;
+        const preferred = remaining.findIndex((entry) => entry.slotIndex === movementIndex && slotMatches(movement, entry.slot, profile));
+        const found = preferred >= 0 ? preferred : remaining.findIndex((entry) => slotMatches(movement, entry.slot, profile));
+        if (found < 0) {
+          const expected = brief.slots?.[movementIndex];
+          issues.push({
+            path: `${path}.movements.${movementIndex}.id`,
+            message: expected
+              ? `${movement.name} does not fit slot ${movementIndex + 1} (${slotLabel(expected)}).`
+              : `${movement.name} does not fit any open slot in this piece.`,
+          });
+          return;
+        }
+        remaining.splice(found, 1);
+      });
     }
   });
 
