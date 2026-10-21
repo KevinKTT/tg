@@ -8,7 +8,6 @@ import { Generating, readGenerate } from "./generating";
 
 export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: boolean }) {
   const router = useRouter();
-  const [replace, setReplace] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
@@ -50,7 +49,7 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
   }
 
   async function runWeek() {
-    if (replace && !window.confirm("Replace this week? Logged scores on replaced days will be deleted.")) return;
+    if (!window.confirm("Replace this week? Logged scores on replaced days will be deleted.")) return;
     setPending(true);
     setError("");
     setStatus("");
@@ -67,7 +66,7 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
           body: JSON.stringify({
             date: day,
             mode: rest ? "rest" : "program",
-            force: replace,
+            force: true,
           }),
         });
         const data = await readGenerate(response);
@@ -103,10 +102,6 @@ export function GeneratePanel({ date, hasWorkout }: { date: string; hasWorkout: 
       <p className="muted">One shared workout. Sunday is rest.</p>
       {error ? <p className="error">{error}</p> : null}
       {status ? <p className="muted">{status}</p> : null}
-      <label className="row">
-        <input type="checkbox" checked={replace} onChange={(event) => setReplace(event.target.checked)} />
-        Replace days that already exist
-      </label>
       <div className="row">
         <button className="btn btn-primary" type="button" onClick={run} disabled={pending}>
           {pending ? "Writing…" : "Generate workout"}

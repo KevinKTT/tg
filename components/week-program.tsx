@@ -10,7 +10,6 @@ export function WeekProgram({ anchor }: { anchor: string }) {
   const router = useRouter();
   const [offset, setOffset] = useState(0);
   const [focuses, setFocuses] = useState<string[]>(["auto", "auto", "auto", "auto", "auto", "auto", "rest"]);
-  const [replace, setReplace] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -18,6 +17,7 @@ export function WeekProgram({ anchor }: { anchor: string }) {
   const dates = Array.from({ length: 7 }, (_, index) => addDays(start, index));
 
   async function run() {
+    if (!window.confirm("Replace this week? Logged scores on replaced days will be deleted.")) return;
     setPending(true);
     setError("");
     setStatus("");
@@ -33,7 +33,7 @@ export function WeekProgram({ anchor }: { anchor: string }) {
             date,
             mode: focus === "rest" ? "rest" : "program",
             ...(focus !== "auto" ? { focus } : {}),
-            force: replace,
+            force: true,
           }),
         });
         const data = await readGenerate(response);
@@ -102,10 +102,6 @@ export function WeekProgram({ anchor }: { anchor: string }) {
           </select>
         </label>
       ))}
-      <label className="row">
-        <input type="checkbox" checked={replace} onChange={(event) => setReplace(event.target.checked)} />
-        Replace days that already exist
-      </label>
       {status ? <p className="muted">{status}</p> : null}
       <button className="btn btn-primary" type="button" onClick={run} disabled={pending}>
         {pending ? "Writing the week…" : "Generate the week"}

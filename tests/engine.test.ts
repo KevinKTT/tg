@@ -13,7 +13,7 @@ import {
   movementById,
   movementEligible,
 } from "../lib/engine/movements";
-import { planDay, shortlistForPiece, type RecentSignal } from "../lib/engine/planner";
+import { hashString, planDay, shortlistForPiece, type DayAssignment, type RecentSignal } from "../lib/engine/planner";
 import { isFiller, programmingPattern } from "../lib/engine/roles";
 import {
   capSecForScheme,
@@ -249,6 +249,66 @@ test("fallback sessions are coach-readable CrossFit, not variation soup", () => 
 test("the abandoned WOD archive is gone", () => {
   assert.equal(fs.existsSync("data/private"), false);
   assert.equal(fs.existsSync("data/private/crossfit_wods.json"), false);
+});
+
+function seededRandom(seed: number) {
+  let state = seed || 1;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function sessionFingerprint(assignment: DayAssignment) {
+  const shortlists = assignment.pieces.map((piece, index) =>
+    shortlistForPiece(
+      piece,
+      profiles.garage,
+      assignment.avoidMovements,
+      seededRandom(hashString(`${assignment.seed}:${index}:${piece.name}`)),
+    ),
+  );
+  const plan = buildFallbackClass({
+    assignment,
+    shortlists,
+    items: garage,
+    caps: profiles.garage.caps,
+    random: seededRandom(assignment.seed + 7),
+  });
+  return {
+    shape: assignment.shape,
+    focus: assignment.focus,
+    schemes: assignment.pieces.map((piece) => piece.scheme),
+    ids: plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id)),
+    warmup: plan.warmup,
+    cooldown: plan.cooldown,
+  };
+}
+
+test("a salt replaces the session and an omitted salt stays on the date plan", () => {
+  const date = "2026-11-02";
+  const base = planDay({ date, profile: profiles.garage });
+  const repeated = planDay({ date, profile: profiles.garage });
+  const zero = planDay({ date, profile: profiles.garage, salt: 0 });
+  assert.deepEqual(repeated, base);
+  assert.deepEqual(zero, base);
+
+  const first = sessionFingerprint(planDay({ date, profile: profiles.garage, salt: 1 }));
+  const second = sessionFingerprint(planDay({ date, profile: profiles.garage, salt: 2 }));
+  const original = sessionFingerprint(base);
+  assert.equal(first.shape, original.shape);
+  assert.equal(first.focus, original.focus);
+  assert.equal(second.shape, original.shape);
+  const firstSession = JSON.stringify({ schemes: first.schemes, ids: first.ids });
+  const secondSession = JSON.stringify({ schemes: second.schemes, ids: second.ids });
+  const originalSession = JSON.stringify({ schemes: original.schemes, ids: original.ids });
+  assert.notEqual(firstSession, originalSession);
+  assert.notEqual(secondSession, firstSession);
+  assert.notEqual(first.warmup, original.warmup);
+  assert.notEqual(first.cooldown, original.cooldown);
+
+  const avoided = planDay({ date, profile: profiles.garage, avoid: ["burpee"] });
+  assert.ok(avoided.avoidMovements.includes("burpee"));
 });
 
 test("AI parser rejects malformed pieces", () => {

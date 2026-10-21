@@ -118,14 +118,19 @@ function weekdayShape(date: string): { shape: SessionShape; focus: Focus; domain
   return { shape: "couplet", focus: "mixed", domain: "short" };
 }
 
-function shapeForFocus(focus: Focus, date: string): { shape: SessionShape; domain: Domain } {
+function mix(date: string, salt: number, label = ""): string {
+  if (!salt) return label ? `${date}:${label}` : date;
+  return label ? `${date}:${salt}:${label}` : `${date}:${salt}`;
+}
+
+function shapeForFocus(focus: Focus, date: string, salt = 0): { shape: SessionShape; domain: Domain } {
   if (focus === "strength") return { shape: "strength_metcon", domain: "medium" };
   if (focus === "heavy") return { shape: "heavy", domain: "short" };
   if (focus === "engine") return { shape: "intervals", domain: "medium" };
   if (focus === "gymnastics") return { shape: "gymnastics", domain: "short" };
   if (focus === "olympic") return { shape: "strength_metcon", domain: "medium" };
   const templates: SessionShape[] = ["couplet", "triplet", "chipper", "ladder", "emom"];
-  const shape = templates[hashString(date) % templates.length];
+  const shape = templates[hashString(mix(date, salt)) % templates.length];
   return { shape, domain: shape === "chipper" ? "long" : "medium" };
 }
 
@@ -135,12 +140,15 @@ export function planDay(input: {
   profile: EquipmentProfile;
   recent?: RecentSignal[];
   random?: () => number;
+  salt?: number;
+  avoid?: string[];
 }): DayAssignment {
-  const random = input.random ?? rng(hashString(input.date));
+  const salt = input.salt || 0;
+  const random = input.random ?? rng(hashString(mix(input.date, salt)));
   const requested = normaliseFocus(input.focus);
   const template = weekdayShape(input.date);
   const focus = requested === "auto" ? template.focus : requested;
-  const focused = requested === "auto" ? template : { ...shapeForFocus(focus, input.date), focus };
+  const focused = requested === "auto" ? template : { ...shapeForFocus(focus, input.date, salt), focus };
   const shaped = { shape: focused.shape, domain: focused.domain };
   const hasLoad = eligibleCatalog(input.profile).some((movement) => movement.load);
   let sessionFocus: Focus = focus;
@@ -170,7 +178,7 @@ export function planDay(input: {
     sessionFocus = "gymnastics";
     load = "light";
   }
-  const avoidMovements = [...new Set(recent.slice(0, 7).flatMap((item) => item.movements))];
+  const avoidMovements = [...new Set([...recent.slice(0, 7).flatMap((item) => item.movements), ...(input.avoid ?? [])])];
   if (avoidDumbbell) {
     for (const movement of eligibleCatalog(input.profile)) {
       if (movement.load === "dumbbell") avoidMovements.push(movement.id);
@@ -188,6 +196,7 @@ export function planDay(input: {
     profile: input.profile,
     avoidDumbbell,
     random,
+    salt,
   });
   const brief = pieces
     .map(
@@ -203,7 +212,7 @@ export function planDay(input: {
     load,
     pieces,
     brief,
-    seed: hashString(`${input.date}:${sessionFocus}:${pattern}`),
+    seed: hashString(mix(input.date, salt, `${sessionFocus}:${pattern}`)),
     avoidMovements,
     avoidPatterns,
     avoidDumbbell,
@@ -388,9 +397,9 @@ function finisherSlots(profile: EquipmentProfile): PieceSlot[] {
   ];
 }
 
-function coupletScheme(date: string, domain: Domain, slots: PieceSlot[]): Scheme {
+function coupletScheme(date: string, domain: Domain, slots: PieceSlot[], salt = 0): Scheme {
   const mono = slots.some((slot) => slot.role === "engine");
-  const pick = hashString(`${date}:couplet`) % 3;
+  const pick = hashString(mix(date, salt, "couplet")) % 3;
   if (!mono && pick === 0) return { type: "for_time", repScheme: [21, 15, 9], capMin: domain === "short" ? 12 : 15 };
   if (pick === 1) return { type: "for_time", rounds: domain === "short" ? 4 : 5, capMin: domain === "short" ? 14 : 18 };
   const minutes = domain === "short" ? 12 : domain === "long" ? 18 : 14;
@@ -407,9 +416,10 @@ function buildPieces(input: {
   profile: EquipmentProfile;
   avoidDumbbell: boolean;
   random: () => number;
+  salt: number;
 }): PieceBrief[] {
-  const { date, shape, focus, domain, load, pattern, profile, avoidDumbbell } = input;
-  const seed = hashString(`${date}:${shape}:${pattern}`);
+  const { date, shape, focus, domain, load, pattern, profile, avoidDumbbell, salt } = input;
+  const seed = hashString(mix(date, salt, `${shape}:${pattern}`));
   const strengthScheme = (): Scheme =>
     hasBarbell(profile) && load === "heavy"
       ? { type: "max_load", repMax: 3 }
@@ -459,7 +469,7 @@ function buildPieces(input: {
       brief({
         kind: "metcon",
         name: "Workout",
-        scheme: coupletScheme(date, "short", slots),
+        scheme: coupletScheme(date, "short", slots, salt),
         pattern: contrastPattern(pattern),
         load: metconLoad,
         slots,
@@ -470,7 +480,7 @@ function buildPieces(input: {
   }
 
   if (shape === "gymnastics") {
-    const gymSeed = hashString(`${date}:gym`);
+    const gymSeed = hashString(mix(date, salt, "gym"));
     return [
       brief({
         kind: "skill",
@@ -500,7 +510,7 @@ function buildPieces(input: {
   }
 
   if (shape === "intervals") {
-    const mono = hasEngine(profile) && hashString(`${date}:engine`) % 2 === 0;
+    const mono = hasEngine(profile) && hashString(mix(date, salt, "engine")) % 2 === 0;
     if (mono) {
       return [
         brief({
@@ -616,7 +626,7 @@ function buildPieces(input: {
     brief({
       kind: "metcon",
       name: "Workout",
-      scheme: coupletScheme(date, domain, slots),
+      scheme: coupletScheme(date, domain, slots, salt),
       pattern,
       load: metconLoad,
       slots,
