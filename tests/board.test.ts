@@ -76,6 +76,19 @@ test("treats Station and Round prefixes as labels", () => {
   assert.equal(round.name, "15 burpees");
 });
 
+test("a weight vest line is a note", () => {
+  const [line] = parseBoard("Weight vest");
+  assert.deepEqual(line, { type: "note", text: "Weight vest" });
+});
+
+test("a minute hold stays with the movement", () => {
+  const [line] = parseBoard("- 1 min Bar Hang");
+  assert.equal(line.type, "move");
+  if (line.type !== "move") return;
+  assert.equal(line.reps, "1 min");
+  assert.equal(line.name, "Bar Hang");
+});
+
 test("treats rest instructions as notes", () => {
   const [line] = parseBoard("- Rest 1 min between rounds. Score total time including rest.");
   assert.deepEqual(line, { type: "note", text: "Rest 1 min between rounds. Score total time including rest." });

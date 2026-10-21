@@ -18,6 +18,7 @@ export type PlannedPiece = {
   scheme: Scheme;
   movements: MovementDose[];
   estimatedDurationMin: number;
+  cue?: string;
 };
 
 export type ClassPlan = {
@@ -208,6 +209,12 @@ export function renderMovementLine(item: MovementDose): string {
 }
 
 export function renderPieceBody(piece: PlannedPiece): string {
+  const body = renderPieceLines(piece);
+  if (!piece.cue) return body;
+  return body ? `${piece.cue}\n${body}` : piece.cue;
+}
+
+function renderPieceLines(piece: PlannedPiece): string {
   const scheme = piece.scheme;
   if (!piece.movements.length) return "";
   if (scheme.type === "emom") {
