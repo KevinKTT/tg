@@ -28,6 +28,22 @@ test("a named workout replaces the day", () => {
   }
 });
 
+test("a listed workout is written as named", () => {
+  const request = parseCoachRequest(
+    "Please make the workout for today be a AMRAP 10 cal row, 10 chin to bar, 10 box step ups, and 10 barbell push press",
+  );
+  assert.equal(request.kind, "prescribe");
+  if (request.kind !== "prescribe") return;
+  assert.deepEqual(request.scheme, { type: "amrap", minutes: 12 });
+  assert.deepEqual(request.movements, [
+    { id: "row", dose: { cal: 10 } },
+    { id: "pull-up", dose: { reps: 10 } },
+    { id: "step-up", dose: { reps: 10 } },
+    { id: "push_press", dose: { reps: 10 } },
+  ]);
+  assert.equal(parseCoachRequest("make the workout be a chipper").kind, "rebuild");
+});
+
 test("a part fix does not rebuild the day", () => {
   assert.equal(parseCoachRequest("swap push-ups for burpees").kind, "edit");
   assert.equal(parseCoachRequest("make the lift heavier").kind, "edit");

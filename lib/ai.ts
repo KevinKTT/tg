@@ -30,6 +30,8 @@ import {
   movementById,
   movementEligible,
   MOVEMENT_CATALOG,
+  type Dose,
+  type EquipmentProfile,
   type MovementDef,
   type MovementPattern,
 } from "./engine/movements";
@@ -330,13 +332,20 @@ export function rewriteTask(intent: string, note = ""): string {
   if (intent === "clarify") {
     const ask = coachNote(note);
     const request = parseCoachRequest(ask);
-    if (request.kind === "rebuild") return `Build the workout this note asks for.${ask ? `\n${ask}` : ""}`;
+    if (request.kind === "rebuild" || request.kind === "prescribe") {
+      return `Build the workout this note asks for.${ask ? `\n${ask}` : ""}`;
+    }
     return `Change only what the note asks for. Keep every other piece and movement.${ask ? `\n${ask}` : ""}`;
   }
   return `Rewrite this session toward ${focusLabel(intent).toLowerCase()}. Keep the same scheme when it still fits. Change movements and doses when they cannot carry that bias.`;
 }
 
-export type CoachRequest = { kind: "rebuild"; shape: SessionShape; scheme?: Scheme } | { kind: "edit" };
+export type PrescribedMovement = { id: string; dose: Dose };
+
+export type CoachRequest =
+  | { kind: "rebuild"; shape: SessionShape; scheme?: Scheme }
+  | { kind: "prescribe"; scheme: Scheme; movements: PrescribedMovement[] }
+  | { kind: "edit" };
 
 function normalizeName(value: string): string {
   return value
@@ -389,11 +398,113 @@ function schemeFromNote(text: string, shape: SessionShape): Scheme | undefined {
   return undefined;
 }
 
+const IMPLEMENT_WORDS = new Set(["barbell", "dumbbell", "kettlebell", "db", "kb"]);
+
+function movementNamed(phrase: string): MovementDef | undefined {
+  const needle = normalizeName(phrase);
+  if (needle.length < 3) return undefined;
+  const labels = (movement: MovementDef) => [normalizeName(movement.name), ...movement.aliases.map(normalizeName)];
+  const exact = MOVEMENT_CATALOG.find((movement) => labels(movement).some((label) => label === needle));
+  if (exact) return exact;
+  const hits = MOVEMENT_CATALOG.filter((movement) =>
+    labels(movement).some((label) => {
+      if (label.length < 3 || !needle.includes(label)) return false;
+      const leftover = needle
+        .replace(label, " ")
+        .trim()
+        .split(" ")
+        .filter(Boolean);
+      return leftover.every((word) => IMPLEMENT_WORDS.has(word));
+    }),
+  );
+  const wantsBarbell = /\bbarbell\b/.test(needle);
+  const wantsDumbbell = /\bdumbbell\b|\bdb\b/.test(needle);
+  const wantsKettlebell = /\bkettlebell\b|\bkb\b/.test(needle);
+  hits.sort((left, right) => {
+    const score = (movement: MovementDef) => {
+      let value = normalizeName(movement.name).length;
+      if (wantsBarbell && movement.load === "barbell") value += 100;
+      if (wantsDumbbell && movement.load === "dumbbell") value += 100;
+      if (wantsKettlebell && movement.load === "kettlebell") value += 100;
+      if (wantsBarbell && movement.load === "dumbbell") value -= 50;
+      return value;
+    };
+    return score(right) - score(left);
+  });
+  return hits[0];
+}
+
+function prescriptionClock(text: string, schemeWord: "amrap" | "emom"): number | null {
+  const words = text.match(new RegExp(`\\b(\\d+)\\s*(?:min|mins|minute|minutes)\\s+${schemeWord}\\b`));
+  const trailing = text.match(new RegExp(`\\b${schemeWord}\\s+(\\d+)\\s*(?:min|mins|minute|minutes)\\b`));
+  const setOff = text.match(new RegExp(`\\b${schemeWord}\\s+(\\d+)\\s*,`));
+  const anyMinutes = text.match(/\b(\d+)\s*(?:min|mins|minute|minutes)\b/);
+  const found = words?.[1] ?? trailing?.[1] ?? setOff?.[1] ?? anyMinutes?.[1];
+  return found ? Number(found) : null;
+}
+
+function prescriptionScheme(text: string): Scheme {
+  if (/\bfor time\b/.test(text)) {
+    const rounds = Number(text.match(/(\d+)\s*rounds?\b/)?.[1] ?? 0);
+    const minutes = prescriptionClock(text, "amrap");
+    return rounds > 0 ? { type: "for_time", rounds, ...(minutes ? { capMin: minutes } : {}) } : { type: "for_time" };
+  }
+  if (/\bchipper\b/.test(text)) return { type: "chipper", capMin: prescriptionClock(text, "amrap") ?? 20 };
+  if (/\bemom\b|\be2mom\b|every minute/.test(text)) {
+    return { type: "emom", minutes: prescriptionClock(text, "emom") ?? 15 };
+  }
+  return { type: "amrap", minutes: prescriptionClock(text, "amrap") ?? 12 };
+}
+
+function clauseDose(body: string): { name: string; dose: Dose } | null {
+  const withUnit = body.match(/^(\d+)\s*(cals?|calories|meters?|m|reps?|secs?|seconds)\s+(.+)$/);
+  if (withUnit) {
+    const amount = Number(withUnit[1]);
+    const unit = withUnit[2];
+    const dose: Dose = /cal/.test(unit)
+      ? { cal: amount }
+      : unit === "m" || /meter/.test(unit)
+        ? { meters: amount }
+        : /sec/.test(unit)
+          ? { seconds: amount }
+          : { reps: amount };
+    return { name: withUnit[3], dose };
+  }
+  const withCount = body.match(/^(\d+)\s+(.+)$/);
+  if (withCount) return { name: withCount[2], dose: { reps: Number(withCount[1]) } };
+  return { name: body, dose: { reps: 10 } };
+}
+
+/** Two or more named movements means the note is the workout, not a tweak. */
+function parsePrescription(text: string): { scheme: Scheme; movements: PrescribedMovement[] } | null {
+  const filler = /^(?:please|make|the|workout|for|today|be|a|an|it|into|of|just)\b\s*/;
+  const movements: PrescribedMovement[] = [];
+  for (const raw of text.split(",")) {
+    let body = raw.replace(/^\s*and\s+/, "").replace(/\s+/g, " ").trim();
+    body = body.replace(/\b(?:amrap|emom|e2mom|every minute|for time|chipper|intervals?)\b/g, " ").replace(/\s+/g, " ").trim();
+    while (filler.test(body)) body = body.replace(filler, "");
+    if (!body) continue;
+    const parsed = clauseDose(body);
+    if (!parsed) continue;
+    const hadDose = /^\d+\b/.test(body);
+    const movement = movementNamed(parsed.name);
+    if (!movement) continue;
+    if (!hadDose && normalizeName(parsed.name) !== normalizeName(movement.name) && !movement.aliases.some((alias) => normalizeName(alias) === normalizeName(parsed.name))) {
+      continue;
+    }
+    movements.push({ id: movement.id, dose: parsed.dose });
+  }
+  if (movements.length < 2) return null;
+  return { scheme: prescriptionScheme(text), movements };
+}
+
 /** A named workout replaces the day. Anything else is a change to one part. */
 export function parseCoachRequest(note: string): CoachRequest {
   const text = coachNote(note).toLowerCase();
   if (!text) return { kind: "edit" };
-  const durationTweak = /\bmake the (?:amrap|emom|workout|metcon|chipper|interval|intervals)\b|\b(?:shorten|lengthen) the\b/.test(text);
+  const prescription = parsePrescription(text);
+  if (prescription) return { kind: "prescribe", scheme: prescription.scheme, movements: prescription.movements };
+  const durationTweak = /\bmake the (?:amrap|emom|chipper|interval|intervals)\b|\b(?:shorten|lengthen) the\b/.test(text);
   const asksForNew = /\bmake it\b|\bi want\b|\bgive me\b|\bbuild\b/.test(text);
   if (durationTweak && !asksForNew) return { kind: "edit" };
   const shape = shapeFromNote(text);
@@ -402,18 +513,22 @@ export function parseCoachRequest(note: string): CoachRequest {
   return scheme ? { kind: "rebuild", shape, scheme } : { kind: "rebuild", shape };
 }
 
-function movementNamed(phrase: string): MovementDef | undefined {
-  const needle = normalizeName(phrase);
-  if (needle.length < 3) return undefined;
-  const named = (movement: MovementDef) =>
-    normalizeName(movement.name) === needle || movement.aliases.some((alias) => normalizeName(alias) === needle);
-  const exact = MOVEMENT_CATALOG.find(named);
-  if (exact) return exact;
-  const hits = MOVEMENT_CATALOG.filter(
-    (movement) => normalizeName(movement.name).includes(needle) || needle.includes(normalizeName(movement.name)),
+function ownedVersion(movement: MovementDef, profile: EquipmentProfile): MovementDef | null {
+  if (movementEligible(movement, profile)) return movement;
+  const stem = normalizeName(movement.name)
+    .replace(/\b(dumbbell|barbell|kettlebell|db|kb)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (
+    MOVEMENT_CATALOG.find((item) => {
+      if (item.id === movement.id || !movementEligible(item, profile)) return false;
+      const name = normalizeName(item.name)
+        .replace(/\b(dumbbell|barbell|kettlebell|db|kb)\b/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      return name === stem;
+    }) ?? null
   );
-  hits.sort((left, right) => left.name.length - right.name.length);
-  return hits[0];
 }
 
 function replacement(date: string): { salt?: number; avoid: string[] } {
@@ -512,6 +627,66 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
   }
   const profile = equipmentProfile(items);
   const request = parseCoachRequest(input.note);
+  if (request.kind === "prescribe") {
+    const resolved: PrescribedMovement[] = [];
+    const missing: string[] = [];
+    for (const item of request.movements) {
+      const named = movementById(item.id);
+      if (!named) {
+        missing.push(item.id);
+        continue;
+      }
+      const owned = ownedVersion(named, profile);
+      if (!owned) missing.push(named.name);
+      else resolved.push({ id: owned.id, dose: item.dose });
+    }
+    if (missing.length) throw new Error(`You don't own the gear for ${missing.join(", ")}.`);
+    const defs = resolved.flatMap((item) => {
+      const movement = movementById(item.id);
+      return movement ? [movement] : [];
+    });
+    const count = resolved.length;
+    const shape: SessionShape = count >= 5 ? "chipper" : count === 4 ? "quad" : count === 3 ? "triplet" : "couplet";
+    const modalities = [...new Set(defs.map((movement) => movement.modality))];
+    const assignment: DayAssignment = {
+      date: input.day.date,
+      focus: "mixed",
+      shape,
+      domain: "medium",
+      load: "moderate",
+      pieces: [
+        {
+          kind: "metcon",
+          name: "Workout",
+          scheme: request.scheme,
+          pattern: defs.find((movement) => movement.pattern !== "none" && movement.pattern !== "locomotion")?.pattern ?? "squat",
+          load: "moderate",
+          modalities: modalities.length ? modalities : ["W", "G"],
+          estimatedDurationMin: schemeMinutes(request.scheme),
+          movementCount: { min: count, max: count },
+        },
+      ],
+      brief: `METCON: ${formatText(request.scheme)}. ${count} movements.`,
+      seed: hashString(`${input.day.date}:${input.note}`),
+      avoidMovements: [],
+      avoidPatterns: [],
+      avoidDumbbell: false,
+    };
+    const names = defs.map((movement) => movement.name);
+    const plan = buildClassFromAi({
+      assignment,
+      ai: {
+        title: names.slice(0, 2).join(" & ") || "Workout",
+        stimulus: "Hard, but repeatable. Break the grind, not the pace.",
+        pieces: [{ movements: resolved }],
+      },
+      items,
+      caps: profile.caps,
+      random: seededRandom(assignment.seed + 3),
+    });
+    savePlan({ assignment, plan, items });
+    return { title: plan.title };
+  }
   if (request.kind === "rebuild") {
     const planned = planDay({
       date: input.day.date,

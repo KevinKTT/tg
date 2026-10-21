@@ -324,6 +324,24 @@ function catalogMovement(movement: (typeof MOVEMENTS)[number]): MovementDef | nu
 
 const ENGINE_MOVEMENTS: MovementDef[] = [
   {
+    id: "pull-up",
+    name: "Pull-Up",
+    aliases: ["pull-up", "pullup", "chin-up", "chin up", "chin to bar", "chin-to-bar"],
+    modality: "G",
+    pattern: "pull",
+    equipment: ["pullup_bar"],
+    dumbbellCount: 0,
+    load: null,
+    doses: [{ unit: "reps", min: 5, max: 15 }],
+    unilateral: false,
+    skill: "intermediate",
+    intensity: "high",
+    easier: [],
+    harder: [],
+    description: "Chin over the bar.",
+    source: "engine",
+  },
+  {
     id: "row",
     name: "Row",
     aliases: ["rowing", "rower", "row erg", "cal row"],
