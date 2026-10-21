@@ -70,6 +70,7 @@ const GYM_STAPLES = [
   "burpee-box-jump-over",
   "push-up",
   "air-squat",
+  "pull-up",
   "sit-up",
   "v-up",
 ] as const;
