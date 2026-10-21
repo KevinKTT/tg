@@ -345,6 +345,15 @@ function clarifyScheme(note: string, current: Scheme): Scheme {
   return current;
 }
 
+function replacement(date: string): { salt?: number; avoid: string[] } {
+  const day = getDay(date);
+  if (!day || day.status === "rest") return { avoid: [] };
+  const avoid = [
+    ...new Set(day.tracks.flatMap((track) => track.parts.flatMap((part) => part.movements?.map((item) => item.id) ?? []))),
+  ];
+  return { salt: Date.now(), avoid };
+}
+
 export async function generateDay(input: { date: string; focus?: string }) {
   loadEnv();
   const items = listEquipment();
@@ -352,11 +361,14 @@ export async function generateDay(input: { date: string; focus?: string }) {
     throw new Error("Mark the equipment you own first. Workouts are built only from that list.");
   }
   const focus: Focus | undefined = isFocus(input.focus) ? input.focus : input.focus === "cardio" ? ("engine" as Focus) : undefined;
+  const prior = replacement(input.date);
   const assignment = planDay({
     date: input.date,
     focus,
     profile: equipmentProfile(items),
     recent: recentSignals(input.date),
+    salt: prior.salt,
+    avoid: prior.avoid,
   });
   const shortlists = shortlistsFor(assignment, items);
   let plan: ClassPlan;
