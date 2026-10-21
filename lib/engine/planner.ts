@@ -1,19 +1,22 @@
 import { addDays, startOfWeek } from "../dates";
 import {
-  compoundScore,
   doseRangeFor,
   eligibleCatalog,
-  intervalFriendly,
-  isAccessory,
-  isAdvancedSkill,
-  isSkillMovement,
-  movementEligible,
   movementById,
   type EquipmentProfile,
   type Modality,
   type MovementDef,
   type MovementPattern,
 } from "./movements";
+import {
+  candidatesForSlot,
+  hasBarbell,
+  hasEngine,
+  hasLoadedAnchor,
+  isFiller,
+  slotLabel,
+  type PieceSlot,
+} from "./roles";
 import { formatText, type Scheme } from "./scheme";
 
 export type Focus = "mixed" | "strength" | "heavy" | "cardio" | "engine" | "gymnastics" | "olympic";
@@ -45,6 +48,7 @@ export type PieceBrief = {
   estimatedDurationMin: number;
   movementCount: { min: number; max: number };
   allowSkill?: boolean;
+  slots?: PieceSlot[];
 };
 
 export type DayAssignment = {
@@ -95,11 +99,6 @@ function rng(seed: number): () => number {
 function pick<T>(items: T[], random: () => number): T {
   return items[Math.min(items.length - 1, Math.floor(random() * items.length))];
 }
-
-function between(min: number, max: number, random: () => number): number {
-  return min + Math.floor(random() * (max - min + 1));
-}
-
 
 function normaliseFocus(value: string | undefined): Focus | "auto" {
   if (!value || value === "auto") return "auto";
@@ -156,7 +155,10 @@ export function planDay(input: {
     .filter((signal) => signal.date >= weekStart)
     .filter((signal) => signal.movements.some((id) => movementById(id)?.load === "dumbbell")).length;
   const hasOtherLoad = eligibleCatalog(input.profile).some(
-    (movement) => movement.load === "barbell" || movement.load === "kettlebell" || movement.load === "odd",
+    (movement) =>
+      movement.load === "barbell" ||
+      movement.load === "kettlebell" ||
+      (movement.load === "odd" && !movement.equipmentAny?.some((options) => options.includes("dumbbell"))),
   );
   const avoidDumbbell =
     recentDumbbellDays >= 2 &&
@@ -168,7 +170,7 @@ export function planDay(input: {
     sessionFocus = "gymnastics";
     load = "light";
   }
-  const avoidMovements = [...new Set(recent.slice(0, 10).flatMap((item) => item.movements))];
+  const avoidMovements = [...new Set(recent.slice(0, 7).flatMap((item) => item.movements))];
   if (avoidDumbbell) {
     for (const movement of eligibleCatalog(input.profile)) {
       if (movement.load === "dumbbell") avoidMovements.push(movement.id);
@@ -184,6 +186,7 @@ export function planDay(input: {
     load,
     pattern,
     profile: input.profile,
+    avoidDumbbell,
     random,
   });
   const brief = pieces
@@ -251,9 +254,11 @@ function pickPattern(
   if (shape === "intervals") return "locomotion";
   const lifting = options.filter((pattern) => pattern !== "carry" && pattern !== "core" && pattern !== "jump");
   const strengthSafe = shape === "strength_metcon" || shape === "heavy" ? (lifting.length ? lifting : options) : options;
-  if (shape === "gymnastics") return pick(strengthSafe.filter((pattern) => pattern !== "olympic"), random);
-  const fresh = strengthSafe.filter((pattern) => !avoid.includes(pattern));
-  return pick(fresh.length ? fresh : strengthSafe, random);
+  const withoutOly = strengthSafe.filter((pattern) => pattern !== "olympic");
+  const choosable = withoutOly.length ? withoutOly : strengthSafe;
+  if (shape === "gymnastics") return pick(choosable.filter((pattern) => pattern !== "olympic"), random);
+  const fresh = choosable.filter((pattern) => !avoid.includes(pattern));
+  return pick(fresh.length ? fresh : choosable, random);
 }
 
 function contrastPattern(pattern: MovementPattern): MovementPattern {
@@ -269,6 +274,129 @@ function contrastPattern(pattern: MovementPattern): MovementPattern {
   return "squat";
 }
 
+function brief(input: {
+  kind: PieceKind;
+  name: string;
+  scheme: Scheme;
+  pattern: MovementPattern;
+  load: LoadKind;
+  slots: PieceSlot[];
+  minutes: number;
+  profile: EquipmentProfile;
+  allowSkill?: boolean;
+}): PieceBrief {
+  const modalities = new Set<Modality>();
+  for (const slot of input.slots) {
+    if (slot.role === "engine") {
+      modalities.add(hasEngine(input.profile) ? "M" : "G");
+    } else if (slot.role === "gymnastics" || slot.role === "skill") {
+      modalities.add("G");
+    } else {
+      modalities.add("W");
+    }
+  }
+  return {
+    kind: input.kind,
+    name: input.name,
+    scheme: input.scheme,
+    pattern: input.pattern,
+    load: input.load,
+    modalities: [...modalities],
+    estimatedDurationMin: input.minutes,
+    movementCount: { min: input.slots.length, max: input.slots.length },
+    allowSkill: input.allowSkill,
+    slots: input.slots,
+  };
+}
+
+function gymContrast(pattern: MovementPattern, seed: number): MovementPattern {
+  if (pattern === "press") return "jump";
+  if (pattern === "jump") return "press";
+  return seed % 2 === 0 ? "jump" : "press";
+}
+
+function coupletSlots(
+  profile: EquipmentProfile,
+  avoidDumbbell: boolean,
+  pattern: MovementPattern,
+  seed: number,
+  allowEngine = true,
+): PieceSlot[] {
+  const gym: PieceSlot = { role: "gymnastics", pattern: gymContrast(pattern, seed) };
+  if (hasLoadedAnchor(profile, avoidDumbbell)) {
+    const loadedPattern = pattern === "jump" || pattern === "core" || pattern === "carry" || pattern === "locomotion" ? "hinge" : pattern;
+    const second: PieceSlot = allowEngine && hasEngine(profile) && seed % 2 === 1 ? { role: "engine" } : gym;
+    if (second.role === "gymnastics" && second.pattern === loadedPattern) second.pattern = "jump";
+    return [{ role: "loaded", pattern: loadedPattern }, second];
+  }
+  if (hasEngine(profile)) return [{ role: "gymnastics", pattern: "jump" }, { role: "engine" }];
+  return [
+    { role: "gymnastics", pattern: "jump" },
+    { role: "gymnastics", pattern: "press" },
+  ];
+}
+
+function tripletSlots(profile: EquipmentProfile, avoidDumbbell: boolean, pattern: MovementPattern): PieceSlot[] {
+  const loaded = hasLoadedAnchor(profile, avoidDumbbell);
+  const engine = hasEngine(profile);
+  const loadedPattern = pattern === "jump" || pattern === "core" || pattern === "carry" || pattern === "locomotion" ? "hinge" : pattern;
+  if (loaded && engine) {
+    return [
+      { role: "loaded", pattern: loadedPattern },
+      { role: "gymnastics", pattern: loadedPattern === "press" ? "jump" : "press" },
+      { role: "engine" },
+    ];
+  }
+  if (loaded) {
+    return [
+      { role: "loaded", pattern: loadedPattern },
+      { role: "gymnastics", pattern: "jump" },
+      { role: "gymnastics", pattern: loadedPattern === "press" ? "squat" : "press" },
+    ];
+  }
+  if (engine) {
+    return [
+      { role: "gymnastics", pattern: "jump" },
+      { role: "gymnastics", pattern: "press" },
+      { role: "engine" },
+    ];
+  }
+  return [
+    { role: "gymnastics", pattern: "jump" },
+    { role: "gymnastics", pattern: "press" },
+    { role: "gymnastics", pattern: "squat" },
+  ];
+}
+
+function chipperSlots(profile: EquipmentProfile, avoidDumbbell: boolean): PieceSlot[] {
+  const engine = hasEngine(profile);
+  const loaded = hasLoadedAnchor(profile, avoidDumbbell);
+  return [
+    engine ? { role: "engine" } : { role: "gymnastics", pattern: "jump" },
+    { role: "gymnastics", pattern: engine ? "jump" : "squat" },
+    loaded ? { role: "loaded", pattern: "hinge" } : { role: "gymnastics", pattern: "core" },
+    { role: "gymnastics", pattern: "press" },
+    { role: "gymnastics", pattern: engine ? "squat" : "core" },
+  ];
+}
+
+function finisherSlots(profile: EquipmentProfile): PieceSlot[] {
+  if (hasEngine(profile)) return [{ role: "gymnastics", pattern: "jump" }, { role: "engine" }];
+  return [
+    { role: "gymnastics", pattern: "jump" },
+    { role: "gymnastics", pattern: "press" },
+  ];
+}
+
+function coupletScheme(date: string, domain: Domain, slots: PieceSlot[]): Scheme {
+  const mono = slots.some((slot) => slot.role === "engine");
+  const pick = hashString(`${date}:couplet`) % 3;
+  if (!mono && pick === 0) return { type: "for_time", repScheme: [21, 15, 9], capMin: domain === "short" ? 12 : 15 };
+  if (pick === 1) return { type: "for_time", rounds: domain === "short" ? 4 : 5, capMin: domain === "short" ? 14 : 18 };
+  const minutes = domain === "short" ? 12 : domain === "long" ? 18 : 14;
+  return { type: "amrap", minutes };
+}
+
 function buildPieces(input: {
   date: string;
   shape: SessionShape;
@@ -277,215 +405,240 @@ function buildPieces(input: {
   load: LoadKind;
   pattern: MovementPattern;
   profile: EquipmentProfile;
+  avoidDumbbell: boolean;
   random: () => number;
 }): PieceBrief[] {
-  const { shape, focus, domain, load, pattern, profile, random } = input;
-  const hasHeavy = profile.hasHeavyLoad;
-  const strengthScheme = (intent: "moderate" | "heavy"): Scheme =>
-    hasHeavy && intent === "heavy" && load === "heavy"
-      ? { type: "max_load", repMax: pick([1, 3, 5], random) }
-      : { type: "strength", sets: between(4, 6, random), reps: pick(["5", "6", "8"], random), intent };
+  const { date, shape, focus, domain, load, pattern, profile, avoidDumbbell } = input;
+  const seed = hashString(`${date}:${shape}:${pattern}`);
+  const strengthScheme = (): Scheme =>
+    hasBarbell(profile) && load === "heavy"
+      ? { type: "max_load", repMax: 3 }
+      : { type: "strength", sets: 5, reps: load === "heavy" ? "3" : "5", intent: load === "heavy" ? "heavy" : "moderate" };
+
+  const lift: PieceSlot[] = [{ role: "strength", pattern }];
+  const metconLoad = load === "heavy" ? "moderate" : load;
 
   if (shape === "heavy") {
-    const main: PieceBrief = {
-      kind: "strength",
-      name: load === "heavy" ? "Heavy lift" : "Loaded strength",
-      scheme: strengthScheme(load === "heavy" ? "heavy" : "moderate"),
-      pattern,
-      load,
-      modalities: ["W"],
-      estimatedDurationMin: 22,
-      movementCount: { min: 1, max: hasHeavy && load === "heavy" ? 1 : 2 },
-    };
-    if (load === "heavy") return [main];
-    const finisher: PieceBrief = {
-      kind: "metcon",
-      name: "Finisher",
-      scheme: { type: "for_time", rounds: between(3, 4, random) },
-      pattern: contrastPattern(pattern),
-      load: "light",
-      modalities: ["G", "M"],
-      estimatedDurationMin: 9,
-      movementCount: { min: 2, max: 2 },
-    };
-    return [main, finisher];
+    return [
+      brief({
+        kind: "strength",
+        name: load === "heavy" ? "Heavy lift" : "Strength",
+        scheme: strengthScheme(),
+        pattern,
+        load,
+        slots: lift,
+        minutes: 18,
+        profile,
+      }),
+      brief({
+        kind: "metcon",
+        name: "Finisher",
+        scheme: { type: "amrap", minutes: 8 },
+        pattern: contrastPattern(pattern),
+        load: "light",
+        slots: finisherSlots(profile),
+        minutes: 8,
+        profile,
+      }),
+    ];
   }
 
   if (shape === "strength_metcon") {
-    const strength: PieceBrief = {
-      kind: "strength",
-      name: "Strength",
-      scheme: strengthScheme(load === "heavy" ? "heavy" : "moderate"),
-      pattern,
-      load,
-      modalities: ["W"],
-      estimatedDurationMin: 16,
-      movementCount: { min: 1, max: 2 },
-    };
-    const metcon: PieceBrief = {
-      kind: "metcon",
-      name: "Workout",
-      scheme:
-        domain === "short"
-          ? { type: "for_time", rounds: between(3, 4, random) }
-          : { type: "amrap", minutes: between(10, 14, random) },
-      pattern: contrastPattern(pattern),
-      load: load === "heavy" ? "moderate" : "moderate",
-      modalities: ["W", "G", "M"],
-      estimatedDurationMin: domain === "short" ? 10 : 12,
-      movementCount: { min: 2, max: 3 },
-    };
-    return [strength, metcon];
+    const slots = coupletSlots(profile, avoidDumbbell, contrastPattern(pattern), seed);
+    return [
+      brief({
+        kind: "strength",
+        name: "Strength",
+        scheme: strengthScheme(),
+        pattern,
+        load,
+        slots: lift,
+        minutes: 16,
+        profile,
+      }),
+      brief({
+        kind: "metcon",
+        name: "Workout",
+        scheme: coupletScheme(date, "short", slots),
+        pattern: contrastPattern(pattern),
+        load: metconLoad,
+        slots,
+        minutes: 12,
+        profile,
+      }),
+    ];
   }
 
   if (shape === "gymnastics") {
+    const gymSeed = hashString(`${date}:gym`);
     return [
-      {
+      brief({
         kind: "skill",
         name: "Skill",
-        scheme: { type: "skill", minutes: between(10, 12, random) },
-        pattern: pick(["press", "pull", "core", "jump"], random),
+        scheme: { type: "skill", minutes: 10 },
+        pattern: "press",
         load: "light",
-        modalities: ["G"],
-        estimatedDurationMin: 12,
-        movementCount: { min: 1, max: 2 },
+        slots: [{ role: "skill" }],
+        minutes: 10,
+        profile,
         allowSkill: true,
-      },
-      {
+      }),
+      brief({
         kind: "metcon",
         name: "Workout",
-        scheme: { type: "amrap", minutes: between(12, 15, random) },
-        pattern: pick(["core", "press", "pull", "jump"], random),
+        scheme: { type: "amrap", minutes: 12 },
+        pattern: gymSeed % 2 === 0 ? "jump" : "squat",
         load: "light",
-        modalities: ["G", "M"],
-        estimatedDurationMin: 14,
-        movementCount: { min: 2, max: 3 },
-        allowSkill: true,
-      },
+        slots: [
+          { role: "gymnastics", pattern: gymSeed % 2 === 0 ? "jump" : "squat" },
+          { role: "gymnastics", pattern: "press" },
+        ],
+        minutes: 12,
+        profile,
+      }),
     ];
   }
 
   if (shape === "intervals") {
-    const workSec = pick([60, 90, 120], random);
+    const mono = hasEngine(profile) && hashString(`${date}:engine`) % 2 === 0;
+    if (mono) {
+      return [
+        brief({
+          kind: "metcon",
+          name: "Intervals",
+          scheme: { type: "intervals", rounds: 10, workSec: 60, restSec: 60, task: "fixed" },
+          pattern: "locomotion",
+          load: "light",
+          slots: [{ role: "engine" }],
+          minutes: 20,
+          profile,
+        }),
+      ];
+    }
     return [
-      {
+      brief({
         kind: "metcon",
-        name: "Intervals",
-        scheme: {
-          type: "intervals",
-          rounds: between(6, 10, random),
-          workSec,
-          restSec: workSec === 120 ? 60 : 30,
-          task: "fixed",
-        },
+        name: "Workout",
+        scheme: { type: "emom", minutes: 16 },
         pattern: "locomotion",
         load: "light",
-        modalities: ["M", "G"],
-        estimatedDurationMin: between(22, 30, random),
-        movementCount: { min: 1, max: 1 },
-      },
+        slots: hasEngine(profile)
+          ? [{ role: "engine" }, { role: "gymnastics", pattern: "jump" }]
+          : [
+              { role: "gymnastics", pattern: "jump" },
+              { role: "gymnastics", pattern: "press" },
+            ],
+        minutes: 16,
+        profile,
+      }),
     ];
   }
 
   if (shape === "emom") {
     return [
-      {
+      brief({
         kind: "metcon",
         name: "EMOM",
-        scheme: { type: "emom", minutes: between(12, 20, random) },
+        scheme: { type: "emom", minutes: 16 },
         pattern,
-        load: load === "heavy" ? "moderate" : load,
-        modalities: ["W", "G", "M"],
-        estimatedDurationMin: 20,
-        movementCount: { min: 2, max: 3 },
-      },
+        load: metconLoad,
+        slots: coupletSlots(profile, avoidDumbbell, pattern, seed),
+        minutes: 16,
+        profile,
+      }),
     ];
   }
 
   if (shape === "ladder") {
     return [
-      {
+      brief({
         kind: "metcon",
         name: "Ladder",
-        scheme: { type: "ladder", reps: pick([[21, 15, 9], [1, 2, 3, 4, 5], [15, 12, 9, 6, 3]], random) },
+        scheme: { type: "ladder", reps: [21, 15, 9], capMin: 15 },
         pattern,
-        load,
-        modalities: ["W", "G"],
-        estimatedDurationMin: 22,
-        movementCount: { min: 2, max: 2 },
-      },
+        load: metconLoad,
+        slots: coupletSlots(profile, avoidDumbbell, pattern, seed, false),
+        minutes: 15,
+        profile,
+      }),
     ];
   }
 
   if (shape === "chipper") {
+    const slots = chipperSlots(profile, avoidDumbbell);
     return [
-      {
+      brief({
         kind: "metcon",
         name: "Workout",
-        scheme: { type: "chipper", capMin: between(22, 30, random) },
+        scheme: { type: "chipper", capMin: 22 },
         pattern,
-        load: load === "light" ? "moderate" : load,
-        modalities: ["W", "G", "M"],
-        estimatedDurationMin: between(24, 32, random),
-        movementCount: { min: 5, max: 7 },
-      },
+        load: metconLoad,
+        slots,
+        minutes: 22,
+        profile,
+      }),
     ];
   }
 
   if (shape === "max_effort") {
     return [
-      {
+      brief({
         kind: "metcon",
         name: "Max effort",
-        scheme: { type: "max_reps", minutes: between(4, 8, random) },
-        pattern: "none",
+        scheme: { type: "max_reps", minutes: 5 },
+        pattern: "jump",
         load: "light",
-        modalities: ["G", "M"],
-        estimatedDurationMin: 10,
-        movementCount: { min: 1, max: 2 },
-      },
+        slots: [{ role: "gymnastics", pattern: "jump" }],
+        minutes: 8,
+        profile,
+      }),
     ];
   }
 
   if (shape === "triplet") {
+    const slots = tripletSlots(profile, avoidDumbbell, pattern);
     return [
-      {
+      brief({
         kind: "metcon",
         name: "Workout",
-        scheme:
-          focus === "mixed" && random() < 0.35
-            ? { type: "for_time", rounds: between(4, 5, random) }
-            : { type: "amrap", minutes: between(16, 20, random) },
+        scheme: focus === "mixed" && seed % 3 === 0 ? { type: "for_time", rounds: 5, capMin: 18 } : { type: "amrap", minutes: 16 },
         pattern,
-        load: load === "light" ? "moderate" : load,
-        modalities: ["W", "G", "M"],
-        estimatedDurationMin: 20,
-        movementCount: { min: 3, max: 3 },
-      },
+        load: metconLoad,
+        slots,
+        minutes: 18,
+        profile,
+      }),
     ];
   }
 
+  const slots = coupletSlots(profile, avoidDumbbell, pattern, seed);
   return [
-    {
+    brief({
       kind: "metcon",
       name: "Workout",
-      scheme:
-        random() < 0.5
-          ? { type: "for_time", rounds: between(3, 5, random) }
-          : { type: "amrap", minutes: between(12, 16, random) },
+      scheme: coupletScheme(date, domain, slots),
       pattern,
-      load: load === "light" ? "moderate" : load,
-      modalities: ["W", "G"],
-      estimatedDurationMin: 22,
-      movementCount: { min: 2, max: 2 },
-    },
+      load: metconLoad,
+      slots,
+      minutes: domain === "short" ? 14 : 18,
+      profile,
+    }),
   ];
 }
 
 export type Shortlist = {
   movements: MovementDef[];
   byId: Map<string, MovementDef>;
+  slots?: MovementDef[][];
 };
+
+function doseLine(movement: MovementDef, scheme: Scheme): string {
+  const doses = doseRangeFor(movement, scheme)
+    .map((range) => `${range.unit} ${range.min}-${range.max}`)
+    .join(", ");
+  const gear = movement.equipment.length ? ` · needs ${movement.equipment.join("+")}` : "";
+  return `  - ${movement.id} — ${movement.name} (${movement.modality}${gear}; ${doses})`;
+}
 
 export function shortlistForPiece(
   piece: PieceBrief,
@@ -493,111 +646,61 @@ export function shortlistForPiece(
   avoid: string[],
   random: () => number,
 ): Shortlist {
-  const eligible = eligibleCatalog(profile);
-  const fresh = eligible.filter((movement) => !avoid.includes(movement.id));
-  const pool = fresh.length >= 8 ? fresh : eligible;
-  const primary = pool.filter((movement) => movement.pattern === piece.pattern);
-  const supporting = pool.filter((movement) => movement.pattern !== piece.pattern);
-  const wantedModalities = new Set(piece.modalities);
-
-  const rank = (movement: MovementDef) => {
-    let score = compoundScore(movement);
-    if (wantedModalities.has(movement.modality)) score -= 10;
-    if (primary.includes(movement)) score -= 6;
-    if (movement.skill === "beginner") score -= 1;
-    if (movement.source === "engine" && piece.modalities.includes("M")) score -= 4;
-    if (piece.scheme.type === "intervals" && intervalFriendly(movement)) score -= 8;
-    if (piece.scheme.type === "intervals" && /\b(row|run|sprint|shuttle|double-under|single-under|jump rope|skip)\b/i.test(movement.name)) score -= 8;
-    if (piece.scheme.type === "intervals" && !intervalFriendly(movement) && movement.modality === "M") score += 6;
-    if (piece.pattern === "carry" && movement.pattern === "carry") score -= 4;
-    if (piece.kind === "strength" && !movement.load) score += 20;
-    if (piece.kind === "strength" && movement.pattern === piece.pattern) score -= 4;
-    if (piece.kind === "skill") {
-      if (movement.load) score += 10;
-      if (isSkillMovement(movement)) score -= 6;
+  const pool = eligibleCatalog(profile);
+  const seed = hashString(`${piece.name}:${piece.scheme.type}:${piece.pattern}`) + Math.floor(random() * 997);
+  if (piece.slots?.length) {
+    const grouped = piece.slots.map((slot, index) =>
+      candidatesForSlot(slot, pool, avoid, profile, seed + index * 13),
+    );
+    const selected: MovementDef[] = [];
+    for (const group of grouped) {
+      for (const movement of group) {
+        if (!selected.some((item) => item.id === movement.id)) selected.push(movement);
+      }
     }
-    if (piece.load === "light" && movement.intensity === "high") score += 2;
-    return score;
-  };
-
-  const sorted = [...primary, ...supporting]
-    .filter((movement) => movementEligible(movement, profile))
-    .filter((movement) => wantedModalities.size === 0 || wantedModalities.has(movement.modality))
-    .filter((movement) => piece.allowSkill || piece.kind === "skill" || !isAdvancedSkill(movement))
-    .filter((movement) => {
-      if (!isAccessory(movement)) return true;
-      const alternatives = pool.filter((item) => !isAccessory(item) && item.modality === movement.modality);
-      return alternatives.length < 6;
-    })
-    .sort((left, right) => rank(left) - rank(right));
-  const jitter = rng(hashString(`${piece.name}:${piece.scheme.type}:${random()}`));
-  const withJitter = sorted.map((movement) => ({ movement, score: rank(movement) + jitter() * 4 }));
-  withJitter.sort((left, right) => left.score - right.score);
-  const ranked = withJitter.map((item) => item.movement);
-
-  const groups = new Map<MovementPattern, MovementDef[]>();
-  for (const movement of ranked) {
-    groups.set(movement.pattern, [...(groups.get(movement.pattern) ?? []), movement]);
+    return {
+      movements: selected.slice(0, 18),
+      byId: new Map(selected.map((movement) => [movement.id, movement])),
+      slots: grouped,
+    };
   }
-  const selected: MovementDef[] = [];
-  const take = (movement: MovementDef | undefined) => {
-    if (!movement || selected.some((item) => item.id === movement.id)) return;
-    selected.push(movement);
-  };
-  const takeFrom = (pattern: MovementPattern, count: number) => {
-    for (const movement of (groups.get(pattern) ?? []).slice(0, count)) take(movement);
-  };
 
-  if (piece.kind === "strength") {
-    takeFrom(piece.pattern, 4);
-    for (const pattern of ["squat", "hinge", "press", "pull", "olympic", "lunge"] as MovementPattern[]) {
-      take((groups.get(pattern) ?? []).find((movement) => movement.load));
-    }
-  } else if (piece.kind === "skill") {
-    for (const movement of ranked.filter((item) => isSkillMovement(item)).slice(0, 5)) take(movement);
-    takeFrom(piece.pattern, 2);
-  } else {
-    if (piece.scheme.type === "intervals") {
-      for (const movement of ranked.filter((item) => intervalFriendly(item)).slice(0, 5)) take(movement);
-    } else {
-      takeFrom(piece.pattern, 3);
-    }
-    for (const movement of ranked.filter((item) => item.modality === "M").slice(0, 4)) take(movement);
-    for (const movement of ranked.filter((item) => item.modality === "G" && !selected.includes(item)).slice(0, 4)) take(movement);
-    for (const pattern of groups.keys()) takeFrom(pattern, 1);
-  }
-  for (const movement of ranked) {
-    if (selected.length >= 18) break;
-    take(movement);
-  }
-  const byId = new Map(selected.map((movement) => [movement.id, movement]));
-  return { movements: selected.slice(0, 18), byId };
+  const fresh = pool.filter((movement) => !avoid.includes(movement.id));
+  const source = fresh.length >= 4 ? fresh : pool;
+  const ranked = source
+    .filter((movement) => !isFiller(movement))
+    .filter((movement) => piece.modalities.includes(movement.modality))
+    .filter((movement) => piece.kind !== "strength" || movement.load)
+    .slice(0, 12);
+  return { movements: ranked, byId: new Map(ranked.map((movement) => [movement.id, movement])) };
 }
 
 export function assignmentPrompt(assignment: DayAssignment, shortlists: Shortlist[]): string {
   const pieces = assignment.pieces.map((piece, index) => {
     const shortlist = shortlists[index];
-    const lines = shortlist.movements
-      .map((movement) => {
-        const doses = doseRangeFor(movement, piece.scheme)
-          .map((range) => `${range.unit} ${range.min}-${range.max}`)
-          .join(", ");
-        const gear = movement.equipment.length ? ` · needs ${movement.equipment.join("+")}` : "";
-        return `  - ${movement.id} — ${movement.name} (${movement.modality}, ${movement.pattern}${gear}; ${doses})`;
-      })
-      .join("\n");
+    if (piece.slots?.length && shortlist.slots?.length) {
+      const slots = piece.slots
+        .map((slot, slotIndex) => {
+          const options = (shortlist.slots?.[slotIndex] ?? [])
+            .map((movement) => doseLine(movement, piece.scheme))
+            .join("\n");
+          return `  Slot ${slotIndex + 1} — ${slotLabel(slot)}. Prefer the first:\n${options}`;
+        })
+        .join("\n");
+      return `PIECE ${index + 1} — ${piece.kind.toUpperCase()} — ${formatText(piece.scheme)}
+  Return ${piece.slots.length} movements, in slot order.
+${slots}`;
+    }
+    const lines = shortlist.movements.map((movement) => doseLine(movement, piece.scheme)).join("\n");
     return `PIECE ${index + 1} — ${piece.kind.toUpperCase()} — ${formatText(piece.scheme)}
   movements: ${piece.movementCount.min}-${piece.movementCount.max}
-  modalities: ${piece.modalities.join(" + ")}
-  load: ${piece.load}
-  primary pattern: ${piece.pattern}
   choose only from:
 ${lines}`;
   });
   return `TODAY'S ASSIGNMENT
 ${pieces.join("\n\n")}
 
-Do not change the scheme, piece count, or movement count. Use only the movement IDs listed above.`;
+Do not change the scheme, piece count, or slot order. Use only the movement IDs listed above.`;
 }
 
 export function weekDates(date: string): string[] {

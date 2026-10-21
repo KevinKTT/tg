@@ -3,17 +3,13 @@ import {
   movementById,
   movementDisplayName,
   doseText,
-  defaultDose,
-  schemeStyle,
-  intervalFriendly,
-  isAccessory,
-  isSkillMovement,
   type Dose,
   type MovementDef,
   type MovementDose,
   type InventoryItem,
 } from "./movements";
 import type { DayAssignment, PieceBrief, Shortlist } from "./planner";
+import { coachDose, programmingPattern } from "./roles";
 import { formatText, type Scheme, type ScoreType, scoreTypeForScheme, capSecForScheme } from "./scheme";
 
 export type PlannedPiece = {
@@ -287,71 +283,34 @@ export function buildClassFromAi(input: {
 export function buildFallbackPiece(
   brief: PieceBrief,
   shortlist: Shortlist,
-  random: () => number,
+  _random: () => number,
+  usedIds: string[] = [],
 ): MovementDose[] {
-  const target = randomPickCount(brief.movementCount, random);
-  const pool = shortlist.movements;
-  if (!pool.length) return [];
+  const groups = shortlist.slots?.length
+    ? shortlist.slots
+    : [shortlist.movements];
   const selected: MovementDef[] = [];
+  const used = new Set(usedIds);
   const usedPatterns = new Set<string>();
 
-  const add = (movement: MovementDef | undefined) => {
-    if (!movement || selected.length >= target) return;
-    if (selected.some((item) => item.id === movement.id)) return;
+  for (const group of groups) {
+    const fresh = group.filter((movement) => !used.has(movement.id));
+    const contrasting = fresh.filter((movement) => {
+      const pattern = programmingPattern(movement);
+      return pattern === "none" || pattern === "locomotion" || pattern === "core" || !usedPatterns.has(pattern);
+    });
+    const movement = (contrasting.length ? contrasting : fresh.length ? fresh : group)[0];
+    if (!movement || used.has(movement.id)) continue;
     selected.push(movement);
-    usedPatterns.add(movement.pattern);
-  };
-
-  const first = (predicate: (movement: MovementDef) => boolean) => pool.find(predicate);
-
-  if (brief.kind === "strength") {
-    const loaded = pool.filter((movement) => movement.load);
-    if (!loaded.length) {
-      add(pool.find((movement) => !isAccessory(movement)));
-      add(pool.find((movement) => movement.pattern !== selected[0]?.pattern && !isAccessory(movement)));
-    } else {
-      add(loaded.find((movement) => movement.pattern === brief.pattern && !isAccessory(movement)) ?? loaded.find((movement) => !isAccessory(movement)) ?? loaded[0]);
-      add(loaded.find((movement) => movement.pattern !== selected[0]?.pattern && !isAccessory(movement)));
-    }
-  } else if (brief.kind === "skill") {
-    const skill = pool.filter((movement) => !movement.load && isSkillMovement(movement));
-    add(skill.find((movement) => movement.pattern === brief.pattern) ?? skill[0] ?? pool.find((movement) => !movement.load));
-    add(skill.find((movement) => movement.pattern !== selected[0]?.pattern));
-  } else {
-    const allowed = new Set(brief.modalities);
-    if (brief.modalities.includes("M")) {
-      const friendly = pool.filter((movement) => intervalFriendly(movement));
-      const engine = pool.filter((movement) => movement.modality === "M" && !isAccessory(movement));
-      if (brief.scheme.type === "intervals" && friendly.length) {
-        add(friendly[0]);
-      } else {
-        add(randomItem(engine.length ? engine : pool.filter((movement) => movement.modality === "M"), random));
-      }
-    }
-    add(first((movement) => allowed.has(movement.modality) && movement.pattern === brief.pattern && movement.modality !== "M" && !isAccessory(movement)));
-    if (brief.modalities.includes("G")) {
-      add(first((movement) => movement.modality === "G" && !usedPatterns.has(movement.pattern) && !isAccessory(movement)));
-    }
-    const diverse = pool.filter((movement) => allowed.has(movement.modality) && !isAccessory(movement));
-    for (const movement of diverse) {
-      if (selected.length >= target) break;
-      if (usedPatterns.has(movement.pattern)) continue;
-      add(movement);
-    }
-    for (const movement of diverse) {
-      if (selected.length >= target) break;
-      add(movement);
-    }
-    for (const movement of pool) {
-      if (selected.length >= target) break;
-      add(movement);
-    }
+    used.add(movement.id);
+    const pattern = programmingPattern(movement);
+    if (pattern !== "none" && pattern !== "locomotion" && pattern !== "core") usedPatterns.add(pattern);
   }
 
-  const style = schemeStyle(brief.scheme);
-  return selected.slice(0, target).map((movement) => ({
+  const chipperBias = [0.45, 0.4, 0.4, 0.45, 0.65];
+  return selected.map((movement, index) => ({
     id: movement.id,
-    dose: defaultDose(movement, brief.scheme, style),
+    dose: coachDose(movement, brief.scheme, chipperBias[index] ?? 0.6),
   }));
 }
 
@@ -362,13 +321,18 @@ export function buildFallbackClass(input: {
   caps: Set<string>;
   random: () => number;
 }): ClassPlan {
-  const pieces: PlannedPiece[] = input.assignment.pieces.map((brief, index) => ({
-    kind: brief.kind,
-    name: brief.name,
-    scheme: brief.scheme,
-    movements: buildFallbackPiece(brief, input.shortlists[index], input.random),
-    estimatedDurationMin: brief.estimatedDurationMin,
-  }));
+  const usedIds: string[] = [];
+  const pieces: PlannedPiece[] = input.assignment.pieces.map((brief, index) => {
+    const movements = buildFallbackPiece(brief, input.shortlists[index], input.random, usedIds);
+    usedIds.push(...movements.map((item) => item.id));
+    return {
+      kind: brief.kind,
+      name: brief.name,
+      scheme: brief.scheme,
+      movements,
+      estimatedDurationMin: brief.estimatedDurationMin,
+    };
+  });
   const summary = equipmentSummary(pieces);
   const title = fallbackTitle(input.assignment, pieces);
   return {
@@ -388,33 +352,31 @@ export function buildFallbackClass(input: {
   };
 }
 
-function randomPickCount(range: { min: number; max: number }, random: () => number): number {
-  return range.min + Math.floor(random() * (range.max - range.min + 1));
-}
-
-function randomItem<T>(items: T[], random: () => number): T {
-  return items[Math.min(items.length - 1, Math.floor(random() * items.length))];
+function shortMovementName(id: string): string {
+  return movementDisplayName(id)
+    .replace(/^Dumbbell /, "")
+    .replace(/^Kettlebell /, "")
+    .replace(/ \(Wall\)$/, "");
 }
 
 function fallbackTitle(assignment: DayAssignment, pieces: PlannedPiece[]): string {
-  const names = pieces
+  const scored = pieces.filter((piece) => piece.kind !== "skill");
+  const names = (scored.length ? scored : pieces)
     .flatMap((piece) => piece.movements.slice(0, 2))
-    .map((item) => movementDisplayName(item.id));
+    .map((item) => shortMovementName(item.id));
   const unique = [...new Set(names)];
-  if (assignment.shape === "chipper") return "The Long Way";
-  if (assignment.focus === "gymnastics") return "Body Control";
-  if (assignment.focus === "olympic") return "Fast and Loose";
+  if (assignment.shape === "chipper" && unique.length >= 2) return `${unique[0]} Chipper`;
   if (unique.length >= 2) return `${unique[0]} & ${unique[1]}`;
   return unique[0] ?? "Garage Session";
 }
 
 function fallbackStimulus(assignment: DayAssignment): string {
-  if (assignment.focus === "heavy") return "Heavy, deliberate sets. Stop before form breaks.";
-  if (assignment.focus === "engine") return "Hard breathing, repeatable pace.";
-  if (assignment.focus === "gymnastics") return "Quality positions before speed.";
-  if (assignment.shape === "chipper") return "Steady grind. Small rests, keep moving.";
-  if (assignment.shape === "intervals") return "Even splits. Full effort inside each window.";
-  return "Moderate-hard pace. Sets should break before the finish.";
+  if (assignment.focus === "heavy" || assignment.shape === "heavy") return "Heavy, deliberate sets. Stop before form breaks.";
+  if (assignment.focus === "engine" || assignment.shape === "intervals") return "Same pace every window. Do not sprint the first.";
+  if (assignment.focus === "gymnastics") return "Quality positions. Then move, but do not get sloppy.";
+  if (assignment.shape === "chipper") return "One pass. Small bites, no long stops.";
+  if (assignment.shape === "ladder") return "Unbroken early. Break only when the reps get heavy.";
+  return "Hard, but repeatable. Break the grind, not the pace.";
 }
 
 export function aiWorkoutSchema(): Record<string, unknown> {

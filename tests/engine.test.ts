@@ -14,6 +14,7 @@ import {
   movementEligible,
 } from "../lib/engine/movements";
 import { planDay, shortlistForPiece, type RecentSignal } from "../lib/engine/planner";
+import { isFiller, programmingPattern } from "../lib/engine/roles";
 import {
   capSecForScheme,
   formatText,
@@ -188,6 +189,61 @@ test("validation rejects unowned gear, duplicate patterns, and out-of-range dose
   assert.ok(issues.some((issue) => /equipment you do not own/i.test(issue.message)));
   assert.ok(issues.some((issue) => /repeats the squat pattern/i.test(issue.message)));
   assert.ok(issues.some((issue) => /within cal 8-20/i.test(issue.message)));
+});
+
+test("fallback sessions are coach-readable CrossFit, not variation soup", () => {
+  const banned = /plank|boxer|penguin|curtsy|gorilla|knee push|bear|inchworm|side swing|power skip/i;
+  const anchors = new Set([
+    "db-thruster",
+    "db-deadlift",
+    "db-front-squat",
+    "goblet-squat",
+    "db-push-press",
+    "db-bent-over-row",
+    "kb-swing",
+    "burpee",
+    "box-jump",
+    "push-up",
+    "air-squat",
+    "row",
+    "run",
+    "double-under",
+  ]);
+  let anchored = 0;
+  for (let offset = 0; offset < 14; offset += 1) {
+    const date = `2026-11-${String(2 + offset).padStart(2, "0")}`;
+    const assignment = planDay({ date, profile: profiles.garage });
+    const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, [], () => 0.4));
+    const plan = buildFallbackClass({
+      assignment,
+      shortlists,
+      items: garage,
+      caps: profiles.garage.caps,
+      random: () => 0.4,
+    });
+    const ids = plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id));
+    if (ids.some((id) => anchors.has(id))) anchored += 1;
+    for (const [index, piece] of plan.pieces.entries()) {
+      const brief = assignment.pieces[index];
+      assert.equal(piece.movements.length, brief.movementCount.min, `${date} ${piece.name} dropped a slot`);
+      const patterns = new Set<string>();
+      for (const row of piece.movements) {
+        const movement = movementById(row.id);
+        assert.ok(movement, row.id);
+        assert.equal(isFiller(movement), false, `${date}: ${movement.name} is filler`);
+        assert.doesNotMatch(movement.name, banned, `${date}: ${movement.name}`);
+        const pattern = programmingPattern(movement);
+        if (pattern !== "none" && pattern !== "locomotion" && pattern !== "core") {
+          assert.equal(patterns.has(pattern), false, `${date}: repeated ${pattern}`);
+          patterns.add(pattern);
+        }
+      }
+      if (piece.kind === "strength") {
+        assert.ok(piece.movements.every((row) => movementById(row.id)?.load), `${date} strength is unloaded`);
+      }
+    }
+  }
+  assert.equal(anchored, 14);
 });
 
 test("the abandoned WOD archive is gone", () => {
