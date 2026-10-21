@@ -8057,7 +8057,10 @@
     "name": "Box Jump-Over",
     "aliases": [
       "BJO",
-      "box jump over"
+      "box jump over",
+      "box get over",
+      "box get-over",
+      "box getover"
     ],
     "category": "plyometric",
     "equipment": [

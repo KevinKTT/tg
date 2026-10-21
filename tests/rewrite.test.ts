@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { parseCoachRequest, rewriteIntent, rewriteTask } from "../lib/ai";
 import type { EquipmentRow } from "../lib/db";
+import { renderPieceBody } from "../lib/engine/class";
+import { doseText, movementById } from "../lib/engine/movements";
 import { computeLoadPlan } from "../lib/load-plan";
 
 test("a named workout replaces the day", () => {
@@ -42,6 +44,43 @@ test("a listed workout is written as named", () => {
     { id: "push_press", dose: { reps: 10 } },
   ]);
   assert.equal(parseCoachRequest("make the workout be a chipper").kind, "rebuild");
+});
+
+test("a vest amrap is the workout that was named", () => {
+  const request = parseCoachRequest(
+    "please make workout weighted vest 18 min amrap with 1 minute bar hang, 10 box get overs, and 200m weighted vest run",
+  );
+  assert.equal(request.kind, "prescribe");
+  if (request.kind !== "prescribe") return;
+  assert.equal(request.vest, true);
+  assert.deepEqual(request.scheme, { type: "amrap", minutes: 18 });
+  assert.deepEqual(request.movements, [
+    { id: "bar-hang", dose: { seconds: 60 } },
+    { id: "box-jump-over", dose: { reps: 10 } },
+    { id: "weighted-vest-run", dose: { meters: 200 } },
+  ]);
+
+  const hang = movementById("bar-hang");
+  assert.ok(hang);
+  assert.equal(doseText(hang, { seconds: 60 }), "1 min");
+  assert.equal(
+    renderPieceBody({
+      kind: "metcon",
+      name: "Workout",
+      scheme: request.scheme,
+      movements: request.movements,
+      estimatedDurationMin: 18,
+      cue: "Weight vest",
+    }),
+    "Weight vest\n- 1 min Bar Hang\n- 10 Box Jump-Over\n- 200 m Weighted Vest Run",
+  );
+});
+
+test("an unknown dose is not replaced with another workout", () => {
+  const request = parseCoachRequest("18 min amrap with 1 minute flarble, 10 box get overs, and 200m weighted vest run");
+  assert.equal(request.kind, "unknown");
+  if (request.kind !== "unknown") return;
+  assert.deepEqual(request.phrases, ["flarble"]);
 });
 
 test("a part fix does not rebuild the day", () => {

@@ -342,6 +342,24 @@ const ENGINE_MOVEMENTS: MovementDef[] = [
     source: "engine",
   },
   {
+    id: "bar-hang",
+    name: "Bar Hang",
+    aliases: ["bar hang", "dead hang", "active hang"],
+    modality: "G",
+    pattern: "pull",
+    equipment: ["pullup_bar"],
+    dumbbellCount: 0,
+    load: null,
+    doses: [{ unit: "seconds", min: 20, max: 90 }],
+    unilateral: false,
+    skill: "beginner",
+    intensity: "moderate",
+    easier: [],
+    harder: [],
+    description: "Dead hang from the bar.",
+    source: "engine",
+  },
+  {
     id: "row",
     name: "Row",
     aliases: ["rowing", "rower", "row erg", "cal row"],
@@ -653,9 +671,19 @@ export function doseText(movement: MovementDef, dose: Dose): string {
   for (const unit of ["reps", "cal", "meters", "seconds"] as DoseUnit[]) {
     const value = dose[unit];
     if (value != null) {
-      const suffix = unit === "cal" ? " cal" : unit === "meters" ? " m" : unit === "seconds" ? " sec" : "";
+      const suffix =
+        unit === "cal"
+          ? " cal"
+          : unit === "meters"
+            ? " m"
+            : unit === "seconds"
+              ? value >= 60 && value % 60 === 0
+                ? " min"
+                : " sec"
+              : "";
+      const shown = unit === "seconds" && value >= 60 && value % 60 === 0 ? value / 60 : value;
       const each = dose.eachSide || (movement.unilateral && unit === "reps") ? "/side" : "";
-      return `${value}${suffix}${each}`;
+      return `${shown}${suffix}${each}`;
     }
   }
   return movement.doses[0] ? `${movement.doses[0].min}${unitSuffix(movement.doses[0].unit)}` : "";

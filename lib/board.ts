@@ -81,6 +81,7 @@ function isNote(text: string) {
   if (/:\s*$/.test(text)) return true;
   if (/^(rest|score|then|note|cap|not scored|quality)\b/i.test(text)) return true;
   if (/^(for time|amrap|emom|every minute)\b/i.test(text)) return true;
+  if (/^weight(?:ed)? vest\b/i.test(text)) return true;
   return false;
 }
 

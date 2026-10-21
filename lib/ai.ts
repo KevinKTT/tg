@@ -344,7 +344,8 @@ export type PrescribedMovement = { id: string; dose: Dose };
 
 export type CoachRequest =
   | { kind: "rebuild"; shape: SessionShape; scheme?: Scheme }
-  | { kind: "prescribe"; scheme: Scheme; movements: PrescribedMovement[] }
+  | { kind: "prescribe"; scheme: Scheme; movements: PrescribedMovement[]; vest: boolean }
+  | { kind: "unknown"; phrases: string[] }
   | { kind: "edit" };
 
 function normalizeName(value: string): string {
@@ -357,8 +358,10 @@ function normalizeName(value: string): string {
 }
 
 function minutesIn(text: string): number {
-  const named = text.match(/(?:amrap|emom|e2mom|every minute)[^\d]{0,16}(\d+)/);
-  if (named) return Number(named[1]);
+  const before = text.match(/\b(\d+)\s*(?:min|mins|minute|minutes)\s+(?:amrap|emom|e2mom)\b/);
+  if (before) return Number(before[1]);
+  const after = text.match(/\b(?:amrap|emom|e2mom|every minute)\s+(\d+)\b/);
+  if (after) return Number(after[1]);
   const plain = text.match(/(\d+)\s*(?:min|mins|minute|minutes)\b/);
   return plain ? Number(plain[1]) : 0;
 }
@@ -457,6 +460,8 @@ function prescriptionScheme(text: string): Scheme {
 }
 
 function clauseDose(body: string): { name: string; dose: Dose } | null {
+  const withMinutes = body.match(/^(\d+)\s*(?:min|mins|minute|minutes)\s+(.+)$/);
+  if (withMinutes) return { name: withMinutes[2], dose: { seconds: Number(withMinutes[1]) * 60 } };
   const withUnit = body.match(/^(\d+)\s*(cals?|calories|meters?|m|reps?|secs?|seconds)\s+(.+)$/);
   if (withUnit) {
     const amount = Number(withUnit[1]);
@@ -475,27 +480,55 @@ function clauseDose(body: string): { name: string; dose: Dose } | null {
   return { name: body, dose: { reps: 10 } };
 }
 
+const FILLER = /^(?:please|make|the|workout|for|today|be|a|an|it|into|of|just|with|and)\b\s*/;
+
+function prescriptionClauses(text: string): string[] {
+  const stripped = text
+    .replace(/\b\d+\s*(?:min|mins|minute|minutes)\s+(?:amrap|emom|e2mom)\b/g, " ")
+    .replace(/\b(?:amrap|emom|e2mom)\s+\d+\s*(?:min|mins|minute|minutes)\b/g, " ")
+    .replace(/\b(?:amrap|emom|e2mom|every minute|for time|chipper|intervals?)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return stripped
+    .split(/,|\bwith\s+(?=\d)|\band\s+(?=\d)/)
+    .map((raw) => {
+      let body = raw.replace(/\s+/g, " ").trim();
+      while (FILLER.test(body)) body = body.replace(FILLER, "");
+      return body.trim();
+    })
+    .filter(Boolean);
+}
+
+function isVestCue(body: string): boolean {
+  return /^(?:weighted vest|weight vest|in a vest)$/.test(normalizeName(body));
+}
+
+function vestWorkout(text: string): boolean {
+  return /\b(?:weighted vest|weight vest|in a vest)\b/.test(text);
+}
+
 /** Two or more named movements means the note is the workout, not a tweak. */
-function parsePrescription(text: string): { scheme: Scheme; movements: PrescribedMovement[] } | null {
-  const filler = /^(?:please|make|the|workout|for|today|be|a|an|it|into|of|just)\b\s*/;
+function parsePrescription(text: string): CoachRequest | null {
   const movements: PrescribedMovement[] = [];
-  for (const raw of text.split(",")) {
-    let body = raw.replace(/^\s*and\s+/, "").replace(/\s+/g, " ").trim();
-    body = body.replace(/\b(?:amrap|emom|e2mom|every minute|for time|chipper|intervals?)\b/g, " ").replace(/\s+/g, " ").trim();
-    while (filler.test(body)) body = body.replace(filler, "");
-    if (!body) continue;
+  const unknown: string[] = [];
+  for (const body of prescriptionClauses(text)) {
+    if (isVestCue(body)) continue;
     const parsed = clauseDose(body);
     if (!parsed) continue;
     const hadDose = /^\d+\b/.test(body);
     const movement = movementNamed(parsed.name);
-    if (!movement) continue;
+    if (!movement) {
+      if (hadDose) unknown.push(parsed.name);
+      continue;
+    }
     if (!hadDose && normalizeName(parsed.name) !== normalizeName(movement.name) && !movement.aliases.some((alias) => normalizeName(alias) === normalizeName(parsed.name))) {
       continue;
     }
     movements.push({ id: movement.id, dose: parsed.dose });
   }
+  if (unknown.length && movements.length + unknown.length >= 2) return { kind: "unknown", phrases: unknown };
   if (movements.length < 2) return null;
-  return { scheme: prescriptionScheme(text), movements };
+  return { kind: "prescribe", scheme: prescriptionScheme(text), movements, vest: vestWorkout(text) };
 }
 
 /** A named workout replaces the day. Anything else is a change to one part. */
@@ -503,7 +536,7 @@ export function parseCoachRequest(note: string): CoachRequest {
   const text = coachNote(note).toLowerCase();
   if (!text) return { kind: "edit" };
   const prescription = parsePrescription(text);
-  if (prescription) return { kind: "prescribe", scheme: prescription.scheme, movements: prescription.movements };
+  if (prescription) return prescription;
   const durationTweak = /\bmake the (?:amrap|emom|chipper|interval|intervals)\b|\b(?:shorten|lengthen) the\b/.test(text);
   const asksForNew = /\bmake it\b|\bi want\b|\bgive me\b|\bbuild\b/.test(text);
   if (durationTweak && !asksForNew) return { kind: "edit" };
@@ -627,6 +660,9 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
   }
   const profile = equipmentProfile(items);
   const request = parseCoachRequest(input.note);
+  if (request.kind === "unknown") {
+    throw new Error(`The coach doesn't know ${request.phrases.join(", ")}.`);
+  }
   if (request.kind === "prescribe") {
     const resolved: PrescribedMovement[] = [];
     const missing: string[] = [];
@@ -684,6 +720,9 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
       caps: profile.caps,
       random: seededRandom(assignment.seed + 3),
     });
+    if (request.vest) {
+      for (const piece of plan.pieces) piece.cue = "Weight vest";
+    }
     savePlan({ assignment, plan, items });
     return { title: plan.title };
   }
