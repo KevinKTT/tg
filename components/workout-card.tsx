@@ -238,17 +238,15 @@ function Piece({
   fallbackScales: Map<string, ScaleLine[]>;
 }) {
   const hero = HERO.has(part.kind);
-  const lines = hero
-    ? parseBoard(part.body).map((line) => {
-        if (line.type !== "move") return line;
-        const slug = scanMovements(line.name)[0]?.slug;
-        const fallback = slug ? fallbackScales.get(slug) : undefined;
-        if (!fallback?.length) return line;
-        const labels = new Set(line.scales.map((scale) => scale.label.toLowerCase()));
-        const missing = fallback.filter((scale) => !labels.has(scale.label.toLowerCase()));
-        return missing.length ? { ...line, scales: [...line.scales, ...missing] } : line;
-      })
-    : [];
+  const lines = parseBoard(part.body).map((line) => {
+    if (!hero || line.type !== "move") return line;
+    const slug = scanMovements(line.name)[0]?.slug;
+    const fallback = slug ? fallbackScales.get(slug) : undefined;
+    if (!fallback?.length) return line;
+    const labels = new Set(line.scales.map((scale) => scale.label.toLowerCase()));
+    const missing = fallback.filter((scale) => !labels.has(scale.label.toLowerCase()));
+    return missing.length ? { ...line, scales: [...line.scales, ...missing] } : line;
+  });
   const label = KIND[part.kind] || part.kind;
   const displayName = partDisplayName(part.kind, part.name);
   const [done, setDone] = useState<number[]>([]);

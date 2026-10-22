@@ -83,7 +83,7 @@ export function RewriteDay({ date, hasScores, kicker }: { date: string; hasScore
             className="area area-note"
             value={note}
             maxLength={400}
-            placeholder="Make it a chipper. Swap push-ups for burpees."
+            placeholder="18 min AMRAP: 400m run, 10 cal row, push press"
             onChange={(event) => setNote(event.target.value)}
             required
           />
