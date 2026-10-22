@@ -76,6 +76,30 @@ test("a vest amrap is the workout that was named", () => {
   );
 });
 
+test("a spoken amrap is the workout that was named", () => {
+  const request = parseCoachRequest(
+    "make an 18 minute AMRAP with a 400m run, row 10 cals, and then do push press",
+  );
+  assert.equal(request.kind, "prescribe");
+  if (request.kind !== "prescribe") return;
+  assert.deepEqual(request.scheme, { type: "amrap", minutes: 18 });
+  assert.deepEqual(request.movements, [
+    { id: "run", dose: { meters: 400 } },
+    { id: "row", dose: { cal: 10 } },
+    { id: "push_press", dose: { reps: 8 } },
+  ]);
+  assert.equal(
+    renderPieceBody({
+      kind: "metcon",
+      name: "Workout",
+      scheme: request.scheme,
+      movements: request.movements,
+      estimatedDurationMin: 18,
+    }),
+    "- 400 m Run\n- 10 cal Row\n- 8 Push press",
+  );
+});
+
 test("an unknown dose is not replaced with another workout", () => {
   const request = parseCoachRequest("18 min amrap with 1 minute flarble, 10 box get overs, and 200m weighted vest run");
   assert.equal(request.kind, "unknown");
