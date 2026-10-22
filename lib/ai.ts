@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { isFormatError, modeOrder, resolveProvider, type JsonMode, type ProviderConfig } from "./ai-config";
 import { FOCUSES, focusLabel } from "./athletes";
+import { MOVEMENT_ALIASES } from "./catalog";
 import {
   getDay,
   listAthletes,
@@ -403,30 +404,47 @@ function schemeFromNote(text: string, shape: SessionShape): Scheme | undefined {
 }
 
 const IMPLEMENT_WORDS = new Set(["barbell", "dumbbell", "kettlebell", "db", "kb"]);
+const QUALIFIER_WORDS = new Set(["wall"]);
+const DOSE_WORD = "calories|cals?|meters?|reps?|seconds?|secs?|minutes?|mins?";
+
+function canonicalName(value: string): string {
+  const fixed = value
+    .toLowerCase()
+    .replace(/dumb+ells?/g, "dumbbell")
+    .replace(/kettlebel+s?/g, "kettlebell")
+    .replace(/\bsnatches\b/g, "snatch");
+  return normalizeName(fixed)
+    .replace(/\bdumbbell\b/g, "db")
+    .replace(/\bkettlebell\b/g, "kb")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function movementNamed(phrase: string): MovementDef | undefined {
-  const needle = normalizeName(phrase);
+  const needle = canonicalName(phrase);
   if (needle.length < 3) return undefined;
-  const labels = (movement: MovementDef) => [normalizeName(movement.name), ...movement.aliases.map(normalizeName)];
+  const alias = MOVEMENT_ALIASES.find(([name]) => canonicalName(name) === needle);
+  if (alias) {
+    const aliased = movementById(alias[1]);
+    if (aliased) return aliased;
+  }
+  const labels = (movement: MovementDef) => [canonicalName(movement.name), ...movement.aliases.map(canonicalName)];
   const exact = MOVEMENT_CATALOG.find((movement) => labels(movement).some((label) => label === needle));
   if (exact) return exact;
+  const allowed = new Set([...IMPLEMENT_WORDS, ...QUALIFIER_WORDS]);
   const hits = MOVEMENT_CATALOG.filter((movement) =>
     labels(movement).some((label) => {
       if (label.length < 3 || !needle.includes(label)) return false;
-      const leftover = needle
-        .replace(label, " ")
-        .trim()
-        .split(" ")
-        .filter(Boolean);
-      return leftover.every((word) => IMPLEMENT_WORDS.has(word));
+      const leftover = needle.replace(label, " ").trim().split(" ").filter(Boolean);
+      return leftover.every((word) => allowed.has(word));
     }),
   );
   const wantsBarbell = /\bbarbell\b/.test(needle);
-  const wantsDumbbell = /\bdumbbell\b|\bdb\b/.test(needle);
-  const wantsKettlebell = /\bkettlebell\b|\bkb\b/.test(needle);
+  const wantsDumbbell = /\bdb\b/.test(needle);
+  const wantsKettlebell = /\bkb\b/.test(needle);
   hits.sort((left, right) => {
     const score = (movement: MovementDef) => {
-      let value = normalizeName(movement.name).length;
+      let value = canonicalName(movement.name).length;
       if (wantsBarbell && movement.load === "barbell") value += 100;
       if (wantsDumbbell && movement.load === "dumbbell") value += 100;
       if (wantsKettlebell && movement.load === "kettlebell") value += 100;
@@ -439,12 +457,17 @@ function movementNamed(phrase: string): MovementDef | undefined {
 }
 
 function prescriptionClock(text: string, schemeWord: "amrap" | "emom"): number | null {
-  const words = text.match(new RegExp(`\\b(\\d+)\\s*(?:min|mins|minute|minutes)\\s+${schemeWord}\\b`));
-  const trailing = text.match(new RegExp(`\\b${schemeWord}\\s+(\\d+)\\s*(?:min|mins|minute|minutes)\\b`));
-  const setOff = text.match(new RegExp(`\\b${schemeWord}\\s+(\\d+)\\s*,`));
+  const unit = "(?:min|mins|minute|minutes)";
+  const withUnit =
+    text.match(new RegExp(`\\b(\\d+)\\s*${unit}\\s+${schemeWord}\\b`)) ??
+    text.match(new RegExp(`\\b${schemeWord}\\s+(\\d+)\\s*${unit}\\b`));
+  if (withUnit) return Number(withUnit[1]);
+  const bare =
+    text.match(new RegExp(`\\b${schemeWord}\\s+(\\d{1,2})\\b(?!\\s*(?:${DOSE_WORD})\\b)`)) ??
+    text.match(new RegExp(`\\b(\\d{1,2})\\s+${schemeWord}\\b`));
+  if (bare) return Number(bare[1]);
   const anyMinutes = text.match(/\b(\d+)\s*(?:min|mins|minute|minutes)\b/);
-  const found = words?.[1] ?? trailing?.[1] ?? setOff?.[1] ?? anyMinutes?.[1];
-  return found ? Number(found) : null;
+  return anyMinutes ? Number(anyMinutes[1]) : null;
 }
 
 function prescriptionScheme(text: string): Scheme {
@@ -460,7 +483,7 @@ function prescriptionScheme(text: string): Scheme {
   return { type: "amrap", minutes: prescriptionClock(text, "amrap") ?? 12 };
 }
 
-const DOSE_UNIT = "calories|cals?|meters?|minutes?|mins?|seconds?|secs?|reps?|m";
+const DOSE_UNIT = `${DOSE_WORD}|m`;
 
 function doseFromUnit(amount: number, unit: string | undefined): Dose {
   if (!unit || /rep/.test(unit)) return { reps: amount };
@@ -472,15 +495,34 @@ function doseFromUnit(amount: number, unit: string | undefined): Dose {
 
 function clauseDose(body: string): { name: string; dose: Dose; explicit: boolean } | null {
   const withMinutes = body.match(/^(\d+)\s*(?:min|mins|minute|minutes)\s+(.+)$/);
-  if (withMinutes) return { name: withMinutes[2], dose: { seconds: Number(withMinutes[1]) * 60 }, explicit: true };
+  if (withMinutes) return peelTrailingUnit({ name: withMinutes[2], dose: { seconds: Number(withMinutes[1]) * 60 }, explicit: true });
   const withUnit = body.match(new RegExp(`^(\\d+)\\s*(${DOSE_UNIT})\\s+(.+)$`));
-  if (withUnit) return { name: withUnit[3], dose: doseFromUnit(Number(withUnit[1]), withUnit[2]), explicit: true };
+  if (withUnit) return peelTrailingUnit({ name: withUnit[3], dose: doseFromUnit(Number(withUnit[1]), withUnit[2]), explicit: true });
   const withCount = body.match(/^(\d+)\s+(.+)$/);
-  if (withCount) return { name: withCount[2], dose: { reps: Number(withCount[1]) }, explicit: true };
+  if (withCount) return peelTrailingUnit({ name: withCount[2], dose: { reps: Number(withCount[1]) }, explicit: true });
   const trailing = body.match(new RegExp(`^(.+?)\\s+(?:for\\s+)?(\\d+)\\s*(${DOSE_UNIT})?$`));
-  if (trailing) return { name: trailing[1], dose: doseFromUnit(Number(trailing[2]), trailing[3]), explicit: true };
+  if (trailing) return peelTrailingUnit({ name: trailing[1], dose: doseFromUnit(Number(trailing[2]), trailing[3]), explicit: true });
   if (!body) return null;
   return { name: body, dose: { reps: 10 }, explicit: false };
+}
+
+function peelTrailingUnit(parsed: { name: string; dose: Dose; explicit: boolean }): { name: string; dose: Dose; explicit: boolean } {
+  const match = parsed.name.match(new RegExp(`^(.*?)\\s+(${DOSE_WORD})$`));
+  const name = match?.[1]?.trim() ?? "";
+  if (!match || name.length < 3) return parsed;
+  const amount = parsed.dose.reps ?? parsed.dose.cal ?? parsed.dose.meters ?? parsed.dose.seconds;
+  if (amount == null) return parsed;
+  return { name, dose: doseFromUnit(amount, match[2]), explicit: true };
+}
+
+function literalMovementId(name: string): string {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `note-${slug || "movement"}`;
+}
+
+function explicitDose(movement: MovementDef, dose: Dose): Dose {
+  if (movement.unilateral && dose.reps != null && dose.eachSide == null) return { ...dose, eachSide: false };
+  return dose;
 }
 
 const FILLER = /^(?:please|make|the|workout|for|today|be|a|an|it|into|of|just|with|and|then|do|followed|by|plus|also|finish|finishing|finally|some)\b\s*/;
@@ -489,17 +531,19 @@ function prescriptionClauses(text: string): string[] {
   const stripped = text
     .replace(/\b\d+\s*(?:min|mins|minute|minutes)\s+(?:amrap|emom|e2mom)\b/g, " ")
     .replace(/\b(?:amrap|emom|e2mom)\s+\d+\s*(?:min|mins|minute|minutes)\b/g, " ")
+    .replace(new RegExp(`\\b(?:amrap|emom|e2mom)\\s+\\d{1,2}\\b(?!\\s*(?:${DOSE_WORD})\\b)`, "g"), " ")
+    .replace(/\b\d{1,2}\s+(?:amrap|emom|e2mom)\b/g, " ")
     .replace(/\b(?:amrap|emom|e2mom|every minute|for time|chipper|intervals?)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   return stripped
-    .split(/,|\bwith\s+(?:(?:a|an)\s+)?(?=\d)|\band\s+(?=\d)|\bthen\b|\bfollowed by\b|\bplus\b/)
+    .split(/,|\.\s+(?=\d)|\bwith\s+(?:(?:a|an)\s+)?(?=\d)|\band\s+(?=\d)|\bthen\b|\bfollowed by\b|\bplus\b/)
     .map((raw) => {
-      let body = raw.replace(/\s+/g, " ").trim();
+      let body = raw.replace(/\s+/g, " ").trim().replace(/^[\s.,:;]+|[\s.,:;]+$/g, "");
       while (FILLER.test(body)) body = body.replace(FILLER, "");
       return body.trim();
     })
-    .filter(Boolean);
+    .filter((body) => Boolean(body) && !/^\d+$/.test(body));
 }
 
 function isVestCue(body: string): boolean {
@@ -519,20 +563,21 @@ function exactMovementName(name: string, movement: MovementDef): boolean {
 function parsePrescription(text: string): CoachRequest | null {
   const scheme = prescriptionScheme(text);
   const movements: PrescribedMovement[] = [];
-  const unknown: string[] = [];
   for (const body of prescriptionClauses(text)) {
     if (isVestCue(body)) continue;
     const parsed = clauseDose(body);
     if (!parsed) continue;
     const movement = movementNamed(parsed.name);
     if (!movement) {
-      if (parsed.explicit) unknown.push(parsed.name);
+      if (parsed.explicit) movements.push({ id: literalMovementId(parsed.name), dose: parsed.dose });
       continue;
     }
     if (!parsed.explicit && !exactMovementName(parsed.name, movement)) continue;
-    movements.push({ id: movement.id, dose: parsed.explicit ? parsed.dose : coachDose(movement, scheme) });
+    movements.push({
+      id: movement.id,
+      dose: parsed.explicit ? explicitDose(movement, parsed.dose) : coachDose(movement, scheme),
+    });
   }
-  if (unknown.length && movements.length + unknown.length >= 2) return { kind: "unknown", phrases: unknown };
   if (movements.length < 2) return null;
   return { kind: "prescribe", scheme, movements, vest: vestWorkout(text) };
 }
@@ -671,18 +716,16 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
   }
   if (request.kind === "prescribe") {
     const resolved: PrescribedMovement[] = [];
-    const missing: string[] = [];
     for (const item of request.movements) {
       const named = movementById(item.id);
       if (!named) {
-        missing.push(item.id);
+        resolved.push(item);
         continue;
       }
-      const owned = ownedVersion(named, profile);
-      if (!owned) missing.push(named.name);
-      else resolved.push({ id: owned.id, dose: item.dose });
+      const owned = ownedVersion(named, profile) ?? named;
+      const dose = owned.unilateral && item.dose.reps != null && item.dose.eachSide == null ? { ...item.dose, eachSide: false } : item.dose;
+      resolved.push({ id: owned.id, dose });
     }
-    if (missing.length) throw new Error(`You don't own the gear for ${missing.join(", ")}.`);
     const defs = resolved.flatMap((item) => {
       const movement = movementById(item.id);
       return movement ? [movement] : [];
