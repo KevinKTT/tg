@@ -202,9 +202,23 @@ export function equipmentSummary(pieces: PlannedPiece[]): string {
   return labels.size ? `Equipment: ${[...labels].join(", ")}` : "Equipment: bodyweight";
 }
 
+function writtenDose(dose: MovementDose["dose"]): string {
+  if (dose.reps != null) return `${dose.reps}`;
+  if (dose.cal != null) return `${dose.cal} cal`;
+  if (dose.meters != null) return `${dose.meters} m`;
+  if (dose.seconds != null) {
+    return dose.seconds >= 60 && dose.seconds % 60 === 0 ? `${dose.seconds / 60} min` : `${dose.seconds} sec`;
+  }
+  return "";
+}
+
 export function renderMovementLine(item: MovementDose): string {
   const movement = movementById(item.id);
-  if (!movement) return `- ${movementDisplayName(item.id)}`;
+  if (!movement) {
+    const dose = writtenDose(item.dose);
+    const name = movementDisplayName(item.id);
+    return dose ? `- ${dose} ${name}` : `- ${name}`;
+  }
   return `- ${doseText(movement, item.dose)} ${movement.name}`;
 }
 
@@ -223,8 +237,9 @@ function renderPieceLines(piece: PlannedPiece): string {
     for (let minute = 1; minute <= minutes; minute += 1) {
       const item = piece.movements[(minute - 1) % piece.movements.length];
       const movement = movementById(item.id);
-      if (!movement) continue;
-      lines.push(`Minute ${minute}: ${doseText(movement, item.dose)} ${movement.name}`);
+      const dose = movement ? doseText(movement, item.dose) : writtenDose(item.dose);
+      const name = movement ? movement.name : movementDisplayName(item.id);
+      lines.push(`Minute ${minute}: ${dose ? `${dose} ` : ""}${name}`);
     }
     return lines.join("\n");
   }

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
-import { parseCoachRequest, rewriteIntent, rewriteTask } from "../lib/ai";
+import { parseCoachRequest, rewriteDay, rewriteIntent, rewriteTask } from "../lib/ai";
+import { addAthlete, getDay, saveGeneratedDay, setOwned } from "../lib/db";
 import type { EquipmentRow } from "../lib/db";
 import { renderPieceBody } from "../lib/engine/class";
 import { doseText, movementById } from "../lib/engine/movements";
@@ -40,7 +44,7 @@ test("a listed workout is written as named", () => {
   assert.deepEqual(request.movements, [
     { id: "row", dose: { cal: 10 } },
     { id: "pull-up", dose: { reps: 10 } },
-    { id: "step-up", dose: { reps: 10 } },
+    { id: "step-up", dose: { reps: 10, eachSide: false } },
     { id: "push_press", dose: { reps: 10 } },
   ]);
   assert.equal(parseCoachRequest("make the workout be a chipper").kind, "rebuild");
@@ -100,11 +104,112 @@ test("a spoken amrap is the workout that was named", () => {
   );
 });
 
-test("an unknown dose is not replaced with another workout", () => {
+test("an unknown movement is kept in the workout that was named", () => {
   const request = parseCoachRequest("18 min amrap with 1 minute flarble, 10 box get overs, and 200m weighted vest run");
-  assert.equal(request.kind, "unknown");
-  if (request.kind !== "unknown") return;
-  assert.deepEqual(request.phrases, ["flarble"]);
+  assert.equal(request.kind, "prescribe");
+  if (request.kind !== "prescribe") return;
+  assert.deepEqual(request.scheme, { type: "amrap", minutes: 18 });
+  assert.deepEqual(request.movements, [
+    { id: "note-flarble", dose: { seconds: 60 } },
+    { id: "box-jump-over", dose: { reps: 10 } },
+    { id: "weighted-vest-run", dose: { meters: 200 } },
+  ]);
+  assert.equal(
+    renderPieceBody({
+      kind: "metcon",
+      name: "Workout",
+      scheme: request.scheme,
+      movements: request.movements,
+      estimatedDurationMin: 18,
+    }),
+    "- 1 min Flarble\n- 10 Box Jump-Over\n- 200 m Weighted Vest Run",
+  );
+});
+
+test("a listed amrap keeps the clock and every movement", () => {
+  const request = parseCoachRequest(
+    "AMRAP 18. 20 sec wall handstand hold, 10 cals rowing , 400 meter run, 10 dumbell snatch",
+  );
+  assert.equal(request.kind, "prescribe");
+  if (request.kind !== "prescribe") return;
+  assert.deepEqual(request.scheme, { type: "amrap", minutes: 18 });
+  assert.deepEqual(request.movements, [
+    { id: "handstand-hold", dose: { seconds: 20 } },
+    { id: "row", dose: { cal: 10 } },
+    { id: "run", dose: { meters: 400 } },
+    { id: "db-power-snatch", dose: { reps: 10, eachSide: false } },
+  ]);
+  assert.equal(
+    renderPieceBody({
+      kind: "metcon",
+      name: "Workout",
+      scheme: request.scheme,
+      movements: request.movements,
+      estimatedDurationMin: 18,
+    }),
+    "- 20 sec Wall-Facing Handstand Hold\n- 10 cal Row\n- 400 m Run\n- 10 Dumbbell Power Snatch",
+  );
+
+  const rowing = parseCoachRequest("AMRAP 18 with 10 rowing cals and 10 snatch");
+  assert.equal(rowing.kind, "prescribe");
+  if (rowing.kind !== "prescribe") return;
+  assert.deepEqual(rowing.scheme, { type: "amrap", minutes: 18 });
+  assert.deepEqual(rowing.movements, [
+    { id: "row", dose: { cal: 10 } },
+    { id: "squat_snatch", dose: { reps: 10 } },
+  ]);
+});
+
+test("clarify writes the named workout instead of stopping", async () => {
+  process.env.DATABASE_PATH = path.join(mkdtempSync(path.join(tmpdir(), "tg-")), "tg.sqlite");
+  addAthlete({ name: "Kai", initials: "KT", sex: "m" });
+  for (const slug of ["db_20lb", "rower", "running"]) setOwned(slug, true);
+  const date = "2026-10-22";
+  saveGeneratedDay({
+    date,
+    title: "Placeholder",
+    stimulus: "Old",
+    source: "programmed",
+    sourceText: "",
+    focus: "mixed",
+    format: "amrap",
+    snapshot: "[]",
+    track: {
+      summary: "",
+      warmup: "Easy bike",
+      warmupDurationMin: 5,
+      prep: "",
+      prepDurationMin: null,
+      cooldown: "Walk",
+      cooldownDurationMin: 3,
+      parts: [
+        {
+          name: "Workout",
+          kind: "metcon",
+          format: "AMRAP 12",
+          details: "- 10 Air Squat",
+          timeCapMin: 12,
+          estimatedDurationMin: 12,
+          scoreType: "rounds_reps",
+          repsPerRound: null,
+          scheme: { type: "amrap", minutes: 12 },
+          movements: [{ id: "air-squat", dose: { reps: 10 } }],
+        },
+      ],
+    },
+  });
+  const result = await rewriteDay({
+    date,
+    intent: "clarify",
+    note: "AMRAP 18. 20 sec wall handstand hold, 10 cals rowing , 400 meter run, 10 dumbell snatch",
+  });
+  assert.equal(result.title, "Wall-Facing Handstand Hold & Row");
+  const metcon = getDay(date)?.tracks[0]?.parts.find((part) => part.kind === "metcon");
+  assert.equal(metcon?.format, "AMRAP 18");
+  assert.equal(
+    metcon?.body,
+    "- 20 sec Wall-Facing Handstand Hold\n- 10 cal Row\n- 400 m Run\n- 10 Dumbbell Power Snatch",
+  );
 });
 
 test("a part fix does not rebuild the day", () => {

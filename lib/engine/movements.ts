@@ -650,7 +650,11 @@ export function eligibleCatalog(profile: EquipmentProfile): MovementDef[] {
 }
 
 export function movementDisplayName(id: string): string {
-  return BY_ID.get(id)?.name ?? id.replace(/[-_]/g, " ");
+  const known = BY_ID.get(id)?.name;
+  if (known) return known;
+  const raw = (id.startsWith("note-") ? id.slice(5) : id).replace(/[-_]/g, " ").trim();
+  if (!id.startsWith("note-")) return raw;
+  return raw.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 }
 
 export function patternFromCatalog(pattern: string): MovementPattern {
@@ -682,7 +686,8 @@ export function doseText(movement: MovementDef, dose: Dose): string {
                 : " sec"
               : "";
       const shown = unit === "seconds" && value >= 60 && value % 60 === 0 ? value / 60 : value;
-      const each = dose.eachSide || (movement.unilateral && unit === "reps") ? "/side" : "";
+      const sided = dose.eachSide === true || (dose.eachSide !== false && movement.unilateral && unit === "reps");
+      const each = sided ? "/side" : "";
       return `${shown}${suffix}${each}`;
     }
   }
