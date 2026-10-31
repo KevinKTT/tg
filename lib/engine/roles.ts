@@ -120,6 +120,28 @@ export function isEngineStaple(movement: MovementDef): boolean {
   return ENGINE_STAPLES.includes(movement.id as (typeof ENGINE_STAPLES)[number]);
 }
 
+/** Gymnastics patterns that actually have an eligible staple for this gym. */
+export function availableGymPatterns(profile: EquipmentProfile): Set<MovementPattern> {
+  const patterns = new Set<MovementPattern>();
+  for (const movement of eligibleCatalog(profile)) {
+    if (!GYM_STAPLES.includes(movement.id as (typeof GYM_STAPLES)[number])) continue;
+    const pattern = programmingPattern(movement);
+    if (pattern !== "none" && pattern !== "locomotion") patterns.add(pattern);
+  }
+  return patterns;
+}
+
+/** Loaded-anchor patterns that actually have an eligible staple for this gym. */
+export function availableLoadedPatterns(profile: EquipmentProfile): Set<MovementPattern> {
+  const patterns = new Set<MovementPattern>();
+  for (const movement of eligibleCatalog(profile)) {
+    if (!LOADED_STAPLES.includes(movement.id as (typeof LOADED_STAPLES)[number])) continue;
+    const pattern = programmingPattern(movement);
+    if (pattern !== "none" && pattern !== "locomotion") patterns.add(pattern);
+  }
+  return patterns;
+}
+
 export function isFiller(movement: MovementDef): boolean {
   if (STAPLE_IDS.has(movement.id)) return false;
   if (isAccessory(movement)) return true;
@@ -230,7 +252,9 @@ function primaryIds(slot: PieceSlot): Set<string> | null {
   return null;
 }
 
-function tier(movement: MovementDef, slot: PieceSlot): number {
+const IMPLEMENT_LOADS = new Set(["dumbbell", "barbell", "kettlebell"]);
+
+function tier(movement: MovementDef, slot: PieceSlot, usedImplements?: Set<string>): number {
   let score = 0;
   if (slot.pattern && programmingPattern(movement) === slot.pattern) score -= 2;
   if (stapleFor(slot, movement)) score -= 1;
@@ -238,6 +262,8 @@ function tier(movement: MovementDef, slot: PieceSlot): number {
   if (slot.role === "loaded" && LOADED_PRIMARY.has(movement.id)) score -= 2;
   if (slot.role === "gymnastics" && GYM_PRIMARY.has(movement.id)) score -= 2;
   if (slot.role === "engine" && ENGINE_PRIMARY.has(movement.id)) score -= 2;
+  // Prefer a different implement from the slots already filled in this piece.
+  if (movement.load && IMPLEMENT_LOADS.has(movement.load) && usedImplements?.has(movement.load)) score += 2;
   if (slot.role === "skill" && movement.skill !== "advanced") score -= 1;
   if (movement.intensity === "high" && slot.role === "loaded") score -= 1;
   if (movement.skill === "advanced") score += 3;
@@ -250,6 +276,7 @@ export function candidatesForSlot(
   avoid: string[],
   profile: EquipmentProfile,
   seed: number,
+  usedImplements: Set<string> = new Set(),
 ): MovementDef[] {
   const matches = pool.filter((movement) => slotMatches(movement, slot, profile));
   const staples = matches.filter((movement) => stapleFor(slot, movement));
@@ -274,7 +301,7 @@ export function candidatesForSlot(
             : matches;
   const groups = new Map<number, MovementDef[]>();
   for (const movement of chosen) {
-    const key = tier(movement, slot);
+    const key = tier(movement, slot, usedImplements);
     groups.set(key, [...(groups.get(key) ?? []), movement]);
   }
   const ordered = [...groups.keys()]

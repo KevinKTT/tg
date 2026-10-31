@@ -52,6 +52,8 @@ import {
 import { formatText, schemeMinutes, type Scheme } from "./engine/scheme";
 import { coachDose } from "./engine/roles";
 import { formatIssues, validateAiWorkout } from "./engine/validate";
+import { auditPlan, betterPlan } from "./engine/quality";
+import { judgeCandidates } from "./decide";
 
 const SYSTEM_PROMPT = `You are the head coach for a small garage CrossFit gym.
 The assignment already chose the scheme and the slots. You choose the title, the stimulus, and one movement per slot.
@@ -88,11 +90,18 @@ function recentSignals(date: string): RecentSignal[] {
     let pattern: MovementPattern = "none";
     let movements: string[] = [];
     let load: RecentSignal["load"];
+    let shape: RecentSignal["shape"];
     try {
-      const stored = JSON.parse(row.program) as { pattern?: MovementPattern; movements?: string[]; load?: RecentSignal["load"] };
+      const stored = JSON.parse(row.program) as {
+        pattern?: MovementPattern;
+        movements?: string[];
+        load?: RecentSignal["load"];
+        shape?: RecentSignal["shape"];
+      };
       if (stored.pattern) pattern = stored.pattern;
       if (Array.isArray(stored.movements)) movements = stored.movements;
       if (stored.load) load = stored.load;
+      if (stored.shape) shape = stored.shape;
     } catch {
       // Legacy row: fall back to scanning the rendered text.
     }
@@ -102,6 +111,8 @@ function recentSignals(date: string): RecentSignal[] {
     return {
       date: row.date,
       pattern,
+      shape,
+      format: row.format,
       scheme: row.format,
       movements,
       load,
@@ -117,10 +128,10 @@ function seededRandom(seed: number) {
   };
 }
 
-function shortlistsFor(assignment: DayAssignment, items: EquipmentRow[]): Shortlist[] {
+function shortlistsFor(assignment: DayAssignment, items: EquipmentRow[], variant = 0): Shortlist[] {
   const profile = equipmentProfile(items);
   return assignment.pieces.map((piece, index) => {
-    const random = seededRandom(hashString(`${assignment.seed}:${index}:${piece.name}`));
+    const random = seededRandom(hashString(`${assignment.seed}:${index}:${piece.name}:${variant}`));
     return shortlistForPiece(piece, profile, assignment.avoidMovements, random);
   });
 }
@@ -261,15 +272,96 @@ async function askForWorkout(input: {
   throw new Error(lastIssues.length ? `The coach could not produce a valid workout: ${lastIssues.join("; ")}` : "The coach could not produce a valid workout.");
 }
 
-function fallbackPlan(assignment: DayAssignment, shortlists: Shortlist[], items: EquipmentRow[]): ClassPlan {
-  const random = seededRandom(assignment.seed + 17);
+function fallbackPlan(
+  assignment: DayAssignment,
+  shortlists: Shortlist[],
+  items: EquipmentRow[],
+  variant = 0,
+): ClassPlan {
+  const random = seededRandom(assignment.seed + 17 + variant * 31);
   return buildFallbackClass({
     assignment,
     shortlists,
     items,
     caps: equipmentProfile(items).caps,
     random,
+    variant,
   });
+}
+
+const VARIANTS = 4;
+
+function planFingerprint(plan: ClassPlan): string {
+  return plan.pieces
+    .map((piece) => piece.movements.map((item) => `${item.id}:${JSON.stringify(item.dose)}`).join(","))
+    .join("|");
+}
+
+/**
+ * Generate more than one answer, then keep the best one.
+ *
+ * The model is asked for one session; the engine also composes several valid
+ * interpretations of the same assignment. Every candidate is audited by code,
+ * then the decision model gets a say when the two best candidates disagree.
+ * One shot at temperature 0.7 is how a workout ends up merely plausible.
+ */
+async function composePlan(assignment: DayAssignment, items: EquipmentRow[]): Promise<ClassPlan> {
+  const shortlists = shortlistsFor(assignment, items);
+  const fallback = Array.from({ length: VARIANTS }, (_, variant) =>
+    fallbackPlan(
+      assignment,
+      variant === 0 ? shortlists : shortlistsFor(assignment, items, variant),
+      items,
+      variant,
+    ),
+  );
+  const bestFallback = fallback.reduce(betterPlan);
+
+  let aiPlan: ClassPlan | null = null;
+  try {
+    const ai = await askForWorkout({
+      assignment,
+      shortlists,
+      items,
+      members: listAthletes(),
+    });
+    aiPlan = buildClassFromAi({
+      assignment,
+      ai,
+      items,
+      caps: equipmentProfile(items).caps,
+      random: seededRandom(assignment.seed + 7),
+    });
+  } catch {
+    // The fallback is a valid, original session. Never fail generation.
+    aiPlan = null;
+  }
+
+  if (!aiPlan) return bestFallback;
+  if (planFingerprint(aiPlan) === planFingerprint(bestFallback)) return aiPlan;
+
+  const aiAudit = auditPlan(aiPlan);
+  const fallbackAudit = auditPlan(bestFallback);
+  let chosen = aiAudit.hard === 0 ? aiPlan : bestFallback;
+
+  const [aiVerdict, fallbackVerdict] = await judgeCandidates({
+    plans: [aiPlan, bestFallback],
+    recent: recentSignals(assignment.date),
+  });
+  if (aiVerdict && fallbackVerdict) {
+    const aiPasses = aiVerdict.keep && aiAudit.hard === 0;
+    const fallbackPasses = fallbackVerdict.keep && fallbackAudit.hard === 0;
+    if (aiPasses && !fallbackPasses) chosen = aiPlan;
+    else if (!aiPasses && fallbackPasses) chosen = bestFallback;
+    else if (aiPasses && fallbackPasses) {
+      // Keep the model's session unless the engine's is clearly better.
+      chosen = fallbackVerdict.confidence > aiVerdict.confidence + 0.1 ? bestFallback : aiPlan;
+    }
+    if (!aiVerdict.keep) {
+      console.info(`[coach] judged the model's session unfit: ${aiVerdict.reasons.join("; ") || "low confidence"}.`);
+    }
+  }
+  return chosen;
 }
 
 function savePlan(input: {
@@ -278,6 +370,7 @@ function savePlan(input: {
   items: EquipmentRow[];
 }) {
   const parts = input.plan.pieces.map((piece) => generatedPart(piece));
+  const audit = auditPlan(input.plan);
   saveGeneratedDay({
     date: input.plan.date,
     title: input.plan.title,
@@ -291,6 +384,11 @@ function savePlan(input: {
       movements: [...new Set(input.plan.pieces.flatMap((piece) => piece.movements.map((item) => item.id)))],
       load: input.assignment.load,
       shape: input.assignment.shape,
+      quality: {
+        score: audit.score,
+        hard: audit.hard,
+        codes: [...new Set(audit.issues.map((issue) => issue.code))],
+      },
     }),
     snapshot: JSON.stringify(input.items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity }))),
     track: {
@@ -643,28 +741,6 @@ export async function generateDay(input: { date: string; focus?: string }) {
   const plan = await composePlan(assignment, items);
   savePlan({ assignment, plan, items });
   return { title: plan.title };
-}
-
-async function composePlan(assignment: DayAssignment, items: EquipmentRow[]): Promise<ClassPlan> {
-  const shortlists = shortlistsFor(assignment, items);
-  try {
-    const ai = await askForWorkout({
-      assignment,
-      shortlists,
-      items,
-      members: listAthletes(),
-    });
-    return buildClassFromAi({
-      assignment,
-      ai,
-      items,
-      caps: equipmentProfile(items).caps,
-      random: seededRandom(assignment.seed + 7),
-    });
-  } catch {
-    // A valid, original session beats a failed generation.
-    return fallbackPlan(assignment, shortlists, items);
-  }
 }
 
 export async function rewriteDay(input: { date: string; intent: string; note?: string }) {

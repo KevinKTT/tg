@@ -6,6 +6,8 @@ No accounts. Add your members, then pick who's lifting when you log a score or a
 
 Workout generation is a small programming engine plus an AI head coach. The engine chooses the week's shape, scheme, time domain, movement patterns, modalities, loads, warm-up, and cool-down. The model chooses only the title, stimulus, and movements from a shortlist. Every scored piece has one structured scheme (for time, AMRAP, EMOM, intervals, chipper, ladder, strength, max load, max reps, or skill), so the whiteboard, clock, and score form can never disagree.
 
+Each session is composed several ways, audited by code for the things schema validation cannot see (movement stacks, grip overload, volume that does not fit the cap), and then optionally judged by a decision model. See [Decision layer](#decision-layer).
+
 Each day is programmed toward one complete ~45 minute class (warm-up, prep, work, cool-down). Every scored movement is written with Rx, Performance, and Lifestyle versions, and the loads come from the equipment you own and the PRs you have logged. If the model is unavailable or returns something invalid, the app composes a valid original session from the same assignment instead of failing.
 
 
@@ -66,6 +68,26 @@ AI_REASONING_EFFORT=none
 Upgrading from an older version that only set `FIREWORKS_API_KEY`? The default is now OpenAI, so add the Fireworks `AI_BASE_URL` and `AI_MODEL` above to keep using Fireworks.
 
 JSON support varies by host and model. The app tries structured output first and falls back to plain JSON, so most providers work untouched; if yours is picky, set `AI_JSON_MODE=object` (or `none`). When running Ollama in Docker, point `AI_BASE_URL` at the host (`http://host.docker.internal:11434/v1`) or run the container with `--network host`.
+
+## Decision layer
+
+Generation is more than one shot. Every session is composed several ways: once by the model, and several times by the engine from the same assignment. Code then audits every candidate for the things schema validation cannot see — a movement stack, grip overload, volume that does not fit the cap, a prep that repeats the workout — and keeps the best one. That is why a generated class is not just plausible.
+
+On top of that code audit sits an optional **decision layer**. A decision model is asked a fixed set of questions about a candidate class ("does this read as one intentional class?", "will local fatigue decide the score?", "does it add something the week is missing?") and its calibrated answers decide whether to keep the model's session or the engine's. The questions are the contract, so the same decision layer can run on Jev, on your existing chat model, or not at all.
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `AI_DECIDER` | `auto` | `auto`, `typesafe`, `llm`, or `off`. `auto` uses TypeSafe when a key is present, otherwise off. |
+| `TYPESAFE_API_KEY` | — | Your TypeSafe AI key. |
+| `TYPESAFE_MODEL` | `jev-latest` | The System One model to call. |
+| `TYPESAFE_BASE_URL` | `https://api.typesafe.ai/v1` | Only change this for a proxy. |
+| `TYPESAFE_TIMEOUT_MS` | `20000` | Per-request timeout. |
+| `AI_DECIDER_THRESHOLD` | `0.6` | Confidence needed to keep a class. Raise it for stricter taste. |
+
+The decision layer is advisory, never required. With no key and no `AI_DECIDER`, generation is unchanged: the engine still audits, ranks, and repairs its own candidates. If the decision model times out or errors, the deterministic result stands.
+
+`AI_DECIDER=llm` answers the same questions through your configured chat provider, which is useful for comparing the two before committing to a key.
+
 
 ## Docker
 

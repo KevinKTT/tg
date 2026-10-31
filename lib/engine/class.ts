@@ -102,6 +102,16 @@ export function buildWarmup(assignment: DayAssignment, items: InventoryItem[], c
   return chosen.map((item) => `- ${item.typical_dose} ${item.name}`).join("\n");
 }
 
+function plainMovementName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b(dumbbell|barbell|kettlebell|db|kb)\b/g, "")
+    .replace(/\breps?\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/s$/, "");
+}
+
 export function buildPrep(
   assignment: DayAssignment,
   items: InventoryItem[],
@@ -115,7 +125,13 @@ export function buildPrep(
     .map((item) => movementById(item.id))
     .filter((movement): movement is NonNullable<typeof movement> => Boolean(movement))
     .filter((movement, index, list) => list.findIndex((item) => item.id === movement.id) === index)
-    .slice(0, 3);
+    // Two primer sets are enough. The rest of the prep should prime, not pre-fatigue.
+    .slice(0, 2);
+  const workNames = new Set(
+    pieces
+      .flatMap((piece) => piece.movements)
+      .map((item) => plainMovementName(movementById(item.id)?.name ?? item.id)),
+  );
   const lines = relevant.map((movement) => {
     const unit = movement.doses[0]?.unit;
     if (unit === "cal") return `- 5 cal ${movement.name}`;
@@ -126,6 +142,8 @@ export function buildPrep(
   for (const item of menu.prep) {
     if (lines.length >= 4) break;
     if (/\b(pike|handstand|donkey|wall line|squat jump to stick|burpee breakdown|muscle-up|pistol|practice|drill|turkish|snap-down)\b/i.test(item.name)) continue;
+    const plain = plainMovementName(item.name);
+    if (workNames.has(plain)) continue;
     const line = `- ${item.typical_dose} ${item.name}`;
     if (!lines.includes(line)) lines.push(line);
   }
@@ -307,6 +325,7 @@ export function buildFallbackPiece(
   shortlist: Shortlist,
   _random: () => number,
   usedIds: string[] = [],
+  variant = 0,
 ): MovementDose[] {
   const groups = shortlist.slots?.length
     ? shortlist.slots
@@ -321,7 +340,9 @@ export function buildFallbackPiece(
       const pattern = programmingPattern(movement);
       return pattern === "none" || pattern === "locomotion" || pattern === "core" || !usedPatterns.has(pattern);
     });
-    const movement = (contrasting.length ? contrasting : fresh.length ? fresh : group)[0];
+    const candidates = contrasting.length ? contrasting : fresh.length ? fresh : group;
+    const offset = variant === 0 ? 0 : (variant + selected.length) % Math.max(1, candidates.length);
+    const movement = candidates[offset];
     if (!movement || used.has(movement.id)) continue;
     selected.push(movement);
     used.add(movement.id);
@@ -342,10 +363,12 @@ export function buildFallbackClass(input: {
   items: InventoryItem[];
   caps: Set<string>;
   random: () => number;
+  variant?: number;
 }): ClassPlan {
   const usedIds: string[] = [];
+  const variant = input.variant ?? 0;
   const pieces: PlannedPiece[] = input.assignment.pieces.map((brief, index) => {
-    const movements = buildFallbackPiece(brief, input.shortlists[index], input.random, usedIds);
+    const movements = buildFallbackPiece(brief, input.shortlists[index], input.random, usedIds, variant + index);
     usedIds.push(...movements.map((item) => item.id));
     return {
       kind: brief.kind,
