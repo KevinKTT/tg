@@ -647,58 +647,6 @@ export function listDays(from: string, to: string): DayMark[] {
   }));
 }
 
-export type DaySignal = {
-  date: string;
-  focus: string;
-  format: string;
-  stimulus: string;
-  program: string;
-  text: string;
-};
-
-export function recentDaySignals(before: string, limit = 21): DaySignal[] {
-  const db = getDb();
-  const days = db
-    .prepare(
-      `SELECT id, date, focus, format, stimulus, program FROM workout_days
-       WHERE date < ? AND status != 'rest'
-       ORDER BY date DESC LIMIT ?`,
-    )
-    .all(before, limit) as {
-    id: number;
-    date: string;
-    focus: string;
-    format: string;
-    stimulus: string;
-    program: string;
-  }[];
-  const parts = db.prepare(
-    `SELECT p.body FROM workout_parts p
-     JOIN workout_tracks t ON t.id = p.track_id
-     WHERE t.day_id = ? AND p.kind NOT IN ('warmup', 'prep', 'cooldown')
-     ORDER BY p.sort_order, p.id`,
-  );
-  return days.map((day) => ({
-    date: day.date,
-    focus: day.focus,
-    format: day.format,
-    stimulus: day.stimulus,
-    program: day.program ?? "",
-    text: (parts.all(day.id) as { body: string }[]).map((row) => row.body).join("\n"),
-  }));
-}
-
-export function recentFormats(before: string, limit = 3): string[] {
-  const rows = getDb()
-    .prepare(
-      `SELECT format FROM workout_days
-       WHERE date < ? AND status != 'rest' AND format != ''
-       ORDER BY date DESC LIMIT ?`,
-    )
-    .all(before, limit) as { format: string }[];
-  return rows.map((row) => row.format);
-}
-
 export function getScores(dayId: number): ScoreView[] {
   const rows = getDb()
     .prepare(

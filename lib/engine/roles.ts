@@ -359,7 +359,7 @@ export function coachDose(movement: MovementDef, scheme: Scheme, bias = 0.45): D
   if (!range) return { reps: 10 };
   let target: number;
   if (scheme.type === "emom") {
-    target = range.min;
+    target = range.min + Math.round((range.max - range.min) * 0.5);
   } else if (scheme.type === "intervals") {
     target = range.min + Math.round((range.max - range.min) * 0.35);
   } else if (scheme.type === "chipper") {

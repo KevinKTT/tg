@@ -2,7 +2,6 @@ import { addDays, startOfWeek } from "../dates";
 import {
   doseRangeFor,
   eligibleCatalog,
-  movementById,
   type EquipmentProfile,
   type Modality,
   type MovementDef,
@@ -16,7 +15,6 @@ import {
   hasEngine,
   hasLoadedAnchor,
   isFiller,
-  programmingPattern,
   slotLabel,
   type PieceSlot,
 } from "./roles";
@@ -65,18 +63,7 @@ export type DayAssignment = {
   brief: string;
   seed: number;
   avoidMovements: string[];
-  avoidPatterns: MovementPattern[];
   avoidDumbbell: boolean;
-};
-
-export type RecentSignal = {
-  date: string;
-  pattern: MovementPattern;
-  shape?: SessionShape;
-  format?: string;
-  scheme?: string;
-  movements: string[];
-  load?: LoadKind;
 };
 
 const FOCUS_VALUES: Focus[] = ["mixed", "strength", "heavy", "cardio", "engine", "gymnastics", "olympic"];
@@ -152,50 +139,10 @@ function optionsForFocus(focus: Focus): ClassPick[] {
   return CLASS_MENU;
 }
 
-function pickClass(focus: Focus | "auto", date: string, salt: number, recent: RecentSignal[]): ClassPick {
+function pickClass(focus: Focus | "auto", date: string, salt: number): ClassPick {
   const options = focus === "auto" ? CLASS_MENU : optionsForFocus(focus);
-  const scored = options.map((option) => ({ option, score: classScore(option, recent) }));
-  const best = Math.max(...scored.map((entry) => entry.score));
-  // Deterministic tie-break: the same date still draws the same class.
-  const finalists = scored.filter((entry) => entry.score === best).map((entry) => entry.option);
-  return finalists[hashString(mix(date, salt, "class")) % finalists.length];
-}
-
-const FAMILY: Record<SessionShape, string> = {
-  heavy: "heavy",
-  strength_metcon: "heavy",
-  couplet: "metcon",
-  triplet: "metcon",
-  quad: "metcon",
-  chipper: "metcon",
-  emom: "interval",
-  intervals: "interval",
-  ladder: "interval",
-  gymnastics: "skill",
-  max_effort: "metcon",
-};
-
-/**
- * A week has shape. Penalise what the last days already trained and reward
- * what the week is missing, so the menu is balanced instead of merely varied.
- */
-function classScore(option: ClassPick, recent: RecentSignal[]): number {
-  const window = recent.slice(0, 7);
-  const weightFor = (index: number) => [5, 4, 3, 2, 1, 1, 1][index] ?? 0;
-  let score = 0;
-  window.forEach((signal, index) => {
-    const weight = weightFor(index);
-    if (!weight) return;
-    if (signal.shape === option.shape) score -= 6 * weight;
-    else if (signal.shape && FAMILY[signal.shape] === FAMILY[option.shape]) score -= 2 * weight;
-    if (signal.format && signal.format.toLowerCase() === option.shape) score -= 3 * weight;
-  });
-  const seen = new Set(window.map((signal) => signal.shape).filter(Boolean));
-  if (window.length >= 2 && !seen.has(option.shape)) score += 4;
-  const longRecent = window.filter((signal) => signal.shape === "chipper").length;
-  if (option.domain === "long" && longRecent > 0) score -= 5;
-  if (option.domain === "long" && longRecent === 0 && window.length >= 5) score += 3;
-  return score;
+  // Deterministic: the same date and salt still draw the same class.
+  return options[hashString(mix(date, salt, "class")) % options.length];
 }
 
 export function planDay(input: {
@@ -203,7 +150,6 @@ export function planDay(input: {
   focus?: string;
   shape?: SessionShape;
   profile: EquipmentProfile;
-  recent?: RecentSignal[];
   random?: () => number;
   salt?: number;
   avoid?: string[];
@@ -211,8 +157,7 @@ export function planDay(input: {
   const salt = input.salt || 0;
   const random = input.random ?? rng(hashString(mix(input.date, salt)));
   const requested = normaliseFocus(input.focus);
-  const recent = input.recent ?? [];
-  const picked = input.shape ? classForShape(input.shape) : pickClass(requested, input.date, salt, recent);
+  const picked = input.shape ? classForShape(input.shape) : pickClass(requested, input.date, salt);
   const shaped = { shape: picked.shape, domain: picked.domain };
   const hasLoad = eligibleCatalog(input.profile).some((movement) => movement.load);
   let sessionFocus: Focus = picked.focus;
@@ -223,24 +168,10 @@ export function planDay(input: {
   }
   const load = pickLoad(sessionFocus, shaped.shape, input.profile, random);
   const avoidDumbbell = false;
-  const avoidMovements = [...new Set([...recent.slice(0, 7).flatMap((item) => item.movements), ...(input.avoid ?? [])])];
-  // A pattern should rest for a few days, not two. Read the patterns off the
-  // actual movements, not just the session headline, so a week stops opening
-  // with the same loaded hinge every day.
-  const avoidPatterns = [
-    ...new Set(
-      recent
-        .slice(0, 4)
-        .flatMap((signal) => [
-          signal.pattern,
-          ...signal.movements
-            .map((id) => movementById(id))
-            .map((movement) => (movement ? programmingPattern(movement) : "none" as MovementPattern)),
-        ])
-        .filter((pattern) => pattern !== "none" && pattern !== "locomotion" && pattern !== "core"),
-    ),
-  ];
-  const pattern = pickPattern(shaped.shape, sessionFocus, input.profile, avoidPatterns, random);
+  // Only the current day's own movements survive here, so a rewrite does not
+  // reproduce the session it is replacing. No previous day is consulted.
+  const avoidMovements = [...new Set(input.avoid ?? [])];
+  const pattern = pickPattern(shaped.shape, sessionFocus, input.profile, random);
   const pieces = buildPieces({
     date: input.date,
     shape: shaped.shape,
@@ -250,7 +181,6 @@ export function planDay(input: {
     pattern,
     profile: input.profile,
     avoidDumbbell,
-    avoidPatterns,
     random,
     salt,
   });
@@ -270,7 +200,6 @@ export function planDay(input: {
     brief,
     seed: hashString(mix(input.date, salt, `${sessionFocus}:${pattern}`)),
     avoidMovements,
-    avoidPatterns,
     avoidDumbbell,
   };
 }
@@ -311,7 +240,6 @@ function pickPattern(
   shape: SessionShape,
   focus: Focus,
   profile: EquipmentProfile,
-  avoid: MovementPattern[],
   random: () => number,
 ): MovementPattern {
   const options = patternsFor(shape, profile);
@@ -322,8 +250,7 @@ function pickPattern(
   const withoutOly = strengthSafe.filter((pattern) => pattern !== "olympic");
   const choosable = withoutOly.length ? withoutOly : strengthSafe;
   if (shape === "gymnastics") return pick(choosable.filter((pattern) => pattern !== "olympic"), random);
-  const fresh = choosable.filter((pattern) => !avoid.includes(pattern));
-  return pick(fresh.length ? fresh : choosable, random);
+  return pick(choosable, random);
 }
 
 function contrastPattern(pattern: MovementPattern): MovementPattern {
@@ -375,42 +302,40 @@ function brief(input: {
 }
 
 /**
- * A loaded anchor should be a lift the gym can actually load, and it should not
- * be the same hinge every day. This is where "deadlift again?" comes from.
+ * A loaded anchor should be a lift the gym can actually load. The seed rotates
+ * the choice, so two sessions on the same day still differ.
  */
 function loadedAnchorPattern(
   profile: EquipmentProfile,
   preferred: MovementPattern,
-  avoid: MovementPattern[],
   seed: number,
 ): MovementPattern {
   const available = availableLoadedPatterns(profile);
   const order: MovementPattern[] = [preferred, "squat", "hinge", "press", "olympic", "lunge"];
   const usable = order.filter((item) => available.has(item));
   if (!usable.length) return preferred;
-  const fresh = usable.filter((item) => !avoid.includes(item));
-  const pool = fresh.length ? fresh : usable;
-  return pool[Math.abs(seed) % pool.length];
+  return usable[Math.abs(seed) % usable.length];
 }
 
 /**
- * Pick a gymnastics pattern that contrasts with the loaded movement and has
- * not been flogged this week. Press, pull, jump, and core are all staples; the
- * old code pinned this slot to press, which is why push-ups appeared daily.
+ * Pick a gymnastics pattern that contrasts with the loaded movement. Press,
+ * pull, jump, and core are all staples; the seed rotates among them.
  */
 function gymPatternChoice(
   profile: EquipmentProfile,
   exclude: MovementPattern[],
-  avoid: MovementPattern[],
   seed: number,
 ): MovementPattern {
   const available = availableGymPatterns(profile);
   const order: MovementPattern[] = ["press", "pull", "jump", "core", "squat"];
   const usable = order.filter((item) => available.has(item) && !exclude.includes(item));
   const pool = usable.length ? usable : order.filter((item) => !exclude.includes(item));
-  const fresh = pool.filter((item) => !avoid.includes(item));
-  const choices = fresh.length ? fresh : pool;
-  return choices[Math.abs(seed) % choices.length] ?? "jump";
+  return pool[Math.abs(seed) % pool.length] ?? "jump";
+}
+
+/** An EMOM wants an engine station when one is available; an odd seed asks coupletSlots for exactly that. */
+function engineSeed(seed: number): number {
+  return seed % 2 === 0 ? seed + 1 : seed;
 }
 
 function coupletSlots(
@@ -418,17 +343,15 @@ function coupletSlots(
   avoidDumbbell: boolean,
   pattern: MovementPattern,
   seed: number,
-  avoidPatterns: MovementPattern[] = [],
   allowEngine = true,
-): PieceSlot[] {
-  if (hasLoadedAnchor(profile, avoidDumbbell)) {
+): PieceSlot[] {  if (hasLoadedAnchor(profile, avoidDumbbell)) {
     const preferred =
       pattern === "jump" || pattern === "core" || pattern === "carry" || pattern === "locomotion" ? "hinge" : pattern;
-    const loadedPattern = loadedAnchorPattern(profile, preferred, avoidPatterns, seed);
+    const loadedPattern = loadedAnchorPattern(profile, preferred, seed);
     const second: PieceSlot =
       allowEngine && hasEngine(profile) && seed % 2 === 1
         ? { role: "engine" }
-        : { role: "gymnastics", pattern: gymPatternChoice(profile, [loadedPattern], avoidPatterns, seed) };
+        : { role: "gymnastics", pattern: gymPatternChoice(profile, [loadedPattern], seed) };
     return [{ role: "loaded", pattern: loadedPattern }, second];
   }
   if (hasEngine(profile)) return [{ role: "gymnastics", pattern: "jump" }, { role: "engine" }];
@@ -443,14 +366,13 @@ function tripletSlots(
   avoidDumbbell: boolean,
   pattern: MovementPattern,
   seed = 0,
-  avoidPatterns: MovementPattern[] = [],
 ): PieceSlot[] {
   const loaded = hasLoadedAnchor(profile, avoidDumbbell);
   const engine = hasEngine(profile);
   const preferred =
     pattern === "jump" || pattern === "core" || pattern === "carry" || pattern === "locomotion" ? "hinge" : pattern;
-  const loadedPattern = loadedAnchorPattern(profile, preferred, avoidPatterns, seed);
-  const gym = gymPatternChoice(profile, [loadedPattern], avoidPatterns, seed);
+  const loadedPattern = loadedAnchorPattern(profile, preferred, seed);
+  const gym = gymPatternChoice(profile, [loadedPattern], seed);
   if (loaded && engine) {
     return [
       { role: "loaded", pattern: loadedPattern },
@@ -462,7 +384,7 @@ function tripletSlots(
     return [
       { role: "loaded", pattern: loadedPattern },
       { role: "gymnastics", pattern: gym },
-      { role: "gymnastics", pattern: gymPatternChoice(profile, [loadedPattern, gym], avoidPatterns, seed + 1) },
+      { role: "gymnastics", pattern: gymPatternChoice(profile, [loadedPattern, gym], seed + 1) },
     ];
   }
   if (engine) {
@@ -483,15 +405,14 @@ function chipperSlots(
   profile: EquipmentProfile,
   avoidDumbbell: boolean,
   seed = 0,
-  avoidPatterns: MovementPattern[] = [],
 ): PieceSlot[] {
   const engine = hasEngine(profile);
   const loaded = hasLoadedAnchor(profile, avoidDumbbell);
-  const loadedPattern = loadedAnchorPattern(profile, "hinge", avoidPatterns, seed);
+  const loadedPattern = loadedAnchorPattern(profile, "hinge", seed);
   const second: MovementPattern = engine ? "jump" : "squat";
   const fourth: MovementPattern = loaded ? loadedPattern : "core";
-  const fifth = gymPatternChoice(profile, [second, fourth], avoidPatterns, seed + 3);
-  const gym = gymPatternChoice(profile, [second, fourth, fifth], avoidPatterns, seed);
+  const fifth = gymPatternChoice(profile, [second, fourth], seed + 3);
+  const gym = gymPatternChoice(profile, [second, fourth, fifth], seed);
   return [
     engine ? { role: "engine" } : { role: "gymnastics", pattern: "jump" },
     { role: "gymnastics", pattern: second },
@@ -506,16 +427,14 @@ function quadSlots(
   avoidDumbbell: boolean,
   pattern: MovementPattern,
   seed = 0,
-  avoidPatterns: MovementPattern[] = [],
 ): PieceSlot[] {
-  const base = tripletSlots(profile, avoidDumbbell, pattern, seed, avoidPatterns);
+  const base = tripletSlots(profile, avoidDumbbell, pattern, seed);
   const used = new Set(base.map((slot) => slot.pattern).filter((item): item is MovementPattern => Boolean(item)));
   const available = availableGymPatterns(profile);
   const extras: MovementPattern[] = ["core", "squat", "jump", "press", "lunge", "pull"];
   const usable = extras.filter((item) => available.has(item));
   const pool = usable.length ? usable : extras;
-  const fresh = pool.find((item) => !used.has(item) && !avoidPatterns.includes(item));
-  const next = fresh ?? pool.find((item) => !used.has(item)) ?? "core";
+  const next = pool.find((item) => !used.has(item)) ?? "core";
   return [...base, { role: "gymnastics", pattern: next }];
 }
 
@@ -537,11 +456,10 @@ function buildPieces(input: {
   pattern: MovementPattern;
   profile: EquipmentProfile;
   avoidDumbbell: boolean;
-  avoidPatterns: MovementPattern[];
   random: () => number;
   salt: number;
 }): PieceBrief[] {
-  const { date, shape, focus, domain, load, pattern, profile, avoidDumbbell, avoidPatterns, salt } = input;
+  const { date, shape, focus, domain, load, pattern, profile, avoidDumbbell, salt } = input;
   const seed = hashString(mix(date, salt, `${shape}:${pattern}`));
   const strengthScheme = (): Scheme =>
     hasBarbell(profile) && load === "heavy"
@@ -569,7 +487,7 @@ function buildPieces(input: {
         scheme: { type: "amrap", minutes: 8 },
         pattern: contrastPattern(pattern),
         load: "light",
-        slots: tripletSlots(profile, avoidDumbbell, contrastPattern(pattern), seed, avoidPatterns),
+        slots: tripletSlots(profile, avoidDumbbell, contrastPattern(pattern), seed),
         minutes: 8,
         profile,
       }),
@@ -577,7 +495,7 @@ function buildPieces(input: {
   }
 
   if (shape === "strength_metcon") {
-    const slots = tripletSlots(profile, avoidDumbbell, contrastPattern(pattern), seed, avoidPatterns);
+    const slots = tripletSlots(profile, avoidDumbbell, contrastPattern(pattern), seed);
     return [
       brief({
         kind: "strength",
@@ -622,7 +540,7 @@ function buildPieces(input: {
         scheme: { type: "amrap", minutes: 14 },
         pattern: gymSeed % 2 === 0 ? "jump" : "squat",
         load: "light",
-        slots: quadSlots(profile, avoidDumbbell, gymSeed % 2 === 0 ? "jump" : "squat", gymSeed, avoidPatterns),
+        slots: quadSlots(profile, avoidDumbbell, gymSeed % 2 === 0 ? "jump" : "squat", gymSeed),
         minutes: 14,
         profile,
       }),
@@ -634,11 +552,11 @@ function buildPieces(input: {
       brief({
         kind: "metcon",
         name: "Intervals",
-        scheme: { type: "emom", minutes: 16, everySec: 120 },
+        scheme: { type: "intervals", rounds: 6, workSec: 60, restSec: 60, task: "amrap" },
         pattern: "locomotion",
         load: "light",
-        slots: tripletSlots(profile, avoidDumbbell, pattern === "locomotion" ? "hinge" : pattern, seed, avoidPatterns),
-        minutes: 16,
+        slots: coupletSlots(profile, avoidDumbbell, pattern === "locomotion" ? "hinge" : pattern, engineSeed(seed)),
+        minutes: 12,
         profile,
       }),
     ];
@@ -649,11 +567,11 @@ function buildPieces(input: {
       brief({
         kind: "metcon",
         name: "EMOM",
-        scheme: { type: "emom", minutes: 15 },
+        scheme: { type: "emom", minutes: 12 },
         pattern,
         load: metconLoad,
-        slots: tripletSlots(profile, avoidDumbbell, pattern, seed, avoidPatterns),
-        minutes: 15,
+        slots: coupletSlots(profile, avoidDumbbell, pattern, engineSeed(seed)),
+        minutes: 12,
         profile,
       }),
     ];
@@ -667,7 +585,7 @@ function buildPieces(input: {
         scheme: { type: "ladder", reps: [21, 15, 9], capMin: 15 },
         pattern,
         load: metconLoad,
-        slots: tripletSlots(profile, avoidDumbbell, pattern, seed, avoidPatterns),
+        slots: tripletSlots(profile, avoidDumbbell, pattern, seed),
         minutes: 15,
         profile,
       }),
@@ -675,7 +593,7 @@ function buildPieces(input: {
   }
 
   if (shape === "chipper") {
-    const slots = chipperSlots(profile, avoidDumbbell, seed, avoidPatterns);
+    const slots = chipperSlots(profile, avoidDumbbell, seed);
     return [
       brief({
         kind: "metcon",
@@ -706,7 +624,7 @@ function buildPieces(input: {
   }
 
   if (shape === "quad") {
-    const slots = quadSlots(profile, avoidDumbbell, pattern, seed, avoidPatterns);
+    const slots = quadSlots(profile, avoidDumbbell, pattern, seed);
     return [
       brief({
         kind: "metcon",
@@ -722,7 +640,7 @@ function buildPieces(input: {
   }
 
   if (shape === "triplet") {
-    const slots = tripletSlots(profile, avoidDumbbell, pattern, seed, avoidPatterns);
+    const slots = tripletSlots(profile, avoidDumbbell, pattern, seed);
     return [
       brief({
         kind: "metcon",
@@ -737,7 +655,7 @@ function buildPieces(input: {
     ];
   }
 
-  const slots = coupletSlots(profile, avoidDumbbell, pattern, seed, avoidPatterns);
+  const slots = coupletSlots(profile, avoidDumbbell, pattern, seed);
   return [
     brief({
       kind: "metcon",

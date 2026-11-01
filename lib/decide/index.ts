@@ -1,11 +1,12 @@
 import { env } from "../env";
 import type { ClassPlan } from "../engine/class";
-import type { RecentSignal } from "../engine/planner";
 import { LlmDecider } from "./llm";
-import { verdictFrom, verdictThreshold, type SessionVerdict } from "./policy";
-import { SESSION_QUESTIONS, sessionState } from "./questions";
+import { chooseFromResponse, type CandidateDecision } from "./policy";
+import { candidateQuestions, candidatesState } from "./questions";
 import type { Decider } from "./types";
 import { TypeSafeDecider, typesafeConfigured } from "./typesafe";
+
+export type { CandidateDecision } from "./policy";
 
 export type DeciderMode = "auto" | "typesafe" | "llm" | "off";
 
@@ -25,41 +26,37 @@ export function makeDecider(get: (name: string) => string = env): Decider | null
 }
 
 /**
- * Ask the decision model for a second opinion on one class.
+ * Ask Jev which candidate to keep. One request holds every eligible session
+ * and one Choice question per dimension, so the model compares them directly.
+ *
  * Returns null when no decider is configured or the call fails: the caller
- * already has a deterministic answer, so a missing judge is never fatal.
+ * already has an audit-ranked answer, so a missing judge is never fatal.
  */
-export async function judgeSession(input: {
-  plan: ClassPlan;
-  recent?: RecentSignal[];
+export async function chooseCandidate(input: {
+  plans: ClassPlan[];
   decider?: Decider | null;
-}): Promise<SessionVerdict | null> {
+}): Promise<CandidateDecision | null> {
+  if (input.plans.length < 2) return null;
   const decider = input.decider === undefined ? makeDecider() : input.decider;
   if (!decider) return null;
   try {
     const response = await decider.ask({
-      state: sessionState(input.plan, input.recent ?? []),
-      questions: SESSION_QUESTIONS,
+      state: candidatesState(input.plans),
+      questions: candidateQuestions(input.plans),
     });
-    return verdictFrom(response, verdictThreshold(env));
+    const decision = chooseFromResponse(response, input.plans.length);
+    if (decision) {
+      const winner = decision.scores.find((score) => score.index === decision.winner);
+      console.info(
+        `[coach] ${decider.name} chose candidate ${decision.key} (composite ${winner?.composite.toFixed(3) ?? "n/a"}).`,
+      );
+    }
+    return decision;
   } catch (error) {
-    console.warn(`[decide] ${decider.name} could not judge the session:`, error instanceof Error ? error.message : error);
+    console.warn(
+      `[decide] ${decider.name} could not choose a session:`,
+      error instanceof Error ? error.message : error,
+    );
     return null;
   }
-}
-
-/**
- * Judge several candidates in parallel. One request each, so every verdict is
- * about a single class rather than a comparison the model has to hold in mind.
- */
-export async function judgeCandidates(input: {
-  plans: ClassPlan[];
-  recent?: RecentSignal[];
-  decider?: Decider | null;
-}): Promise<(SessionVerdict | null)[]> {
-  const decider = input.decider === undefined ? makeDecider() : input.decider;
-  if (!decider) return input.plans.map(() => null);
-  return Promise.all(
-    input.plans.map((plan) => judgeSession({ plan, recent: input.recent, decider })),
-  );
 }

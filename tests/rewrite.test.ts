@@ -22,6 +22,13 @@ test("a named workout replaces the day", () => {
     assert.deepEqual(emom.scheme, { type: "emom", minutes: 12 });
   }
 
+  const intervals = parseCoachRequest("intervals 12 min");
+  assert.equal(intervals.kind, "rebuild");
+  if (intervals.kind === "rebuild") {
+    assert.equal(intervals.shape, "intervals");
+    assert.deepEqual(intervals.scheme, { type: "intervals", rounds: 6, workSec: 60, restSec: 60, task: "amrap" });
+  }
+
   const strength = parseCoachRequest("strength then a metcon");
   assert.equal(strength.kind, "rebuild");
   if (strength.kind === "rebuild") assert.equal(strength.shape, "strength_metcon");

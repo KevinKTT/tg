@@ -86,3 +86,18 @@ export function choiceAnswer(response: DecisionResponse, key: string): string | 
   if (!answer || answer.type !== "choice") return null;
   return typeof answer.choice === "string" ? answer.choice : null;
 }
+
+/** A Choice distribution, normalized to 1. Null when the model sent none. */
+export function choiceProbabilities(
+  response: DecisionResponse,
+  key: string,
+): Record<string, number> | null {
+  const answer = response.answers[key];
+  if (!answer || answer.type !== "choice" || !answer.probabilities) return null;
+  const entries = Object.entries(answer.probabilities).filter(
+    (entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1]),
+  );
+  const total = entries.reduce((sum, [, value]) => sum + Math.max(0, value), 0);
+  if (total <= 0) return null;
+  return Object.fromEntries(entries.map(([option, value]) => [option, Math.max(0, value) / total]));
+}

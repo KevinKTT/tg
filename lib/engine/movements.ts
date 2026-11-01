@@ -745,9 +745,45 @@ export function doseInRange(movement: MovementDef, dose: Dose, scheme?: Scheme):
 }
 
 /**
- * Doses are contextual. A 2:00 interval window should not prescribe the same
- * jump-rope reps as a round of an AMRAP, and an EMOM carry cannot be 300 m.
+ * A station has to fit inside its window with rest left. Estimate the work
+ * from the movement's unit and return a dose range around that target.
  */
+function windowDoseRange(
+  movement: MovementDef,
+  base: DoseRange,
+  windowSec: number,
+  targetFraction: number,
+): DoseRange[] {
+  const window = Math.max(10, windowSec);
+  const target = Math.max(5, window * targetFraction);
+  if (base.unit === "cal") {
+    const targetCal = Math.max(1, Math.round(target / 4));
+    const min = Math.max(base.min, Math.max(1, Math.round(targetCal * 0.6)));
+    const max = Math.max(min, Math.min(base.max, targetCal));
+    return [{ unit: "cal", min, max }];
+  }
+  if (base.unit === "meters") {
+    const carry = movement.pattern === "carry";
+    const targetMeters = Math.max(20, Math.round(target / 0.27));
+    const cap = carry ? 80 : 200;
+    const max = Math.max(20, Math.min(base.max, cap, targetMeters));
+    const min = Math.max(10, Math.min(max, Math.round(max * 0.5)));
+    return [{ unit: "meters", min, max }];
+  }
+  if (base.unit === "reps") {
+    const perRep = movement.load ? (movement.pattern === "olympic" ? 4 : 3) : 2;
+    const sides = movement.unilateral ? 2 : 1;
+    const targetReps = Math.max(1, Math.round(target / (perRep * sides)));
+    const max = Math.max(1, Math.min(base.max, targetReps));
+    const min = Math.max(1, Math.round(max * 0.6));
+    return [{ unit: "reps", min, max: Math.max(min, max) }];
+  }
+  const max = Math.max(5, Math.min(base.max, Math.round(target)));
+  const min = Math.max(5, Math.round(max * 0.5));
+  return [{ unit: "seconds", min, max: Math.max(min, max) }];
+}
+
+/** Dose ranges for a scheme, with interval and EMOM stations sized to their window. */
 export function doseRangeFor(movement: MovementDef, scheme: Scheme): DoseRange[] {
   const base = movement.doses[0];
   if (!base) return [];
@@ -772,33 +808,10 @@ export function doseRangeFor(movement: MovementDef, scheme: Scheme): DoseRange[]
     if (ranges.length) return ranges;
   }
   if (scheme.type === "intervals") {
-    const work = Math.max(15, scheme.workSec);
-    if (base.unit === "cal") {
-      const min = Math.max(base.min, Math.round(work / 15));
-      const max = Math.max(min + 4, Math.round(work / 5));
-      return [{ unit: "cal", min, max }];
-    }
-    if (base.unit === "meters") {
-      const min = Math.max(base.min, Math.round(work * 2));
-      const max = Math.max(min + 50, Math.min(base.max, Math.round(work * 4)));
-      return [{ unit: "meters", min, max }];
-    }
-    if (base.unit === "reps") {
-      const perMinute = /double-under/i.test(movement.name)
-        ? 50
-        : /single-under|jump rope/i.test(movement.name)
-          ? 80
-          : /jump|skip/i.test(movement.name)
-            ? 20
-            : 15;
-      const min = Math.max(base.min, Math.round((work / 60) * perMinute * 0.7));
-      const max = Math.max(min + 5, Math.round((work / 60) * perMinute * 1.5));
-      return [{ unit: "reps", min, max }];
-    }
-    return [{ unit: "seconds", min: Math.min(base.min, work), max: Math.min(base.max, work) }];
+    return windowDoseRange(movement, base, scheme.workSec, 0.55);
   }
-  if (scheme.type === "emom" && base.unit === "meters") {
-    return [{ unit: "meters", min: Math.min(base.min, 40), max: Math.max(40, Math.min(base.max, 100)) }];
+  if (scheme.type === "emom") {
+    return windowDoseRange(movement, base, scheme.everySec ?? 60, 0.6);
   }
   return movement.doses;
 }

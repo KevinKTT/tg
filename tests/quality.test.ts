@@ -5,7 +5,7 @@ import type { InventoryItem } from "../lib/engine/movements";
 import { movementById } from "../lib/engine/movements";
 import { equipmentProfile } from "../lib/engine/movements";
 import { auditPlan, betterPlan, describePlan, movementStress } from "../lib/engine/quality";
-import { planDay, shortlistForPiece, type RecentSignal } from "../lib/engine/planner";
+import { planDay, shortlistForPiece } from "../lib/engine/planner";
 import type { Scheme } from "../lib/engine/scheme";
 
 function db(weight: number): InventoryItem {
@@ -151,20 +151,6 @@ test("prep primes the session instead of repeating it", () => {
   ];
   const repeated = workNames.filter((name) => built.prep.toLowerCase().includes(name));
   assert.ok(repeated.length <= 2, `prep repeats ${repeated.join(", ")}`);
-});
-
-test("the week pushes back against a run of the same class", () => {
-  const recent: RecentSignal[] = Array.from({ length: 6 }, (_, index) => ({
-    date: `2026-10-${25 - index}`,
-    pattern: "hinge" as const,
-    shape: "chipper" as const,
-    format: "chipper",
-    movements: ["db-deadlift"],
-    load: "moderate" as const,
-  }));
-  const next = planDay({ date: "2026-10-31", profile, recent });
-  assert.notEqual(next.shape, "chipper");
-  assert.deepEqual(planDay({ date: "2026-10-31", profile, recent }), next);
 });
 
 test("stress reads the implement and the limiter", () => {

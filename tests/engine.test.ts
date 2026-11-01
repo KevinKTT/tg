@@ -13,8 +13,9 @@ import {
   movementById,
   movementEligible,
 } from "../lib/engine/movements";
-import { hashString, planDay, shortlistForPiece, withMetconScheme, type DayAssignment, type RecentSignal } from "../lib/engine/planner";
+import { hashString, planDay, shortlistForPiece, withMetconScheme, type DayAssignment } from "../lib/engine/planner";
 import { isFiller, programmingPattern } from "../lib/engine/roles";
+import { auditPlan } from "../lib/engine/quality";
 import {
   capSecForScheme,
   formatText,
@@ -128,7 +129,7 @@ test("garage classes mix the equipment they own", () => {
     shapes.add(assignment.shape);
     for (const piece of assignment.pieces) {
       if (piece.kind !== "metcon") continue;
-      assert.ok(piece.movementCount.min >= 3 && piece.movementCount.min <= 5, `${date} metcon has ${piece.movementCount.min} movements`);
+      assert.ok(piece.movementCount.min >= 2 && piece.movementCount.min <= 5, `${date} metcon has ${piece.movementCount.min} movements`);
       assert.equal(piece.movementCount.min, piece.movementCount.max);
     }
     const shortlists = assignment.pieces.map((piece) => shortlistForPiece(piece, profiles.garage, [], () => 0.4));
@@ -159,17 +160,46 @@ test("a class is drawn at random, and a named shape wins", () => {
   assert.equal(couplet.pieces.find((piece) => piece.kind === "metcon")?.movementCount.min, 2);
 });
 
-test("recent dumbbells do not collapse a strength day", () => {
-  const recent: RecentSignal[] = [
-    { date: "2026-10-20", pattern: "hinge", movements: ["db-thruster", "db-deadlift", "db-front-squat"], load: "moderate" },
-  ];
-  const assignment = planDay({ date: "2026-10-21", profile: profiles.garage, recent, shape: "strength_metcon" });
+test("a strength day keeps a loaded slot", () => {
+  const assignment = planDay({ date: "2026-10-21", profile: profiles.garage, shape: "strength_metcon" });
   assert.equal(assignment.shape, "strength_metcon");
   assert.equal(assignment.avoidDumbbell, false);
   const metcon = assignment.pieces.find((piece) => piece.kind === "metcon");
   assert.ok(metcon);
   assert.ok(metcon.movementCount.min >= 3);
   assert.ok(metcon.slots?.some((slot) => slot.role === "loaded"));
+});
+
+test("an EMOM stays a simple two-station rotation", () => {
+  for (const shape of ["emom", "intervals"] as const) {
+    const assignment = planDay({ date: "2026-11-03", profile: profiles.garage, shape });
+    const brief = assignment.pieces.find((piece) => piece.kind === "metcon");
+    assert.ok(brief, `${shape} has no metcon`);
+    assert.equal(brief.movementCount.min, 2, `${shape} should use two stations`);
+    assert.ok(brief.slots?.some((slot) => slot.role === "engine"), `${shape} has no engine station`);
+    const shortlists = assignment.pieces.map((piece) =>
+      shortlistForPiece(piece, profiles.garage, assignment.avoidMovements, () => 0.4),
+    );
+    const plan = buildFallbackClass({
+      assignment,
+      shortlists,
+      items: garage,
+      caps: profiles.garage.caps,
+      random: () => 0.4,
+    });
+    const piece = plan.pieces.find((entry) => entry.kind === "metcon");
+    assert.ok(piece);
+    assert.equal(piece.movements.length, 2);
+    const body = renderPieceBody(piece);
+    assert.doesNotMatch(body, /^Minute \d+/m);
+    assert.equal(auditPlan(plan).hard, 0, JSON.stringify(auditPlan(plan).issues));
+    if (shape === "emom") {
+      assert.match(body, /Alternate movements each minute\./);
+    } else {
+      assert.equal(piece.scheme.type, "intervals");
+      assert.doesNotMatch(body, /^Alternate /m);
+    }
+  }
 });
 
 test("a generated body always renders movement lines", () => {

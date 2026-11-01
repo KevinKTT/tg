@@ -42,6 +42,11 @@ test("keeps an EMOM minute as a readable line", () => {
   assert.equal(line.text, "Minute 1: 30 single-unders, focus on wrist speed and soft knees");
 });
 
+test("an EMOM rotation note stays a note, not a movement", () => {
+  const [line] = parseBoard("Alternate movements each minute.");
+  assert.deepEqual(line, { type: "note", text: "Alternate movements each minute." });
+});
+
 test("keeps distance and per-side units with the dose", () => {
   const walk = parseBoard("- 80 m Weighted Vest Walk")[0];
   assert.equal(walk.type, "move");

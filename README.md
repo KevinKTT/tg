@@ -4,9 +4,9 @@ the garage. CrossFit for your garage gym.
 
 No accounts. Add your members, then pick who's lifting when you log a score or a PR. Each day is one shared workout, using only the equipment marked owned. Members are managed on the Members page; the app remembers the last person you selected on each device.
 
-Workout generation is a small programming engine plus an AI head coach. The engine chooses the week's shape, scheme, time domain, movement patterns, modalities, loads, warm-up, and cool-down. The model chooses only the title, stimulus, and movements from a shortlist. Every scored piece has one structured scheme (for time, AMRAP, EMOM, intervals, chipper, ladder, strength, max load, max reps, or skill), so the whiteboard, clock, and score form can never disagree.
+Workout generation is a small programming engine plus an AI head coach. The engine chooses the day's shape, scheme, time domain, movement patterns, modalities, loads, warm-up, and cool-down. The model chooses only the title, stimulus, and movements from a shortlist. Every scored piece has one structured scheme (for time, AMRAP, EMOM, intervals, chipper, ladder, strength, max load, max reps, or skill), so the whiteboard, clock, and score form can never disagree.
 
-Each session is composed several ways, audited by code for the things schema validation cannot see (movement stacks, grip overload, volume that does not fit the cap), and then optionally judged by a decision model. See [Decision layer](#decision-layer).
+Each session is composed four ways, audited by code for the things schema validation cannot see (movement stacks, grip overload, volume that does not fit the cap), and then optionally compared by a decision model. See [Decision layer](#decision-layer).
 
 Each day is programmed toward one complete ~45 minute class (warm-up, prep, work, cool-down). Every scored movement is written with Rx, Performance, and Lifestyle versions, and the loads come from the equipment you own and the PRs you have logged. If the model is unavailable or returns something invalid, the app composes a valid original session from the same assignment instead of failing.
 
@@ -21,6 +21,8 @@ npm run dev
 
 Open http://localhost:3000. On first run the app asks you to add your first member, then to mark the equipment you own. A fresh install starts with no members and nothing owned. Set `AI_API_KEY` to have the model compose the movements; without a key, or if the provider fails, the app falls back to its own valid session composer (see below). `TZ` controls which calendar day is "today".
 
+Use `http://localhost:3000` while developing. If you open the Network address instead, `next.config.ts` allows this machine's IPv4 origins so the client JavaScript can hydrate; restart the dev server after changing that config.
+
 ## AI provider
 
 Workout generation talks to any **OpenAI-compatible Chat Completions** endpoint, so you can use whichever model you like. Configure it with env vars:
@@ -31,6 +33,7 @@ Workout generation talks to any **OpenAI-compatible Chat Completions** endpoint,
 | `AI_BASE_URL` | `https://api.openai.com/v1` | The provider's OpenAI-compatible base URL. |
 | `AI_MODEL` | `gpt-4o-mini` | The model name as that provider expects it. |
 | `AI_MAX_OUTPUT_TOKENS` | `8000` | Completion budget, including reasoning tokens on reasoning-capable models. |
+| `AI_CANDIDATES` | `4` | Candidate sessions generated per day. Jev compares the valid ones. Set to `1` for a single session. |
 | `AI_JSON_MODE` | `schema` | `schema`, `object`, or `none`. The app degrades automatically if the provider rejects `json_schema`. |
 | `AI_REASONING_EFFORT` | unset | Sent only when set. Auto-set to `none` for a Fireworks base URL. |
 
@@ -71,9 +74,9 @@ JSON support varies by host and model. The app tries structured output first and
 
 ## Decision layer
 
-Generation is more than one shot. Every session is composed several ways: once by the model, and several times by the engine from the same assignment. Code then audits every candidate for the things schema validation cannot see — a movement stack, grip overload, volume that does not fit the cap, a prep that repeats the workout — and keeps the best one. That is why a generated class is not just plausible.
+Generation is more than one shot. The chat model composes four candidate sessions from the same assignment — one classic, one hardest-but-valid, one most varied, one most coherent — and code audits every one for the things schema validation cannot see: a movement stack, grip overload, volume that does not fit the cap, a prep that repeats the workout. Candidates with a hard audit issue never reach the judge.
 
-On top of that code audit sits an optional **decision layer**. A decision model is asked a fixed set of questions about a candidate class ("does this read as one intentional class?", "will local fatigue decide the score?", "does it add something the week is missing?") and its calibrated answers decide whether to keep the model's session or the engine's. The questions are the contract, so the same decision layer can run on Jev, on your existing chat model, or not at all.
+On top of that code audit sits an optional **decision layer**. Jev sees the eligible candidates in one state and answers comparative questions: which is the **most real** class, the **most difficult** for an intermediate Rx athlete while still finishable, the **most varied**, the **best fit** for the stated stimulus, and the **cleanest** of local fatigue. Code combines the Choice probabilities with fixed weights; the judgments stay in the question contract, so the layer can run on Jev, on your existing chat model, or not at all. The decision no longer sees week history: the planner is deterministic per date.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
@@ -82,11 +85,10 @@ On top of that code audit sits an optional **decision layer**. A decision model 
 | `TYPESAFE_MODEL` | `jev-latest` | The System One model to call. |
 | `TYPESAFE_BASE_URL` | `https://api.typesafe.ai/v1` | Only change this for a proxy. |
 | `TYPESAFE_TIMEOUT_MS` | `20000` | Per-request timeout. |
-| `AI_DECIDER_THRESHOLD` | `0.6` | Confidence needed to keep a class. Raise it for stricter taste. |
 
-The decision layer is advisory, never required. With no key and no `AI_DECIDER`, generation is unchanged: the engine still audits, ranks, and repairs its own candidates. If the decision model times out or errors, the deterministic result stands.
+The decision layer is advisory, never required. With no key and no `AI_DECIDER`, generation still audits and ranks the AI candidates and keeps the best one. If the decision model times out or errors, the deterministic result stands.
 
-`AI_DECIDER=llm` answers the same questions through your configured chat provider, which is useful for comparing the two before committing to a key.
+`AI_DECIDER=llm` answers the same comparative questions through your configured chat provider, which is useful for comparing the two before committing to a key. The chosen candidate, per-dimension probabilities, its audit, and the model are stored in the day's `program` JSON under `decision`.
 
 
 ## Docker

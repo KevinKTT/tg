@@ -19,10 +19,11 @@ Return one JSON object:
 Answer shapes:
 - noul:  { "type": "noul", "noul": 0.0 to 1.0 }  // probability the statement is true
 - score: { "type": "score", "score": 0 to criteria.length - 1, "confidence": 0.0 to 1.0 }
-- choice:{ "type": "choice", "choice": "<one of the criteria keys>", "confidence": 0.0 to 1.0 }
+- choice:{ "type": "choice", "choice": "<one of the criteria keys>", "confidence": 0.0 to 1.0, "probabilities": { "<criteria key>": 0.0 to 1.0 } }
 
 Rules:
 - Use probabilities you would defend, not rounded slogans. 0.5 means genuinely unsure.
+- For a choice, include one probability for every criteria key and make them sum to 1.
 - Never invent a question id and never invent a choice that is not a criteria key.
 - Return JSON only. No commentary.`;
 
@@ -53,6 +54,29 @@ function extractJson(text: string): unknown {
   return JSON.parse(raw.slice(start, end + 1));
 }
 
+function normaliseProbabilities(
+  value: unknown,
+  criteria: Record<string, string>,
+  choice: string,
+): Record<string, number> {
+  const probabilities: Record<string, number> = Object.fromEntries(
+    Object.keys(criteria).map((key) => [key, 0]),
+  );
+  if (value && typeof value === "object") {
+    for (const key of Object.keys(criteria)) {
+      const raw = (value as Record<string, unknown>)[key];
+      if (typeof raw === "number" && Number.isFinite(raw)) probabilities[key] = Math.max(0, raw);
+    }
+  }
+  const total = Object.values(probabilities).reduce((sum, probability) => sum + probability, 0);
+  if (total > 0) {
+    return Object.fromEntries(
+      Object.entries(probabilities).map(([key, probability]) => [key, probability / total]),
+    );
+  }
+  return Object.fromEntries(Object.keys(criteria).map((key) => [key, key === choice ? 1 : 0]));
+}
+
 function normaliseAnswers(value: unknown, questions: Record<string, Question>): Record<string, Answer> {
   if (!value || typeof value !== "object") throw new Error("The model returned no answers.");
   const raw = (value as { answers?: unknown }).answers;
@@ -78,6 +102,7 @@ function normaliseAnswers(value: unknown, questions: Record<string, Question>): 
         type: "choice",
         choice: row.choice,
         confidence: clamp01(typeof row.confidence === "number" ? row.confidence : 0.5),
+        probabilities: normaliseProbabilities(row.probabilities, question.criteria, row.choice),
       };
     }
   }

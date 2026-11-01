@@ -6,14 +6,12 @@ import {
   getDay,
   listAthletes,
   listEquipment,
-  recentDaySignals,
   saveGeneratedDay,
   type DayView,
   type EquipmentRow,
   type TrackView,
 } from "./db";
 import { env, loadEnv } from "./env";
-import { scanMovements } from "./program";
 import {
   aiWorkoutSchema,
   buildClassFromAi,
@@ -34,7 +32,6 @@ import {
   type Dose,
   type EquipmentProfile,
   type MovementDef,
-  type MovementPattern,
 } from "./engine/movements";
 import {
   assignmentPrompt,
@@ -45,7 +42,6 @@ import {
   withMetconScheme,
   type DayAssignment,
   type Focus,
-  type RecentSignal,
   type SessionShape,
   type Shortlist,
 } from "./engine/planner";
@@ -53,14 +49,14 @@ import { formatText, schemeMinutes, type Scheme } from "./engine/scheme";
 import { coachDose } from "./engine/roles";
 import { formatIssues, validateAiWorkout } from "./engine/validate";
 import { auditPlan, betterPlan } from "./engine/quality";
-import { judgeCandidates } from "./decide";
+import { chooseCandidate, type CandidateDecision } from "./decide";
 
 const SYSTEM_PROMPT = `You are the head coach for a small garage CrossFit gym.
 The assignment already chose the scheme and the slots. You choose the title, the stimulus, and one movement per slot.
 
 Standards:
 - Use only movement IDs from that slot. Return them in slot order. Never use equipment the athlete does not own.
-- Prefer the first IDs in each slot. They are the classic choices. Do not pick a variation, trick, isometric, or accessory when a staple is listed.
+- Prefer the first IDs in each slot. They are the classic choices, unless the candidate emphasis asks for a different valid choice. Do not pick a variation, trick, isometric, or accessory when a staple is listed.
 - Fill a loaded slot, a gymnastics slot, and an engine slot with those staples when the assignment lists them.
 - Keep every dose inside the range shown. A couplet or triplet round should take about a minute. An EMOM minute, or a 2-minute station, should finish with rest left. A chipper is one hard pass.
 - Never stack two movements with the same pattern in one piece.
@@ -83,41 +79,6 @@ function inventoryText(items: EquipmentRow[]) {
 
 function memberLabel(member: { initials: string; name: string; sex: string }): string {
   return `${member.initials} (${member.name}, ${member.sex === "f" ? "female" : "male"})`;
-}
-
-function recentSignals(date: string): RecentSignal[] {
-  return recentDaySignals(date, 14).map((row) => {
-    let pattern: MovementPattern = "none";
-    let movements: string[] = [];
-    let load: RecentSignal["load"];
-    let shape: RecentSignal["shape"];
-    try {
-      const stored = JSON.parse(row.program) as {
-        pattern?: MovementPattern;
-        movements?: string[];
-        load?: RecentSignal["load"];
-        shape?: RecentSignal["shape"];
-      };
-      if (stored.pattern) pattern = stored.pattern;
-      if (Array.isArray(stored.movements)) movements = stored.movements;
-      if (stored.load) load = stored.load;
-      if (stored.shape) shape = stored.shape;
-    } catch {
-      // Legacy row: fall back to scanning the rendered text.
-    }
-    if (!movements.length) {
-      movements = scanMovements(row.text).map((hit) => hit.slug);
-    }
-    return {
-      date: row.date,
-      pattern,
-      shape,
-      format: row.format,
-      scheme: row.format,
-      movements,
-      load,
-    };
-  });
 }
 
 function seededRandom(seed: number) {
@@ -144,17 +105,16 @@ function userPrompt(input: {
 }): string {
   const gear = inventoryText(input.items) || "- bodyweight only";
   const roster = input.members.length ? input.members.map(memberLabel).join("; ") : "no members added";
-  const avoid = input.assignment.avoidMovements.length
-    ? input.assignment.avoidMovements.map((id) => movementById(id)?.name ?? id).join(", ")
-    : "none";
+  const avoid = input.assignment.avoidMovements
+    .map((id) => movementById(id)?.name ?? id)
+    .join(", ");
+  const avoidLine = avoid ? `\nAVOID THESE MOVEMENTS (the day is being rewritten): ${avoid}\n` : "";
   return `DATE: ${input.assignment.date}
 ROSTER: ${roster}
 
 OWNED EQUIPMENT (anything absent is forbidden):
 ${gear}
-
-RECENTLY USED (avoid unless the piece truly needs it): ${avoid}
-
+${avoidLine}
 ${assignmentPrompt(input.assignment, input.shortlists)}
 
 Return:
@@ -175,7 +135,10 @@ function client(config: ProviderConfig) {
   return new OpenAI({
     apiKey: config.apiKey,
     baseURL: config.baseURL,
-    timeout: 90_000,
+    // Candidates run in parallel. Keep one slow provider attempt from eating
+    // the route budget: the engine fallback is always available.
+    timeout: 75_000,
+    maxRetries: 0,
   });
 }
 
@@ -240,16 +203,22 @@ async function askForWorkout(input: {
   shortlists: Shortlist[];
   items: EquipmentRow[];
   members: { initials: string; name: string; sex: string }[];
+  temperature?: number;
+  flavor?: string;
+  attempts?: number;
 }): Promise<AiWorkout> {
   const config = resolveProvider(env);
   const profile = equipmentProfile(input.items);
+  const flavor = input.flavor ? `CANDIDATE EMPHASIS: ${input.flavor}\n\n` : "";
   const messages: { role: "system" | "user"; content: string }[] = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: userPrompt(input) },
+    { role: "user", content: `${flavor}${userPrompt(input)}` },
   ];
+  const attempts = Math.max(1, input.attempts ?? 2);
+  const temperature = input.temperature ?? 0.7;
   let lastIssues: string[] = [];
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const content = await completeWithFallback(messages, config, attempt === 0 ? 0.7 : 0.2);
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const content = await completeWithFallback(messages, config, attempt === 0 ? temperature : 0.2);
     const parsed = parseAiWorkout(extractJson(content));
     if (!parsed) {
       lastIssues = ["Return the required JSON object with title, stimulus, and pieces."];
@@ -262,7 +231,7 @@ async function askForWorkout(input: {
       if (!issues.length) return parsed;
       lastIssues = issues.map((issue) => `${issue.path}: ${issue.message}`);
     }
-    if (attempt === 0) {
+    if (attempt < attempts - 1) {
       messages.push({
         role: "user",
         content: `Fix these issues. Do not change the scheme or piece count. Return the full corrected JSON object.\n${lastIssues.map((issue) => `- ${issue}`).join("\n")}`,
@@ -290,6 +259,21 @@ function fallbackPlan(
 }
 
 const VARIANTS = 4;
+const DEFAULT_CANDIDATES = 4;
+
+const CANDIDATE_FLAVORS = [
+  "Make the classic choice: prefer the first IDs in each slot.",
+  "Make the hardest valid choice: choose the most demanding movement and the top of its dose range in each slot, while keeping the session completable.",
+  "Make the most varied choice: where a slot offers a different pattern or implement from the first ID, prefer it.",
+  "Make the most coherent choice: choose the combination that best delivers the stated stimulus, even if it is not the first ID.",
+];
+
+function candidateCount(): number {
+  const raw = env("AI_CANDIDATES").trim();
+  const parsed = raw ? Number(raw) : Number.NaN;
+  if (!Number.isFinite(parsed)) return DEFAULT_CANDIDATES;
+  return Math.min(8, Math.max(1, Math.floor(parsed)));
+}
 
 function planFingerprint(plan: ClassPlan): string {
   return plan.pieces
@@ -297,15 +281,37 @@ function planFingerprint(plan: ClassPlan): string {
     .join("|");
 }
 
+async function aiPlanFor(assignment: DayAssignment, items: EquipmentRow[], index: number): Promise<ClassPlan> {
+  const ai = await askForWorkout({
+    assignment,
+    shortlists: shortlistsFor(assignment, items, index),
+    items,
+    members: listAthletes(),
+    temperature: 0.7,
+    flavor: CANDIDATE_FLAVORS[index % CANDIDATE_FLAVORS.length],
+    attempts: 1,
+  });
+  return buildClassFromAi({
+    assignment,
+    ai,
+    items,
+    caps: equipmentProfile(items).caps,
+    random: seededRandom(assignment.seed + 7 + index * 13),
+  });
+}
+
+export type ComposedPlan = {
+  plan: ClassPlan;
+  decision?: CandidateDecision;
+};
+
 /**
- * Generate more than one answer, then keep the best one.
- *
- * The model is asked for one session; the engine also composes several valid
- * interpretations of the same assignment. Every candidate is audited by code,
- * then the decision model gets a say when the two best candidates disagree.
- * One shot at temperature 0.7 is how a workout ends up merely plausible.
+ * Generate four interpretations of the same assignment, audit them, then let
+ * Jev choose among the ones code cannot rule out. Difficulty cannot override
+ * feasibility: a candidate with a hard audit issue never reaches the judge.
  */
-async function composePlan(assignment: DayAssignment, items: EquipmentRow[]): Promise<ClassPlan> {
+async function composePlan(assignment: DayAssignment, items: EquipmentRow[]): Promise<ComposedPlan> {
+  const count = candidateCount();
   const shortlists = shortlistsFor(assignment, items);
   const fallback = Array.from({ length: VARIANTS }, (_, variant) =>
     fallbackPlan(
@@ -317,57 +323,53 @@ async function composePlan(assignment: DayAssignment, items: EquipmentRow[]): Pr
   );
   const bestFallback = fallback.reduce(betterPlan);
 
-  let aiPlan: ClassPlan | null = null;
-  try {
-    const ai = await askForWorkout({
-      assignment,
-      shortlists,
-      items,
-      members: listAthletes(),
-    });
-    aiPlan = buildClassFromAi({
-      assignment,
-      ai,
-      items,
-      caps: equipmentProfile(items).caps,
-      random: seededRandom(assignment.seed + 7),
-    });
-  } catch {
-    // The fallback is a valid, original session. Never fail generation.
-    aiPlan = null;
-  }
-
-  if (!aiPlan) return bestFallback;
-  if (planFingerprint(aiPlan) === planFingerprint(bestFallback)) return aiPlan;
-
-  const aiAudit = auditPlan(aiPlan);
-  const fallbackAudit = auditPlan(bestFallback);
-  let chosen = aiAudit.hard === 0 ? aiPlan : bestFallback;
-
-  const [aiVerdict, fallbackVerdict] = await judgeCandidates({
-    plans: [aiPlan, bestFallback],
-    recent: recentSignals(assignment.date),
+  const configured = Boolean(env("AI_API_KEY") || env("FIREWORKS_API_KEY"));
+  const settled = await Promise.allSettled(
+    Array.from({ length: count }, (_, index) => aiPlanFor(assignment, items, index)),
+  );
+  const aiCandidates = settled.flatMap((result, index) => {
+    if (result.status === "fulfilled") return [{ plan: result.value, index }];
+    if (configured) {
+      const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      console.warn(`[coach] candidate ${index + 1} failed: ${reason}`);
+    }
+    return [];
   });
-  if (aiVerdict && fallbackVerdict) {
-    const aiPasses = aiVerdict.keep && aiAudit.hard === 0;
-    const fallbackPasses = fallbackVerdict.keep && fallbackAudit.hard === 0;
-    if (aiPasses && !fallbackPasses) chosen = aiPlan;
-    else if (!aiPasses && fallbackPasses) chosen = bestFallback;
-    else if (aiPasses && fallbackPasses) {
-      // Keep the model's session unless the engine's is clearly better.
-      chosen = fallbackVerdict.confidence > aiVerdict.confidence + 0.1 ? bestFallback : aiPlan;
-    }
-    if (!aiVerdict.keep) {
-      console.info(`[coach] judged the model's session unfit: ${aiVerdict.reasons.join("; ") || "low confidence"}.`);
-    }
+  if (configured && aiCandidates.length === 0) {
+    console.warn(`[coach] all ${count} AI candidates failed; using the engine's deterministic session.`);
   }
-  return chosen;
+
+  const seen = new Set<string>();
+  const unique = aiCandidates.filter(({ plan }) => {
+    const fingerprint = planFingerprint(plan);
+    if (seen.has(fingerprint)) return false;
+    seen.add(fingerprint);
+    return true;
+  });
+  const audited = unique.map(({ plan, index }) => ({ plan, index, audit: auditPlan(plan) }));
+  const eligible = audited.filter((entry) => entry.audit.hard === 0);
+
+  if (eligible.length === 0) {
+    if (audited.length === 0) return { plan: bestFallback };
+    console.warn("[coach] no AI candidate passed the hard audit; comparing the best against the engine fallback.");
+    const bestAi = audited.map((entry) => entry.plan).reduce(betterPlan);
+    return { plan: betterPlan(bestAi, bestFallback) };
+  }
+  if (eligible.length === 1) return { plan: eligible[0].plan };
+
+  const decision = await chooseCandidate({ plans: eligible.map((entry) => entry.plan) });
+  if (decision && eligible[decision.winner]) {
+    return { plan: eligible[decision.winner].plan, decision };
+  }
+  const best = eligible.map((entry) => entry.plan).reduce(betterPlan);
+  return { plan: best };
 }
 
 function savePlan(input: {
   assignment: DayAssignment;
   plan: ClassPlan;
   items: EquipmentRow[];
+  decision?: CandidateDecision;
 }) {
   const parts = input.plan.pieces.map((piece) => generatedPart(piece));
   const audit = auditPlan(input.plan);
@@ -389,6 +391,7 @@ function savePlan(input: {
         hard: audit.hard,
         codes: [...new Set(audit.issues.map((issue) => issue.code))],
       },
+      ...(input.decision ? { decision: input.decision } : {}),
     }),
     snapshot: JSON.stringify(input.items.filter((item) => item.owned).map((item) => ({ slug: item.slug, quantity: item.quantity }))),
     track: {
@@ -489,7 +492,11 @@ function schemeFromNote(text: string, shape: SessionShape): Scheme | undefined {
     const reps = ladder ? [Number(ladder[1]), Number(ladder[2]), Number(ladder[3])] : [21, 15, 9];
     return { type: "ladder", reps, capMin: Math.max(12, minutes || 15) };
   }
-  if (shape === "intervals") return { type: "emom", minutes: minutes || 16, everySec: 120 };
+  if (shape === "intervals") {
+    const total = minutes || 12;
+    const rounds = Math.max(2, Math.round((total * 60) / 120));
+    return { type: "intervals", rounds, workSec: 60, restSec: 60, task: "amrap" };
+  }
   if (shape === "emom") return { type: "emom", minutes: minutes || 15 };
   if (shape === "chipper") return minutes ? { type: "chipper", capMin: minutes } : undefined;
   const rounds = Number(text.match(/(\d+)\s*rounds?\b/)?.[1] ?? 0);
@@ -734,13 +741,12 @@ export async function generateDay(input: { date: string; focus?: string }) {
     date: input.date,
     focus,
     profile: equipmentProfile(items),
-    recent: recentSignals(input.date),
     salt: prior.salt,
     avoid: prior.avoid,
   });
-  const plan = await composePlan(assignment, items);
-  savePlan({ assignment, plan, items });
-  return { title: plan.title };
+  const composed = await composePlan(assignment, items);
+  savePlan({ assignment, plan: composed.plan, items, decision: composed.decision });
+  return { title: composed.plan.title };
 }
 
 export async function rewriteDay(input: { date: string; intent: string; note?: string }) {
@@ -830,7 +836,6 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
       brief: `METCON: ${formatText(request.scheme)}. ${count} movements.`,
       seed: hashString(`${input.day.date}:${input.note}`),
       avoidMovements: [],
-      avoidPatterns: [],
       avoidDumbbell: false,
     };
     const names = defs.map((movement) => movement.name);
@@ -856,13 +861,12 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
       date: input.day.date,
       shape: request.shape,
       profile,
-      recent: recentSignals(input.day.date),
       salt: hashString(`${input.day.date}:${input.note}`),
     });
     const assignment = request.scheme ? withMetconScheme(planned, request.scheme) : planned;
-    const plan = await composePlan(assignment, items);
-    savePlan({ assignment, plan, items });
-    return { title: plan.title };
+    const composed = await composePlan(assignment, items);
+    savePlan({ assignment, plan: composed.plan, items, decision: composed.decision });
+    return { title: composed.plan.title };
   }
 
   const structured = input.track.parts.filter((part) => part.scheme && part.movements?.length);
@@ -909,7 +913,6 @@ async function clarifyDay(input: { day: DayView; track: TrackView; note: string 
     brief: pieces.map((piece) => `${piece.kind}: ${formatText(piece.scheme)}`).join("\n"),
     seed: hashString(`${input.day.date}:clarify`),
     avoidMovements: [],
-    avoidPatterns: [],
     avoidDumbbell: false,
   };
   const shortlists = pieces.map((piece, index) => {

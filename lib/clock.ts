@@ -178,7 +178,7 @@ export function clockPlanForScheme(scheme: Scheme): ClockPlan {
         restSec: scheme.restSec,
         savesTime: false,
         label: scheme.task === "amrap" ? "AMRAP" : "Work",
-        count: 0,
+        count: scheme.rounds,
       };
     case "for_time":
     case "chipper":
@@ -237,6 +237,9 @@ function intervalFace(plan: ClockPlan, elapsed: number): ClockFace {
   if (plan.restSec > 0) {
     const cycle = plan.seconds + plan.restSec;
     const window = Math.floor(elapsed / cycle);
+    if (plan.count > 0 && window >= plan.count) {
+      return { display: "0:00", caption: "Done", mark: plan.count * 2 };
+    }
     const into = elapsed % cycle;
     if (into < plan.seconds) {
       return { display: formatTime(plan.seconds - into), caption: "Work", mark: window * 2 };

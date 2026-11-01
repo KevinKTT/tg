@@ -26,11 +26,13 @@ function parseEnv(text: string) {
 export function loadEnv() {
   if (loaded) return;
   loaded = true;
-  for (const name of [".env", ".env.local"]) {
+  // .env.local is the developer override and wins over .env. A real process
+  // environment value wins over both.
+  for (const name of [".env.local", ".env"]) {
     const file = path.join(/*turbopackIgnore: true*/ process.cwd(), name);
     if (!fs.existsSync(file)) continue;
     for (const [key, value] of parseEnv(fs.readFileSync(file, "utf8"))) {
-      if (!value.trim()) continue;
+      if (!value.trim() || fromFile.has(key)) continue;
       fromFile.set(key, value);
       const live = process.env[key];
       if (typeof live === "string" && live.trim()) continue;

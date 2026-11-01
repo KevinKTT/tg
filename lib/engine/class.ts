@@ -10,7 +10,7 @@ import {
 } from "./movements";
 import type { DayAssignment, PieceBrief, Shortlist } from "./planner";
 import { coachDose, programmingPattern } from "./roles";
-import { formatText, type Scheme, type ScoreType, scoreTypeForScheme, capSecForScheme } from "./scheme";
+import { formatText, formatSpan, type Scheme, type ScoreType, scoreTypeForScheme, capSecForScheme } from "./scheme";
 
 export type PlannedPiece = {
   kind: PieceBrief["kind"];
@@ -250,16 +250,15 @@ function renderPieceLines(piece: PlannedPiece): string {
   const scheme = piece.scheme;
   if (!piece.movements.length) return "";
   if (scheme.type === "emom") {
-    const minutes = Math.max(1, Math.min(30, scheme.minutes));
-    const lines: string[] = [];
-    for (let minute = 1; minute <= minutes; minute += 1) {
-      const item = piece.movements[(minute - 1) % piece.movements.length];
-      const movement = movementById(item.id);
-      const dose = movement ? doseText(movement, item.dose) : writtenDose(item.dose);
-      const name = movement ? movement.name : movementDisplayName(item.id);
-      lines.push(`Minute ${minute}: ${dose ? `${dose} ` : ""}${name}`);
-    }
-    return lines.join("\n");
+    const every = scheme.everySec && scheme.everySec !== 60 ? `every ${formatSpan(scheme.everySec)}` : "each minute";
+    const note =
+      piece.movements.length === 1
+        ? ""
+        : piece.movements.length === 2
+          ? `Alternate movements ${every}.`
+          : `Rotate through the movements ${every}.`;
+    const lines = piece.movements.map(renderMovementLine);
+    return note ? [note, ...lines].join("\n") : lines.join("\n");
   }
   if (scheme.type === "strength" || scheme.type === "max_load" || scheme.type === "skill") {
     return piece.movements.map((item) => `- ${movementDisplayName(item.id)}`).join("\n");
