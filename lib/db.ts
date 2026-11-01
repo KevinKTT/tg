@@ -240,10 +240,14 @@ function ensureColumn(db: Database.Database, table: string, column: string, ddl:
   return true;
 }
 
+export function databasePath(): string {
+  loadEnv();
+  return env("DATABASE_PATH") || path.join(process.cwd(), "data", "tg.sqlite");
+}
+
 export function getDb() {
   if (database) return database;
-  loadEnv();
-  const file = env("DATABASE_PATH") || path.join(process.cwd(), "data", "tg.sqlite");
+  const file = databasePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new Database(file);
   db.pragma("journal_mode = WAL");

@@ -114,7 +114,7 @@ git pull
 docker compose up -d --build
 ```
 
-Schema changes apply themselves on startup without deleting rows, so workouts, members, scores, and PRs survive every update. Back up first if you want a safety net, and never run `docker compose down -v` (that deletes the named volume) or point `TG_DATA_PATH` at an empty directory.
+Schema changes apply themselves on startup without deleting rows, so workouts, members, scores, and PRs survive every update. A small `tg.sqlite` next to a large `tg.sqlite-wal` is healthy: newer pages live in the WAL until SQLite checkpoints them. The `.sqlite`, `-wal`, and `-shm` files must stay together. Back up first if you want a safety net, and never run `docker compose down -v` (that deletes the named volume) or point `TG_DATA_PATH` at an empty directory.
 
 ### Access
 
