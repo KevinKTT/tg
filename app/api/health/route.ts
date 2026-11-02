@@ -1,11 +1,10 @@
-import { getDb } from "@/lib/db";
+import { readHealth } from "@/lib/health";
 
 export const runtime = "nodejs";
 
 export function GET() {
   try {
-    getDb().prepare("SELECT 1").get();
-    return Response.json({ ok: true });
+    return Response.json(readHealth());
   } catch {
     return Response.json({ ok: false }, { status: 503 });
   }
